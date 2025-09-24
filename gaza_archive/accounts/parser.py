@@ -28,7 +28,7 @@ class AccountsParser:
             and not str(elem.get("href", "")).endswith("/@aral")
         ]
 
-    def parse(self) -> list[str]:
+    def parse(self) -> list[Account]:
         try:
             response = requests.get(
                 self.config.accounts_source_url, timeout=self.config.http_timeout
