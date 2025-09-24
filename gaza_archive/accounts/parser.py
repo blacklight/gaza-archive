@@ -6,7 +6,7 @@ from ..errors import HttpError
 from ..model import Account
 
 
-class AccountsParser:
+class AccountsParser:  # pylint: disable=too-few-public-methods
     """
     Parser for verified accounts from a given source URL
 
