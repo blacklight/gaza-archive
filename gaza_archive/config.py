@@ -32,5 +32,5 @@ class Config:  # pylint: disable=too-few-public-methods
                 "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org"
             ),
             http_timeout=int(os.getenv("HTTP_TIMEOUT", "20")),
-            debug=os.getenv("DEBUG", "false").lower() == "true",
+            debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
         )
