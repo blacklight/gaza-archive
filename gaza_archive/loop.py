@@ -37,9 +37,13 @@ class Loop(Thread):
     def refresh_accounts(self) -> list[Account]:
         log.info("Refreshing accounts...")
         t_start = time()
+
         verified_accounts = self.api.get_verified_accounts()
         accounts = self.api.refresh_accounts(verified_accounts)
-        posts = self.api.refresh_posts(accounts)
+
+        # TODO Do it only with one accounts for now
+        # posts = self.api.refresh_posts(accounts)
+        posts = self.api.refresh_posts([accounts[0]])
 
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)

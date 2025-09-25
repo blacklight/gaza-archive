@@ -7,7 +7,7 @@ import requests
 
 from ..config import Config
 from ..errors import AccountNotFoundError, HttpError
-from ..model import Account, Post
+from ..model import Account, Media, Post
 
 log = getLogger(__name__)
 
@@ -140,6 +140,16 @@ class MastodonApi(ABC):
                             if status["in_reply_to_account_id"]
                             else None
                         ),
+                        attachments=[
+                            Media(
+                                url=media["url"],
+                                id=str(media["id"]),
+                                type=media.get("type"),
+                                description=media.get("description"),
+                                post_url=str(status["url"]),
+                            )
+                            for media in status.get("media_attachments", [])
+                        ],
                         created_at=datetime.fromisoformat(status["created_at"]),
                         updated_at=(
                             datetime.fromisoformat(status["edited_at"])

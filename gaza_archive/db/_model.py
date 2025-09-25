@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, String, Text, DateTime, ForeignKey, Tabl
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from ..model import Account as ModelAccount, Post as ModelPost
+from ..model import Account as ModelAccount, Media as ModelMedia, Post as ModelPost
 
 Base = declarative_base()
 
@@ -55,7 +55,6 @@ class Account(Base):
 
     @classmethod
     def from_model(cls, model: ModelAccount) -> "Account":
-        # TODO Also map followers, following, posts etc.
         return cls(
             url=model.url,
             id=model.id,
@@ -67,7 +66,6 @@ class Account(Base):
         )
 
     def to_model(self, last_status_id: str | None = None) -> ModelAccount:
-        # TODO Also map followers, following, posts etc.
         return ModelAccount(
             url=self.url,  # type: ignore
             id=self.id,  # type: ignore
@@ -112,7 +110,6 @@ class Post(Base):
 
     @classmethod
     def from_model(cls, model: ModelPost) -> "Post":
-        # TODO Also map media etc.
         return cls(
             url=model.url,
             id=model.id,
@@ -126,7 +123,6 @@ class Post(Base):
         )
 
     def to_model(self) -> ModelPost:
-        # TODO Also map media etc.
         return ModelPost(
             url=self.url,  # type: ignore
             id=self.id,  # type: ignore
@@ -156,3 +152,22 @@ class Media(Base):
 
     # Relationships
     post = relationship("Post", back_populates="media")
+
+    @classmethod
+    def from_model(cls, model: ModelMedia, post_url: str) -> "Media":
+        return cls(
+            url=model.url,
+            id=model.id,
+            type=model.type,
+            description=model.description,
+            post_url=post_url,
+        )
+
+    def to_model(self, post_url: str | None = None) -> ModelMedia:
+        return ModelMedia(
+            url=self.url,  # type: ignore
+            id=self.id,  # type: ignore
+            type=self.type,  # type: ignore
+            description=self.description,  # type: ignore
+            post_url=post_url or self.post_url,  # type: ignore
+        )

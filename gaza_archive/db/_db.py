@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from ..config import Config
 from ..model import Account, Post
-from ._model import Base, Account as DbAccount, Post as DbPost
+from ._model import Base, Account as DbAccount, Media as DbMedia, Post as DbPost
 
 log = getLogger(__name__)
 
@@ -98,7 +98,14 @@ class Db:
 
             for post in posts:
                 if post.url not in db_posts:
-                    log.info("Adding new post: %s", post.url)
+                    log.info(
+                        "Adding new post with %d attachments: %s",
+                        len(post.attachments),
+                        post.url,
+                    )
                     session.add(DbPost.from_model(post))
+
+                    for media in post.attachments:
+                        session.add(DbMedia.from_model(media, post.url))
 
             session.commit()
