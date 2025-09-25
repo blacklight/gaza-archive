@@ -32,7 +32,7 @@ class GazaVerifiedApi(ABC):
             and not str(elem.get("href", "")).endswith("/@aral")
         ]
 
-    def get_accounts(self) -> list[Account]:
+    def get_verified_accounts(self) -> list[Account]:
         try:
             log.info(
                 "Fetching list of verified accounts from %s",

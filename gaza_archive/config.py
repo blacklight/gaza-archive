@@ -15,6 +15,7 @@ class Config:  # pylint: disable=too-few-public-methods
     poll_interval: int
     db_url: str
     user_agent: str
+    concurrent_requests: int
     debug: bool
 
     def __post_init__(self):
@@ -38,5 +39,6 @@ class Config:  # pylint: disable=too-few-public-methods
             poll_interval=int(os.getenv("POLL_INTERVAL", "300")),
             db_url=os.getenv("DB_URL", "sqlite:///./data.db"),
             user_agent=os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0"),
+            concurrent_requests=int(os.getenv("CONCURRENT_REQUESTS", "5")),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
         )

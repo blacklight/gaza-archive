@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from ..config import Config
 from ..model import Account
-from ._model import Base, Account as DbAccount, Post as DbPost, Media as DbMedia
+from ._model import Base, Account as DbAccount
 
 log = getLogger(__name__)
 
@@ -37,7 +37,7 @@ class Db:
         with self.get_session() as session:
             db_accounts = session.query(DbAccount).all()
             self._accounts = {
-                db_account.username: db_account.to_model() for db_account in db_accounts
+                str(db_account.url): db_account.to_model() for db_account in db_accounts
             }
 
         log.info("Loaded %d accounts from database.", len(self._accounts))

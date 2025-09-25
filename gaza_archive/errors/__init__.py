@@ -20,3 +20,19 @@ class HttpError(Error, RuntimeError):
     def __init__(self, *args, status_code: int = 500, **kwargs):
         self.status_code = status_code
         super().__init__(*args, **kwargs)
+
+
+class AccountError(Error):
+    """
+    General account-related error.
+    """
+
+    def __init__(self, *args, account: str = "", **kwargs):
+        self.account = account
+        super().__init__(*args, **kwargs)
+
+
+class AccountNotFoundError(AccountError, LookupError):
+    """
+    Raised when an account is not found.
+    """

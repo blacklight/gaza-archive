@@ -23,7 +23,7 @@ class Account(Item):
 
     @property
     def username(self) -> str:
-        return self.url.split("/")[-1]
+        return self.url.split("/")[-1].lstrip("@")
 
     @property
     def feedURL(self) -> str:
@@ -38,8 +38,13 @@ class Account(Item):
         return f"https://{self.instance}"
 
     @property
+    def instanceApiUrl(self) -> str:
+        return f"https://{self.instance}/api/v1"
+
+    @property
     def apiURL(self) -> str:
-        return f"{self.instanceURL}/api/v1/accounts/{self.username[1:]}"
+        assert self.id, "Account ID is not set"
+        return f"{self.instanceApiUrl}/accounts/{self.id}"
 
     def __eq__(self, other) -> bool:
         """

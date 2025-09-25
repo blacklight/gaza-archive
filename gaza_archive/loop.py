@@ -1,10 +1,11 @@
 import logging
 from threading import Event, Thread
+from time import time
 
-from .api import Api
-from .db import Db
 from .config import Config
+from .db import Db
 from .model import Account
+from .scrapers import Api
 
 log = logging.getLogger(__name__)
 
@@ -16,7 +17,6 @@ class Loop(Thread):
 
     def __init__(self, config: Config, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.accounts: dict[str, Account] = {}
         self.api = Api(config)
         self.config = config
         self.db = Db(self.config)
@@ -24,31 +24,28 @@ class Loop(Thread):
 
     def _main(self):
         """
-        Main async loop
+        Main loop
         """
         while not self._stop_event.is_set():
             try:
-                accounts = self.api.get_accounts()
-                print(accounts)
-                # for account in accounts:
-                #     self.fetch_account_activity(account)
-                #     break  # TODO
+                self.refresh_accounts()
             except Exception as e:
                 log.error("Error in main loop: %s", e)
             finally:
                 self._stop_event.wait(self.config.poll_interval)
 
-    # def fetch_account_activity(self, account: Account) -> list[Item]:
-    #     items = []
-    #     log.info("Fetching activity for account: %s", account.username)
-    #     print(account.apiURL)
-    #     response = requests.get(
-    #         account.apiURL,
-    #         timeout=self.config.http_timeout,
-    #         headers={"User-Agent": self.config.user_agent},
-    #     )
+    def refresh_accounts(self) -> list[Account]:
+        log.info("Refreshing accounts...")
+        t_start = time()
+        accounts = self.api.refresh_accounts(self.api.get_verified_accounts())
 
-    #     print(response.text)
+        # TODO Fetch account activity here
+
+        self.db.save_accounts(accounts)
+        log.info(
+            "Fetched %d accounts in %.2f seconds.", len(accounts), time() - t_start
+        )
+        return accounts
 
     def run(self):
         """
