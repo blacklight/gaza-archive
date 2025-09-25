@@ -7,7 +7,7 @@ import requests
 
 from ..config import Config
 from ..errors import AccountNotFoundError, HttpError
-from ..model import Account
+from ..model import Account, Post
 
 log = getLogger(__name__)
 
@@ -93,7 +93,7 @@ class MastodonApi(ABC):
         if account_info.get("locked"):
             account.disabled = account_info["locked"]
 
-        log.info("Refreshed account: %s", account.url)
+        log.debug("Refreshed account: %s", account.url)
         return account
 
     def refresh_accounts(self, accounts: list[Account]) -> list[Account]:
@@ -106,3 +106,77 @@ class MastodonApi(ABC):
             refreshed_accounts = list(executor.map(self.refresh_account, accounts))
 
         return refreshed_accounts
+
+    def refresh_account_posts(self, account: Account) -> list[Post]:
+        last_fetched_id = account.last_status_id or 0
+
+        def paginate():
+            nonlocal last_fetched_id
+
+            while True:
+                response = self._http_get(
+                    f"{account.apiURL}/statuses",
+                    params={
+                        "exclude_replies": False,
+                        "exclude_reblogs": True,
+                        "limit": 40,
+                        "min_id": last_fetched_id,
+                    },
+                )
+
+                posts = [
+                    Post(
+                        url=str(status["url"]),
+                        id=str(status["id"]),
+                        author_url=account.url,
+                        content=status["content"],
+                        in_reply_to_id=(
+                            str(status["in_reply_to_id"])
+                            if status["in_reply_to_id"]
+                            else None
+                        ),
+                        in_reply_to_account_id=(
+                            str(status["in_reply_to_account_id"])
+                            if status["in_reply_to_account_id"]
+                            else None
+                        ),
+                        created_at=datetime.fromisoformat(status["created_at"]),
+                        updated_at=(
+                            datetime.fromisoformat(status["edited_at"])
+                            if status.get("edited_at")
+                            else None
+                        ),
+                    )
+                    for status in response
+                ]
+
+                if not posts:
+                    break
+
+                last_fetched_id = posts[0].id
+                log.info(
+                    "Fetched %d new posts for account %s, last_id=%s",
+                    len(posts),
+                    account.url,
+                    last_fetched_id,
+                )
+
+                yield posts
+
+        return list(*paginate())
+
+    def refresh_posts(self, accounts: list[Account]) -> list[Post]:
+        """
+        Refresh posts for multiple accounts concurrently.
+        """
+        posts: dict[str, Post] = {}
+
+        with ThreadPoolExecutor(
+            max_workers=self.config.concurrent_requests
+        ) as executor:
+            results = executor.map(self.refresh_account_posts, accounts)
+
+            for batch in results:
+                posts.update({post.url: post for post in batch})
+
+        return list(posts.values())

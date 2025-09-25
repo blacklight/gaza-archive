@@ -37,13 +37,14 @@ class Loop(Thread):
     def refresh_accounts(self) -> list[Account]:
         log.info("Refreshing accounts...")
         t_start = time()
-        accounts = self.api.refresh_accounts(self.api.get_verified_accounts())
-
-        # TODO Fetch account activity here
+        verified_accounts = self.api.get_verified_accounts()
+        accounts = self.api.refresh_accounts(verified_accounts)
+        posts = self.api.refresh_posts(accounts)
 
         self.db.save_accounts(accounts)
+        self.db.save_posts(posts)
         log.info(
-            "Fetched %d accounts in %.2f seconds.", len(accounts), time() - t_start
+            "Refreshed %d accounts in %.2f seconds.", len(accounts), time() - t_start
         )
         return accounts
 

@@ -16,8 +16,8 @@ class Account(Item):
     header_url: str | None = None
     profile_note: str | None = None
     disabled: bool = False
+    last_status_id: str | None = None
     created_at: datetime | None = None
-    last_updated_at: datetime | None = None
 
     # TODO Add followers, following, posts, profile fields etc.
 
@@ -61,14 +61,6 @@ class Account(Item):
             and self.header_url == other.header_url
             and self.profile_note == other.profile_note
             and self.disabled == other.disabled
-            and (
-                (self.created_at is None and other.created_at is None)
-                or self.created_at == other.created_at
-            )
-            and (
-                (self.last_updated_at is None and other.last_updated_at is None)
-                or self.last_updated_at == other.last_updated_at
-            )
         )
 
     def merge(self, other: "Account") -> "Account":
@@ -85,7 +77,5 @@ class Account(Item):
         self.disabled = other.disabled
         if other.created_at:
             self.created_at = other.created_at
-        if other.last_updated_at:
-            self.last_updated_at = other.last_updated_at
 
         return self

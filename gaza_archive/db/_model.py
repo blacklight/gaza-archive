@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, String, Text, DateTime, ForeignKey, Tabl
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from ..model import Account as ModelAccount
+from ..model import Account as ModelAccount, Post as ModelPost
 
 Base = declarative_base()
 
@@ -32,7 +32,6 @@ class Account(Base):
     profile_note = Column(Text)
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utcnow)
-    last_updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     posts = relationship("Post", back_populates="author")
@@ -64,15 +63,10 @@ class Account(Base):
             avatar_url=model.avatar_url,
             header_url=model.header_url,
             profile_note=model.profile_note,
-            **({"created_at": model.created_at} if model.created_at else {}),
-            **(
-                {"last_updated_at": model.last_updated_at}
-                if model.last_updated_at
-                else {}
-            ),
+            created_at=model.created_at,
         )
 
-    def to_model(self) -> ModelAccount:
+    def to_model(self, last_status_id: str | None = None) -> ModelAccount:
         # TODO Also map followers, following, posts etc.
         return ModelAccount(
             url=self.url,  # type: ignore
@@ -82,7 +76,7 @@ class Account(Base):
             header_url=self.header_url,  # type: ignore
             profile_note=self.profile_note,  # type: ignore
             created_at=self.created_at,  # type: ignore
-            last_updated_at=self.last_updated_at,  # type: ignore
+            last_status_id=last_status_id,
         )
 
     def update_from_model(self, model: ModelAccount):
@@ -91,16 +85,14 @@ class Account(Base):
         self.header_url = model.header_url
         self.profile_note = model.profile_note
         self.disabled = model.disabled
-        if model.created_at:
-            self.created_at = model.created_at
-        self.last_updated_at = utcnow()
+        self.created_at = model.created_at
 
 
 class Post(Base):
     __tablename__ = "posts"
 
     url = Column(String, primary_key=True)
-    id = Column(String, nullable=False)
+    id = Column(String, nullable=False, index=True)
     author_url = Column(
         String,
         ForeignKey("accounts.url", ondelete="CASCADE"),
@@ -118,12 +110,41 @@ class Post(Base):
     author = relationship("Account", back_populates="posts")
     media = relationship("Media", back_populates="post")
 
+    @classmethod
+    def from_model(cls, model: ModelPost) -> "Post":
+        # TODO Also map media etc.
+        return cls(
+            url=model.url,
+            id=model.id,
+            author_url=model.author_url,
+            content=model.content,
+            in_reply_to_id=model.in_reply_to_id,
+            in_reply_to_account_id=model.in_reply_to_account_id,
+            quote=model.quote,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+    def to_model(self) -> ModelPost:
+        # TODO Also map media etc.
+        return ModelPost(
+            url=self.url,  # type: ignore
+            id=self.id,  # type: ignore
+            author_url=self.author_url,  # type: ignore
+            content=self.content,  # type: ignore
+            in_reply_to_id=self.in_reply_to_id,  # type: ignore
+            in_reply_to_account_id=self.in_reply_to_account_id,  # type: ignore
+            quote=self.quote,  # type: ignore
+            created_at=self.created_at,  # type: ignore
+            updated_at=self.updated_at,  # type: ignore
+        )
+
 
 class Media(Base):
     __tablename__ = "media"
 
     url = Column(String, primary_key=True)
-    id = Column(String, nullable=False)
+    id = Column(String, nullable=False, index=True)
     type = Column(String)
     description = Column(Text)
     post_url = Column(
