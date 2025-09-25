@@ -12,6 +12,9 @@ class Config:  # pylint: disable=too-few-public-methods
 
     accounts_source_url: str
     http_timeout: int
+    poll_interval: int
+    db_url: str
+    user_agent: str
     debug: bool
 
     def __post_init__(self):
@@ -32,5 +35,8 @@ class Config:  # pylint: disable=too-few-public-methods
                 "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org"
             ),
             http_timeout=int(os.getenv("HTTP_TIMEOUT", "20")),
+            poll_interval=int(os.getenv("POLL_INTERVAL", "300")),
+            db_url=os.getenv("DB_URL", "sqlite:///./data.db"),
+            user_agent=os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0"),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
         )

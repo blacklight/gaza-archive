@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..items import Item
+from ..model import Item
 
 
 class Storage(ABC):

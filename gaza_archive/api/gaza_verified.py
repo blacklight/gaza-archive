@@ -1,3 +1,6 @@
+from abc import ABC
+import logging
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -5,18 +8,19 @@ from ..config import Config
 from ..errors import HttpError
 from ..model import Account
 
+log = logging.getLogger(__name__)
 
-class AccountsParser:  # pylint: disable=too-few-public-methods
+
+class GazaVerifiedApi(ABC):
     """
-    Parser for verified accounts from a given source URL
+    Parser for Gaza Verified accounts
 
     :param accounts_source_url: URL to fetch verified accounts from
         (default: `https://gaza-verified.org` or value of `ACCOUNTS_SOURCE_URL`
         env var)
     """
 
-    def __init__(self, config: Config):
-        self.config = config
+    config: Config
 
     def _extract_accounts(self, html: str) -> list[Account]:
         soup = BeautifulSoup(html, "html.parser")
@@ -28,13 +32,21 @@ class AccountsParser:  # pylint: disable=too-few-public-methods
             and not str(elem.get("href", "")).endswith("/@aral")
         ]
 
-    def parse(self) -> list[Account]:
+    def get_accounts(self) -> list[Account]:
         try:
+            log.info(
+                "Fetching list of verified accounts from %s",
+                self.config.accounts_source_url,
+            )
             response = requests.get(
-                self.config.accounts_source_url, timeout=self.config.http_timeout
+                self.config.accounts_source_url,
+                timeout=self.config.http_timeout,
+                headers={"User-Agent": self.config.user_agent},
             )
             response.raise_for_status()
-            return self._extract_accounts(response.text)
+            accounts = self._extract_accounts(response.text)
+            log.info("Fetched %d verified accounts", len(accounts))
+            return accounts
         except requests.RequestException as exc:
             raise HttpError(
                 f"Failed to fetch accounts from {self.config.accounts_source_url}"
