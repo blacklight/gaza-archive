@@ -45,11 +45,18 @@ class Loop(Thread):
 
         verified_accounts = self.api.get_verified_accounts()
         accounts = self.api.refresh_accounts(verified_accounts)
+        for account in accounts:
+            if account.url in self.db._accounts:
+                db_account = self.db._accounts[account.url]
+                account.last_status_id = db_account.last_status_id
+
         posts = self.api.refresh_posts(accounts)
 
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)
-        self.downloader.download_attachments(posts)
+
+        if self.config.download_media:
+            self.downloader.download_attachments(posts)
 
         log.info(
             "Refreshed %d accounts in %.2f seconds.", len(accounts), time() - t_start

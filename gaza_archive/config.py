@@ -17,6 +17,7 @@ class Config:  # pylint: disable=too-few-public-methods
     db_url: str
     user_agent: str
     concurrent_requests: int
+    download_media: bool
     debug: bool
 
     def __post_init__(self):
@@ -42,5 +43,8 @@ class Config:  # pylint: disable=too-few-public-methods
             db_url=os.getenv("DB_URL", "sqlite:///./data.db"),
             user_agent=os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0"),
             concurrent_requests=int(os.getenv("CONCURRENT_REQUESTS", "5")),
+            download_media=(
+                os.getenv("DOWNLOAD_MEDIA", "true").lower() in ("true", "1", "yes")
+            ),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
         )
