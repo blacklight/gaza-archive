@@ -15,6 +15,8 @@ class Config:  # pylint: disable=too-few-public-methods
     http_timeout: int
     poll_interval: int
     db_url: str
+    api_host: str
+    api_port: int
     user_agent: str
     concurrent_requests: int
     download_media: bool
@@ -42,6 +44,8 @@ class Config:  # pylint: disable=too-few-public-methods
             http_timeout=int(os.getenv("HTTP_TIMEOUT", "20")),
             poll_interval=int(os.getenv("POLL_INTERVAL", "300")),
             db_url=os.getenv("DB_URL", "sqlite:///./data.db"),
+            api_host=os.getenv("API_HOST", "0.0.0.0"),
+            api_port=int(os.getenv("API_PORT", "8000")),
             user_agent=os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0"),
             concurrent_requests=int(os.getenv("CONCURRENT_REQUESTS", "5")),
             download_media=(

@@ -2,11 +2,10 @@ import logging
 from threading import Event, Thread
 from time import time
 
+from .client import Client
 from .config import Config
 from .db import Db
-from .media import MediaDownloader
 from .model import Account
-from .scrapers import Api
 from .storages import FileStorage
 
 log = logging.getLogger(__name__)
@@ -17,13 +16,12 @@ class Loop(Thread):
     Main loop class.
     """
 
-    def __init__(self, config: Config, *args, **kwargs):
+    def __init__(self, config: Config, db: Db, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.api = Api(config)
+        self.db = db
         self.config = config
         self.storage = FileStorage(config)
-        self.downloader = MediaDownloader(config=config, storage=self.storage)
-        self.db = Db(self.config)
+        self.client = Client(config=config, storage=self.storage)
         self._stop_event = Event()
 
     def _main(self):
@@ -47,20 +45,20 @@ class Loop(Thread):
         log.info("Refreshing accounts...")
         t_start = time()
 
-        verified_accounts = self.api.get_verified_accounts()
-        accounts = self.api.refresh_accounts(verified_accounts)
+        verified_accounts = self.client.get_verified_accounts()
+        accounts = self.client.refresh_accounts(verified_accounts)
         for account in accounts:
             if account.url in self.db._accounts:
                 db_account = self.db._accounts[account.url]
                 account.last_status_id = db_account.last_status_id
 
-        posts = self.api.refresh_posts(accounts)
+        posts = self.client.refresh_posts(accounts)
 
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)
 
         if self.config.download_media:
-            self.downloader.download_attachments(posts)
+            self.client.download_attachments(posts)
 
         log.info(
             "Refreshed %d accounts in %.2f seconds.", len(accounts), time() - t_start

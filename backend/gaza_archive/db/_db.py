@@ -34,6 +34,11 @@ class Db:
 
     def _load_accounts(self) -> dict[str, Account]:
         log.debug("Loading accounts from database...")
+        self._accounts = self.get_accounts()
+        log.info("Loaded %d accounts from database.", len(self._accounts))
+        return self._accounts
+
+    def get_accounts(self) -> dict[str, Account]:
         with self.get_session() as session:
             latest_post_subquery = (
                 session.query(
@@ -52,13 +57,10 @@ class Db:
                 .all()
             )
 
-            self._accounts = {
+            return {
                 str(db_account.url): db_account.to_model(last_status_id=last_status_id)
                 for db_account, last_status_id in db_accounts
             }
-
-        log.info("Loaded %d accounts from database.", len(self._accounts))
-        return self._accounts
 
     def save_accounts(self, accounts: list[Account]):
         accounts_by_url = {account.url: account for account in accounts}

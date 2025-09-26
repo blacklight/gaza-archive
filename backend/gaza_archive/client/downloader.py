@@ -1,3 +1,4 @@
+from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from logging import getLogger
 
@@ -11,10 +12,9 @@ from ..storages import Storage
 log = getLogger(__name__)
 
 
-class MediaDownloader:
-    def __init__(self, config: Config, storage: Storage) -> None:
-        self.config = config
-        self.storage = storage
+class MediaDownloader(ABC):
+    config: Config
+    storage: Storage
 
     def download(self, item: Media):
         if self.storage.exists(item):
