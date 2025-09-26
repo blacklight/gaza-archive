@@ -38,7 +38,9 @@ class Db:
         log.info("Loaded %d accounts from database.", len(self._accounts))
         return self._accounts
 
-    def get_accounts(self) -> dict[str, Account]:
+    def get_accounts(
+        self, limit: int | None = None, offset: int | None = None
+    ) -> dict[str, Account]:
         with self.get_session() as session:
             latest_post_subquery = (
                 session.query(
@@ -54,6 +56,9 @@ class Db:
                     latest_post_subquery,
                     DbAccount.url == latest_post_subquery.c.author_url,
                 )
+                .order_by(DbAccount.url)
+                .limit(limit if limit is not None else 1000)
+                .offset(offset if offset is not None else 0)
                 .all()
             )
 
