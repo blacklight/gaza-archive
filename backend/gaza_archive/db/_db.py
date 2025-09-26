@@ -67,6 +67,31 @@ class Db:
                 for db_account, last_status_id in db_accounts
             }
 
+    def get_account(self, account_url: str) -> Account | None:
+        with self.get_session() as session:
+            latest_post_subquery = (
+                session.query(
+                    DbPost.author_url, func.max(DbPost.id).label("last_status_id")
+                )
+                .group_by(DbPost.author_url)
+                .subquery()
+            )
+
+            result = (
+                session.query(DbAccount, latest_post_subquery.c.last_status_id)
+                .outerjoin(
+                    latest_post_subquery,
+                    DbAccount.url == latest_post_subquery.c.author_url,
+                )
+                .filter(DbAccount.url == account_url)
+                .first()
+            )
+
+            if result:
+                db_account, last_status_id = result
+                return db_account.to_model(last_status_id=last_status_id)
+            return None
+
     def save_accounts(self, accounts: list[Account]):
         accounts_by_url = {account.url: account for account in accounts}
 

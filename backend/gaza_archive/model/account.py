@@ -19,8 +19,6 @@ class Account(Item):
     last_status_id: str | None = None
     created_at: datetime | None = None
 
-    # TODO Add followers, following, posts, profile fields etc.
-
     @property
     def username(self) -> str:
         return self.url.split("/")[-1].lstrip("@")
@@ -40,6 +38,10 @@ class Account(Item):
     @property
     def instanceApiUrl(self) -> str:
         return f"https://{self.instance}/api/v1"
+
+    @property
+    def fqn(self) -> str:
+        return f"@{self.username}@{self.instance}"
 
     @property
     def apiURL(self) -> str:
@@ -79,3 +81,24 @@ class Account(Item):
             self.created_at = other.created_at
 
         return self
+
+    @staticmethod
+    def to_url(fqn: str) -> str:
+        """
+        Convert a FQN to a URL.
+
+        :param fqn: FQN in the format `@username@instance`.
+        :return: URL in the format `https://instance/@username`.
+        """
+        if fqn.startswith("http://") or fqn.startswith("https://"):
+            return fqn  # Already a URL
+
+        if not fqn.startswith("@"):
+            raise ValueError("FQN must start with '@'")
+
+        fqn = fqn.lstrip("@")
+        if "@" not in fqn:
+            raise ValueError("FQN must be in the format '@username@instance'")
+
+        username, instance = fqn.split("@", 1)
+        return f"https://{instance}/@{username}"
