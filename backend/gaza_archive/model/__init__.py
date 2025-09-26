@@ -3,4 +3,8 @@ from .account import Account
 from .media import Media
 from .post import Post
 
+# Rebuild models after all are imported to resolve forward references
+Media.model_rebuild()
+Post.model_rebuild()
+
 __all__ = ["Item", "Account", "Media", "Post"]
