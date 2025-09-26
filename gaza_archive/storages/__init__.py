@@ -1,21 +1,4 @@
-from abc import ABC, abstractmethod
+from ._base import Storage
+from .file import FileStorage
 
-from ..model import Item
-
-
-class Storage(ABC):
-    """
-    Base class for storage implementations.
-    """
-
-    @abstractmethod
-    def get(self, url: str):
-        pass
-
-    @abstractmethod
-    def save(self, item: Item):
-        pass
-
-    @abstractmethod
-    def delete(self, url: str):
-        pass
+__all__ = ["Storage", "FileStorage"]

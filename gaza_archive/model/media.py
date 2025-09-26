@@ -1,6 +1,11 @@
+from __future__ import annotations
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from ._base import Item
+
+if TYPE_CHECKING:
+    from .post import Post
 
 
 @dataclass
@@ -11,20 +16,12 @@ class Media(Item):
 
     id: str
     type: str
+    post: Post
     description: str | None = None
-    post_url: str | None = None
 
-    def __eq__(self, other) -> bool:
+    @property
+    def path(self) -> str:
         """
-        Compare two Media instances for equality.
+        Returns the path of the media item.
         """
-        if not isinstance(other, Media):
-            return False
-
-        return (
-            self.url == other.url
-            and self.id == other.id
-            and self.type == other.type
-            and self.description == other.description
-            and self.post_url == other.post_url
-        )
+        return f"{self.post.author.username}/{self.id}.{self.url.split('.')[-1]}"

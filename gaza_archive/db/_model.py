@@ -113,7 +113,7 @@ class Post(Base):
         return cls(
             url=model.url,
             id=model.id,
-            author_url=model.author_url,
+            author_url=model.author.url,
             content=model.content,
             in_reply_to_id=model.in_reply_to_id,
             in_reply_to_account_id=model.in_reply_to_account_id,
@@ -154,20 +154,20 @@ class Media(Base):
     post = relationship("Post", back_populates="media")
 
     @classmethod
-    def from_model(cls, model: ModelMedia, post_url: str) -> "Media":
+    def from_model(cls, model: ModelMedia) -> "Media":
         return cls(
             url=model.url,
             id=model.id,
             type=model.type,
             description=model.description,
-            post_url=post_url,
+            post_url=model.post.url if model.post else None,
         )
 
-    def to_model(self, post_url: str | None = None) -> ModelMedia:
+    def to_model(self) -> ModelMedia:
         return ModelMedia(
             url=self.url,  # type: ignore
             id=self.id,  # type: ignore
             type=self.type,  # type: ignore
             description=self.description,  # type: ignore
-            post_url=post_url or self.post_url,  # type: ignore
+            post=self.post.to_model() if self.post else None,  # type: ignore
         )

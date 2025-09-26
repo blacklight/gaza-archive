@@ -1,7 +1,9 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from ._base import Item
+from .account import Account
 from .media import Media
 
 
@@ -12,7 +14,7 @@ class Post(Item):
     """
 
     id: str
-    author_url: str
+    author: Account
     content: str | None = None
     in_reply_to_id: str | None = None
     in_reply_to_account_id: str | None = None

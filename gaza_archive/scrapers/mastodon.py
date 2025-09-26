@@ -103,9 +103,7 @@ class MastodonApi(ABC):
         with ThreadPoolExecutor(
             max_workers=self.config.concurrent_requests
         ) as executor:
-            refreshed_accounts = list(executor.map(self.refresh_account, accounts))
-
-        return refreshed_accounts
+            return list(executor.map(self.refresh_account, accounts))
 
     def refresh_account_posts(self, account: Account) -> list[Post]:
         last_fetched_id = account.last_status_id or 0
@@ -124,11 +122,11 @@ class MastodonApi(ABC):
                     },
                 )
 
-                posts = [
-                    Post(
+                posts_by_url = {
+                    str(status["url"]): Post(
                         url=str(status["url"]),
                         id=str(status["id"]),
-                        author_url=account.url,
+                        author=account,
                         content=status["content"],
                         in_reply_to_id=(
                             str(status["in_reply_to_id"])
@@ -140,16 +138,6 @@ class MastodonApi(ABC):
                             if status["in_reply_to_account_id"]
                             else None
                         ),
-                        attachments=[
-                            Media(
-                                url=media["url"],
-                                id=str(media["id"]),
-                                type=media.get("type"),
-                                description=media.get("description"),
-                                post_url=str(status["url"]),
-                            )
-                            for media in status.get("media_attachments", [])
-                        ],
                         created_at=datetime.fromisoformat(status["created_at"]),
                         updated_at=(
                             datetime.fromisoformat(status["edited_at"])
@@ -158,12 +146,26 @@ class MastodonApi(ABC):
                         ),
                     )
                     for status in response
-                ]
+                }
 
-                if not posts:
+                for status in response:
+                    post = posts_by_url[str(status["url"])]
+                    post.attachments = [
+                        Media(
+                            url=media["url"],
+                            id=str(media["id"]),
+                            type=media.get("type"),
+                            description=media.get("description"),
+                            post=post,
+                        )
+                        for media in status.get("media_attachments", [])
+                    ]
+
+                if not posts_by_url:
                     break
 
-                last_fetched_id = posts[0].id
+                posts = sorted(posts_by_url.values(), key=lambda p: int(p.id))
+                last_fetched_id = posts[-1].id
                 log.info(
                     "Fetched %d new posts for account %s, last_id=%s",
                     len(posts),
@@ -173,20 +175,20 @@ class MastodonApi(ABC):
 
                 yield posts
 
-        return list(*paginate())
+        return [post for batch in paginate() for post in batch]
 
     def refresh_posts(self, accounts: list[Account]) -> list[Post]:
         """
         Refresh posts for multiple accounts concurrently.
         """
-        posts: dict[str, Post] = {}
-
         with ThreadPoolExecutor(
             max_workers=self.config.concurrent_requests
         ) as executor:
-            results = executor.map(self.refresh_account_posts, accounts)
+            results = executor.map(
+                self.refresh_account_posts,
+                [account for account in accounts if not account.disabled],
+            )
 
-            for batch in results:
-                posts.update({post.url: post for post in batch})
-
-        return list(posts.values())
+            return list(
+                {post.url: post for batch in results for post in batch}.values()
+            )

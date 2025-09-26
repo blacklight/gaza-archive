@@ -10,6 +10,7 @@ class Config:  # pylint: disable=too-few-public-methods
     Main configuration class.
     """
 
+    storage_path: str
     accounts_source_url: str
     http_timeout: int
     poll_interval: int
@@ -32,6 +33,7 @@ class Config:  # pylint: disable=too-few-public-methods
         Create a Config instance from environment variables.
         """
         return cls(
+            storage_path=os.getenv("STORAGE_PATH", "./data"),
             accounts_source_url=os.getenv(
                 "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org"
             ),

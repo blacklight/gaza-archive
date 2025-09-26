@@ -36,3 +36,9 @@ class AccountNotFoundError(AccountError, LookupError):
     """
     Raised when an account is not found.
     """
+
+
+class DownloadError(Error, RuntimeError):
+    """
+    Raised when a download operation fails.
+    """

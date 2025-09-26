@@ -106,6 +106,6 @@ class Db:
                     session.add(DbPost.from_model(post))
 
                     for media in post.attachments:
-                        session.add(DbMedia.from_model(media, post.url))
+                        session.add(DbMedia.from_model(media))
 
             session.commit()

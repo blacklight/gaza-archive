@@ -4,8 +4,10 @@ from time import time
 
 from .config import Config
 from .db import Db
+from .media import MediaDownloader
 from .model import Account
 from .scrapers import Api
+from .storages import FileStorage
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,8 @@ class Loop(Thread):
         super().__init__(*args, **kwargs)
         self.api = Api(config)
         self.config = config
+        self.storage = FileStorage(config)
+        self.downloader = MediaDownloader(config=config, storage=self.storage)
         self.db = Db(self.config)
         self._stop_event = Event()
 
@@ -30,7 +34,8 @@ class Loop(Thread):
             try:
                 self.refresh_accounts()
             except Exception as e:
-                log.error("Error in main loop: %s", e)
+                log.error("Error in main loop: %s")
+                log.exception(e)
             finally:
                 self._stop_event.wait(self.config.poll_interval)
 
@@ -47,6 +52,8 @@ class Loop(Thread):
 
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)
+        self.downloader.download_attachments(posts)
+
         log.info(
             "Refreshed %d accounts in %.2f seconds.", len(accounts), time() - t_start
         )
