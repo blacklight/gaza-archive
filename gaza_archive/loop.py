@@ -30,6 +30,10 @@ class Loop(Thread):
         """
         Main loop
         """
+        if not self.config.enable_crawlers:
+            log.info("Crawlers are disabled. Exiting.")
+            return
+
         while not self._stop_event.is_set():
             try:
                 self.refresh_accounts()

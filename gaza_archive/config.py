@@ -18,6 +18,7 @@ class Config:  # pylint: disable=too-few-public-methods
     user_agent: str
     concurrent_requests: int
     download_media: bool
+    enable_crawlers: bool
     debug: bool
 
     def __post_init__(self):
@@ -45,6 +46,9 @@ class Config:  # pylint: disable=too-few-public-methods
             concurrent_requests=int(os.getenv("CONCURRENT_REQUESTS", "5")),
             download_media=(
                 os.getenv("DOWNLOAD_MEDIA", "true").lower() in ("true", "1", "yes")
+            ),
+            enable_crawlers=(
+                os.getenv("ENABLE_CRAWLERS", "true").lower() in ("true", "1", "yes")
             ),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
         )
