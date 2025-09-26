@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from ...model import Account
+from ...model import Account, Post
 from .. import ctx
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
@@ -37,3 +37,43 @@ def get_account(account: str) -> Account:
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
     return db_account
+
+
+@router.get("/{account}/posts", response_model=list[Post])
+def get_account_posts(
+    account: str,
+    min_id: int | None = None,
+    max_id: int | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Post]:
+    """
+    Get posts for a specific account.
+
+    :param account: Account FQN, in the format `@username@instance`, or full URL.
+    :param min_id: Minimum post ID to return (exclusive).
+    :param max_id: Maximum post ID to return (exclusive).
+    :param limit: Maximum number of posts to return.
+    :param offset: Number of posts to skip before starting to collect the result set.
+    :return: List of posts.
+    """
+    try:
+        account_url = Account.to_url(account)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid account format: {e}"
+        ) from e
+
+    db_account = ctx.db.get_account(account_url)
+    if not db_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return list(
+        ctx.db.get_posts(
+            account=account_url,
+            min_id=min_id,
+            max_id=max_id,
+            limit=limit,
+            offset=offset,
+        )
+    )

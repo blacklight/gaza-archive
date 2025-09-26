@@ -6,8 +6,8 @@ from typing import Iterator
 
 from sqlalchemy.orm import Session
 
-from ..model import Post
-from ._model import Media as DbMedia, Post as DbPost
+from ..model import Account, Post
+from ._model import Account as DbAccount, Media as DbMedia, Post as DbPost
 
 log = getLogger(__name__)
 
@@ -28,24 +28,40 @@ class Posts(ABC):
         *,
         min_id: int | None = None,
         max_id: int | None = None,
+        account: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
     ) -> list[Post]:
         with self.get_session() as session:
-            query = session.query(DbPost).order_by(DbPost.id.desc())
+            query = session.query(DbPost, DbMedia).outerjoin(
+                DbMedia, DbMedia.post_url == DbPost.url
+            )
 
+            if account is not None:
+                query = query.join(
+                    DbAccount, DbAccount.url == DbPost.author_url
+                ).filter(DbAccount.url == Account.to_url(account))
             if min_id is not None:
                 query = query.filter(DbPost.id > min_id)
             if max_id is not None:
                 query = query.filter(DbPost.id < max_id)
 
+            query = query.order_by(DbPost.created_at.desc())
             if limit is not None:
                 query = query.limit(limit)
             if offset is not None:
                 query = query.offset(offset)
 
             db_posts = query.all()
-            return [db_post.to_model() for db_post in db_posts]
+            posts: dict[str, Post] = {}
+
+            for db_post, db_media in db_posts:
+                if db_post.id not in posts:
+                    posts[db_post.url] = db_post.to_model()
+                if db_media:
+                    posts[db_post.url].attachments.append(db_media.to_model())
+
+            return list(posts.values())
 
     def get_post(self, url: str) -> Post | None:
         with self.get_session() as session:
