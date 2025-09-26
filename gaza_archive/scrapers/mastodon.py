@@ -115,8 +115,8 @@ class MastodonApi(ABC):
                 response = self._http_get(
                     f"{account.apiURL}/statuses",
                     params={
-                        "exclude_replies": False,
-                        "exclude_reblogs": True,
+                        "exclude_replies": int(False),
+                        "exclude_reblogs": int(True),
                         "limit": 40,
                         "min_id": last_fetched_id,
                     },

@@ -34,7 +34,7 @@ class Loop(Thread):
             try:
                 self.refresh_accounts()
             except Exception as e:
-                log.error("Error in main loop: %s")
+                log.error("Error in main loop: %s", e)
                 log.exception(e)
             finally:
                 self._stop_event.wait(self.config.poll_interval)
