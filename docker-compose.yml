@@ -1,0 +1,9 @@
+services:
+  gaza_archive:
+    build:
+      context: .
+    container_name: gaza_archive
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
