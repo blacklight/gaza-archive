@@ -1,8 +1,8 @@
 services:
-  gaza_archive:
+  backend:
     build:
-      context: .
+      context: ./backend
     env_file:
-      - .env
+      - .env.backend
     volumes:
       - ./data:/data

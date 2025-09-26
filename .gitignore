@@ -166,3 +166,5 @@ cython_debug/
 #.idea/
 
 /data
+.env.backend
+.env.frontend

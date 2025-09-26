@@ -13,10 +13,10 @@ posts and media attachments.
 
 ## Installation
 
-Customize the `.env` file with your own settings if needed, but the default
-configuration should suffice in most of the cases.
+Copy `.env.backend.example` and `.env.frontend.example` to `.env.backend` and
+`.env.frontend` respectively, and change the default values as needed.
 
-Then simply:
+Then simply run:
 
 ```bash
 docker compose up
