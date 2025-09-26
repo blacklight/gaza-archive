@@ -52,7 +52,7 @@ class Accounts(ABC):
                     DbAccount.url == latest_post_subquery.c.author_url,
                 )
                 .order_by(DbAccount.url)
-                .limit(limit if limit is not None else 1000)
+                .limit(limit if limit is not None else None)
                 .offset(offset if offset is not None else 0)
                 .all()
             )

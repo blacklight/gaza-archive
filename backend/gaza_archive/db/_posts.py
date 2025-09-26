@@ -23,6 +23,35 @@ class Posts(ABC):
     @contextmanager
     def get_session(self) -> Iterator[Session]: ...
 
+    def get_posts(
+        self,
+        *,
+        min_id: int | None = None,
+        max_id: int | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[Post]:
+        with self.get_session() as session:
+            query = session.query(DbPost).order_by(DbPost.id.desc())
+
+            if min_id is not None:
+                query = query.filter(DbPost.id > min_id)
+            if max_id is not None:
+                query = query.filter(DbPost.id < max_id)
+
+            if limit is not None:
+                query = query.limit(limit)
+            if offset is not None:
+                query = query.offset(offset)
+
+            db_posts = query.all()
+            return [db_post.to_model() for db_post in db_posts]
+
+    def get_post(self, url: str) -> Post | None:
+        with self.get_session() as session:
+            db_post = session.query(DbPost).filter(DbPost.url == url).one_or_none()
+            return db_post.to_model() if db_post else None
+
     def save_posts(self, posts: list[Post]):
         with self._write_lock, self.get_session() as session:
             db_posts: dict[str, DbPost] = {

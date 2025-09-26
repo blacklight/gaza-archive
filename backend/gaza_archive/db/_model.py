@@ -126,7 +126,7 @@ class Post(Base):
         return ModelPost(
             url=self.url,  # type: ignore
             id=self.id,  # type: ignore
-            author_url=self.author_url,  # type: ignore
+            author=self.author.to_model() if self.author else None,  # type: ignore
             content=self.content,  # type: ignore
             in_reply_to_id=self.in_reply_to_id,  # type: ignore
             in_reply_to_account_id=self.in_reply_to_account_id,  # type: ignore
