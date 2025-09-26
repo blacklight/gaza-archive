@@ -1,9 +1,9 @@
 from abc import ABC
-from dataclasses import dataclass
+
+from pydantic import BaseModel
 
 
-@dataclass
-class Item(ABC):
+class Item(BaseModel, ABC):
     """
     Base class for item implementations.
     """

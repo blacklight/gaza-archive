@@ -1,13 +1,13 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 from datetime import datetime
+
+from pydantic import Field
 
 from ._base import Item
 from .account import Account
 from .media import Media
 
 
-@dataclass
 class Post(Item):
     """
     Post class representing a social media post.
@@ -19,6 +19,6 @@ class Post(Item):
     in_reply_to_id: str | None = None
     in_reply_to_account_id: str | None = None
     quote: str | None = None
-    attachments: list[Media] = field(default_factory=list)
+    attachments: list[Media] = Field(default_factory=list)
     created_at: datetime | None = None
     updated_at: datetime | None = None

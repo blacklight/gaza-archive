@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+# from dataclasses import dataclass
 from datetime import datetime
+
+from pydantic import computed_field
 
 from ._base import Item
 
 
-@dataclass
 class Account(Item):
     """
     Account class representing user account information.
@@ -19,18 +20,22 @@ class Account(Item):
     last_status_id: str | None = None
     created_at: datetime | None = None
 
+    @computed_field
     @property
     def username(self) -> str:
         return self.url.split("/")[-1].lstrip("@")
 
+    @computed_field
     @property
     def feedURL(self) -> str:
         return f"{self.url}.rss"
 
+    @computed_field
     @property
     def instance(self) -> str:
         return self.url.split("/")[2]
 
+    @computed_field
     @property
     def instanceURL(self) -> str:
         return f"https://{self.instance}"
@@ -39,6 +44,7 @@ class Account(Item):
     def instanceApiUrl(self) -> str:
         return f"https://{self.instance}/api/v1"
 
+    @computed_field
     @property
     def fqn(self) -> str:
         return f"@{self.username}@{self.instance}"

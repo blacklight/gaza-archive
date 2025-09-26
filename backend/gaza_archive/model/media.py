@@ -1,6 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
+from pydantic import computed_field
 
 from ._base import Item
 
@@ -8,7 +9,6 @@ if TYPE_CHECKING:
     from .post import Post
 
 
-@dataclass
 class Media(Item):
     """
     Media class representing media attachments in posts.
@@ -19,9 +19,11 @@ class Media(Item):
     post: Post
     description: str | None = None
 
+    @computed_field
     @property
     def path(self) -> str:
         """
-        Returns the path of the media item.
+        :return: The file path for storing the media, formatted as
+            "username/post_id.extension".
         """
         return f"{self.post.author.username}/{self.id}.{self.url.split('.')[-1]}"
