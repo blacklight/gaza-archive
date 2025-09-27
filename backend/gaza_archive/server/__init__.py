@@ -5,14 +5,12 @@ from logging import getLogger
 from threading import Thread
 
 import uvicorn
-from fastapi import FastAPI
 
 from ..config import Config
 from ..db import Db
 from ._app import app
 
 log = getLogger(__name__)
-app = FastAPI()
 
 
 @dataclass

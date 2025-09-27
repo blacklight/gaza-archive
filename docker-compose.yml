@@ -9,7 +9,7 @@ services:
       - ./data:/data
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; rs = requests.get('http://localhost:8000/api/v1/accounts?limit=1'); rs.raise_for_status()"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
     # Optional, for debugging purposes
@@ -29,6 +29,13 @@ services:
   #     - "3000:3000"
   #   depends_on:
   #     - backend
+
+  swagger:
+    image: swaggerapi/swagger-ui
+    environment:
+      - API_URL=/openapi.json
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:latest
