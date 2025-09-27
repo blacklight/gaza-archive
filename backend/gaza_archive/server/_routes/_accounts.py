@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from ...model import Account, Post
+from ...model import Account, Media, Post
 from .. import ctx
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
@@ -76,4 +76,42 @@ def get_account_posts(
             limit=limit,
             offset=offset,
         )
+    )
+
+
+@router.get("/{account}/media", response_model=list[Media])
+def get_account_media(
+    account: str,
+    min_id: int | None = None,
+    max_id: int | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Media]:
+    """
+    Get media attachments for a specific account.
+
+    :param account: Account FQN, in the format `@username@instance`, or full URL.
+    :param min_id: Minimum media ID to return (exclusive).
+    :param max_id: Maximum media ID to return (exclusive).
+    :param limit: Maximum number of media items to return.
+    :param offset: Number of media items to skip before starting to collect the result set.
+    :return: List of media attachments.
+    """
+    try:
+        account_url = Account.to_url(account)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid account format: {e}"
+        ) from e
+
+    db_account = ctx.db.get_account(account_url)
+    if not db_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return ctx.db.get_attachments(
+        account=account_url,
+        min_id=min_id,
+        max_id=max_id,
+        limit=limit,
+        offset=offset,
     )
