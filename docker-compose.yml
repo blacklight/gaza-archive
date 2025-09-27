@@ -33,7 +33,7 @@ services:
   swagger:
     image: swaggerapi/swagger-ui
     environment:
-      - API_URL=/openapi.json
+      - API_URL=/api/v1/openapi.json
     depends_on:
       - backend
 

@@ -27,7 +27,7 @@ SQLite database under `./data/app.db`, and all attachments will be stored under
 
 ## API
 
-An OpenAPI specification is available at `/openapi.json` once the
+An OpenAPI specification is available at `/api/v1/openapi.json` once the
 backend is running.
 
 If you run the service in docker-compose you can also access a Swagger UI at
