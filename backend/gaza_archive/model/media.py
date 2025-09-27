@@ -26,4 +26,4 @@ class Media(Item):
         :return: The file path for storing the media, formatted as
             "username/post_id.extension".
         """
-        return f"/{self.post.author.username}/{self.id}.{self.url.split('.')[-1]}"
+        return f"/{self.post.author.fqn}/{self.id}.{self.url.split('.')[-1]}"
