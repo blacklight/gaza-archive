@@ -30,7 +30,8 @@ class FileStorage(Storage):
 
     @contextmanager
     def _download(self, item: Media) -> Iterator[IO]:
-        media_path = os.path.join(self.media_dir, item.path)
+        media_path = os.path.join(self.media_dir, item.path.lstrip("/"))
+        log.info("Downloading attachment %s to %s", item.url, media_path)
         pathlib.Path(os.path.dirname(media_path)).mkdir(parents=True, exist_ok=True)
         with open(media_path, "wb") as handle:
             yield handle

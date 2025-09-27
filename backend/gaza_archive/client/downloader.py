@@ -21,13 +21,6 @@ class MediaDownloader(ABC):
             log.debug("Attachment already downloaded: %s", item.url)
             return
 
-        log.info(
-            "Downloading attachment %s to [%s]/%s",
-            item.url,
-            self.storage.__class__.__name__,
-            item.path,
-        )
-
         try:
             with requests.get(
                 item.url,
