@@ -1,8 +1,41 @@
 services:
+  # The main backend service, which runs the crawlers and serves the API
   backend:
     build:
       context: ./backend
     env_file:
-      - .env.backend
+      - ./backend/.env
     volumes:
       - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/accounts"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    # Optional, for debugging purposes
+    # Otherwise use the nginx container to reverse proxy to the backend API
+    # ports:
+    #   - "8001:8000"
+
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   env_file:
+  #     - ./frontend/.env
+  #   volumes:
+  #     - ./frontend/dist:/app/dist
+  #   command: ["npm", "run", "start"]
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+      - "./data:/data:ro"
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend

@@ -13,16 +13,19 @@ posts and media attachments.
 
 ## Installation
 
-Copy `.env.backend.example` and `.env.frontend.example` to `.env.backend` and
-`.env.frontend` respectively, and change the default values as needed.
-
-Then simply run:
-
 ```bash
+cp ./backend/.env.example ./backend/.env
+# WIP
+# cp ./frontend/.env.example ./frontend/.env
+# Modify .env files as needed
 docker compose up
 ```
 
-No Web interface is provided at the moment, but after the initial sync is
-completed you will be able to query data from the SQLite database under
-`./data/app.db`, and all attachments will be stored under `./data/media`,
-indexed by username.
+After the initial sync is completed you will be able to query data from the
+SQLite database under `./data/app.db`, and all attachments will be stored under
+`./data/media`, indexed by username.
+
+## API
+
+An OpenAPI specification is available at `/api/v1/openapi.json` once the
+backend is running.
