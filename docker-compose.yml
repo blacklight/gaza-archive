@@ -8,7 +8,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/accounts"]
+      test: ["CMD", "python", "-c", "import requests; rs = requests.get('http://localhost:8000/api/v1/accounts?limit=1'); rs.raise_for_status()"]
       interval: 10s
       timeout: 5s
       retries: 3
