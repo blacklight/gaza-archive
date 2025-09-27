@@ -27,5 +27,5 @@ SQLite database under `./data/app.db`, and all attachments will be stored under
 
 ## API
 
-An OpenAPI specification is available at `/api/v1/openapi.json` once the
+An OpenAPI specification is available at `/openapi.json` once the
 backend is running.
