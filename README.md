@@ -11,6 +11,9 @@ This project will periodically scrape those profiles for new content and
 archive any new activities, including their profiles metadata, all the public
 posts and media attachments.
 
+The official mirror of the archive is available at
+[archive.gaza.onl](https://archive.gaza.onl).
+
 ## Installation
 
 ```bash
@@ -28,6 +31,11 @@ docker compose up
 After the initial sync is completed you will be able to query data from the
 SQLite database under `./data/app.db`, and all attachments will be stored under
 `./data/media`, indexed by username.
+
+## Web interface
+
+After starting the services, and after the initial sync is completed, you can
+access a web interface at `http://localhost:8000` to browse the archived content.
 
 ## Browse raw media
 

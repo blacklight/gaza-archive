@@ -1,47 +1,39 @@
 <template>
-  <div class="main">
-    <AccountsView :accounts="accounts" />
-    <Loader v-if="loading" />
+  <div id="app-view">
+    <Nav />
+    <main>
+      <RouterView />
+      <Footer />
+    </main>
   </div>
 </template>
 
 <script>
-import AccountsApi from './mixins/api/Accounts.vue'
-import AccountsView from './views/accounts/View.vue'
-import Loader from './elements/Loader.vue'
+import Footer from './components/Footer.vue'
+import Nav from './components/Nav.vue'
 
 export default {
-  mixins: [AccountsApi],
   components: {
-    AccountsView,
-    Loader,
+    Footer,
+    Nav,
   },
-
-  data() {
-    return {
-      accounts: [],
-      loading: true,
-    }
-  },
-
-  methods: {
-    async refresh() {
-      this.accounts = await this.getAccounts()
-    }
-  },
-
-  async mounted() {
-    try {
-      await this.refresh()
-    } finally {
-      this.loading = false
-    }
-  }
 }
 </script>
 
-<style scoped lang="scss">
-.main {
-  font-family: var(--font-family);
+<style lang="scss">
+@use "@/styles/variables" as *;
+
+#app-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+
+  main {
+    max-height: calc(100vh - $nav-height);
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    flex: 1;
+  }
 }
 </style>

@@ -1,29 +1,49 @@
-#app {
+@mixin light-theme {
   --color-bg: #fefefe;
   --color-bg-secondary: #fafafa;
   --color-primary: #3498db;
   --color-secondary: #2ecc71;
   --color-border: #d0d0d0;
+  --color-link: #2980b9;
+  --color-text: #222222;
+  --color-text-secondary: #666666;
+  --color-text-inverse: #ffffff;
   --font-family: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif;
   --font-size-base: 16px;
   --spacing-unit: 8px;
 }
 
 @mixin dark-theme {
-  #app {
-    --color-bg: #1e1e1e;
-    --color-bg-secondary: #2c2c2c;
-    --color-primary: #2980b9;
-    --color-secondary: #27ae60;
-    --color-border: #444444;
+  --color-bg: #1e1e1e;
+  --color-bg-secondary: #2c2c2c;
+  --color-primary: #2980b9;
+  --color-secondary: #27ae60;
+  --color-border: #444444;
+  --color-link: #3498db;
+  --color-text: #f0f0f0;
+  --color-text-secondary: #aaaaaa;
+  --color-text-inverse: #1e1e1e;
+}
+
+:root {
+  @include light-theme;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include dark-theme;
   }
 }
 
-// Dark theme overrides, or if the browser is set to dark mode
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
   @include dark-theme;
 }
 
-#app.dark {
-  @include dark-theme;
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  margin: 0;
 }
+
+$nav-height: 2em;

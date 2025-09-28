@@ -1,34 +1,60 @@
 <template>
   <div class="accounts-view">
     <h2>Accounts</h2>
-    <ul>
-      <Account v-for="account in shuffledAccounts" :key="account.fqn" :account="account" />
-    </ul>
+    <Loader v-if="loading" />
+    <div class="accounts-list" v-else>
+      <AccountCard v-for="account in accounts" :key="account.fqn" :account="account" />
+    </div>
   </div>
 </template>
 
 <script>
-import Account from './Account.vue'
+import AccountCard from './AccountCard.vue'
+import AccountsApi from '@/mixins/api/Accounts.vue'
+import Loader from '@/elements/Loader.vue'
 
 export default {
+  mixins: [AccountsApi],
   components: {
-    Account,
+    AccountCard,
+    Loader,
   },
 
-  props: {
-    accounts: {
-      type: Array,
-      required: true
-    },
+  data() {
+    return {
+      accounts: [],
+      loading: true,
+    }
   },
 
-  computed: {
-    shuffledAccounts() {
-      return this.accounts.sort(() => Math.random() - 0.5)
-    },
+  methods: {
+    async refresh() {
+      const accounts = await this.getAccounts()
+      // Shuffle accounts
+      this.accounts = accounts.sort(() => Math.random() - 0.5)
+    }
+  },
+
+  async mounted() {
+    try {
+      await this.refresh()
+    } finally {
+      this.loading = false
+    }
   },
 }
 </script>
 
 <style scoped lang="scss">
+.accounts-view {
+  h2 {
+    margin-bottom: 0.5em;
+  }
+
+  .accounts-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1em;
+  }
+}
 </style>
