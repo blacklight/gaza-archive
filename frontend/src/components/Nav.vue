@@ -1,10 +1,19 @@
 <template>
   <nav>
-    <RouterLink to="/">Home</RouterLink>
-    <RouterLink to="/accounts">Accounts</RouterLink>
-    <a href="#" @click.prevent="toggleTheme">
-      Switch Theme
-    </a>
+    <section class="left">
+      <RouterLink to="/" title="Home"><i class="fas fa-home" /></RouterLink>
+      <RouterLink to="/accounts" title="Accounts"><i class="fas fa-users" /></RouterLink>
+      <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
+      <a href="/swagger" title="API"><i class="fas fa-code" /></a>
+    </section>
+
+    <span class="spacer" style="flex-grow: 1;"></span>
+
+    <section class="right">
+      <a href="#" @click.prevent="toggleTheme" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+        <i :class="theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'" />
+      </a>
+    </section>
   </nav>
 </template>
 
@@ -55,10 +64,15 @@ nav {
   height: $nav-height;
   display: flex;
   align-items: center;
-  gap: 1.5em;
   padding: 1em;
   background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
+
+  section {
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+  }
 
   a {
     color: var(--color-link);

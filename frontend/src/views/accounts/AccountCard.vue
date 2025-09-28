@@ -48,6 +48,7 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 0.5em 1em 1em 1em;
 
     h3 {
       margin: 0;

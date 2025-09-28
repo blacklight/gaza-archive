@@ -1,3 +1,5 @@
+@use "./animations" as *;
+
 a {
   text-decoration: none;
   color: var(--color-link);
@@ -5,4 +7,8 @@ a {
   &:hover {
     text-decoration: underline;
   }
+}
+
+.view {
+  @extend .fade-in;
 }

@@ -1,6 +1,9 @@
 <template>
-  <div class="accounts-view">
-    <h2>Accounts</h2>
+  <div class="accounts view">
+    <h2>
+      <b>{{ accounts.length }}</b>&nbsp;
+      <a href="https://gaza-verified.org" target="_blank" rel="noopener">verified accounts</a>
+    </h2>
     <Loader v-if="loading" />
     <div class="accounts-list" v-else>
       <AccountCard v-for="account in accounts" :key="account.fqn" :account="account" />
@@ -46,8 +49,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.accounts-view {
+.accounts.view {
+  padding: 0 1em;
+
   h2 {
+    font-weight: normal;
+    text-align: center;
     margin-bottom: 0.5em;
   }
 
