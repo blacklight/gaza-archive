@@ -14,8 +14,14 @@ posts and media attachments.
 ## Installation
 
 ```bash
-cp ./.env.example ./.env
+cp .env.example .env
 # Modify .env file as needed
+
+# Build the frontend files (this should only be required once, or when the
+# frontend code is updated)
+make
+
+# Start all the services
 docker compose up
 ```
 
@@ -23,10 +29,16 @@ After the initial sync is completed you will be able to query data from the
 SQLite database under `./data/app.db`, and all attachments will be stored under
 `./data/media`, indexed by username.
 
+## Browse raw media
+
+After starting the services, and after the initial sync is completed, you can
+browse the raw media files at `http://localhost:8000/media`, indexed by user
+handle.
+
 ## API
 
-An OpenAPI specification is available at `/api/v1/openapi.json` once the
-backend is running.
+An OpenAPI specification is available at
+`http://localhost:8000/api/v1/openapi.json` once the backend is running.
 
 If you run the service in docker-compose you can also access a Swagger UI at
-`/swagger`.
+`http://localhost:8000/swagger`.

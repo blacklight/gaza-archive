@@ -1,0 +1,29 @@
+#app {
+  --color-bg: #fefefe;
+  --color-bg-secondary: #fafafa;
+  --color-primary: #3498db;
+  --color-secondary: #2ecc71;
+  --color-border: #d0d0d0;
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif;
+  --font-size-base: 16px;
+  --spacing-unit: 8px;
+}
+
+@mixin dark-theme {
+  #app {
+    --color-bg: #1e1e1e;
+    --color-bg-secondary: #2c2c2c;
+    --color-primary: #2980b9;
+    --color-secondary: #27ae60;
+    --color-border: #444444;
+  }
+}
+
+// Dark theme overrides, or if the browser is set to dark mode
+@media (prefers-color-scheme: dark) {
+  @include dark-theme;
+}
+
+#app.dark {
+  @include dark-theme;
+}
