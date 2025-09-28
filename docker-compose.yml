@@ -4,7 +4,7 @@ services:
     build:
       context: ./backend
     env_file:
-      - ./backend/.env
+      - ./.env
     volumes:
       - ./data:/data
     healthcheck:
@@ -16,19 +16,6 @@ services:
     # Otherwise use the nginx container to reverse proxy to the backend API
     # ports:
     #   - "8001:8000"
-
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #   env_file:
-  #     - ./frontend/.env
-  #   volumes:
-  #     - ./frontend/dist:/app/dist
-  #   command: ["npm", "run", "start"]
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - backend
 
   swagger:
     image: swaggerapi/swagger-ui

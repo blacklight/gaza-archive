@@ -14,10 +14,8 @@ posts and media attachments.
 ## Installation
 
 ```bash
-cp ./backend/.env.example ./backend/.env
-# WIP
-# cp ./frontend/.env.example ./frontend/.env
-# Modify .env files as needed
+cp ./.env.example ./.env
+# Modify .env file as needed
 docker compose up
 ```
 
