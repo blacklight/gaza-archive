@@ -16,6 +16,12 @@ The official mirror of the archive is available at
 
 ## Installation
 
+Dependencies:
+
+- [`docker`](https://www.docker.com/get-started/)
+- [`make`](https://www.gnu.org/software/make/)
+- [`npm`](https://www.npmjs.com/get-npm) (for building the frontend)
+
 ```bash
 cp .env.example .env
 # Modify .env file as needed

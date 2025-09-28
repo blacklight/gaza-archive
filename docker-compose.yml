@@ -17,18 +17,6 @@ services:
     # ports:
     #   - "8001:8000"
 
-  # Build frontend files - only run when needed through:
-  # docker-compose --profile build up frontend-build
-  frontend-build:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.build
-    volumes:
-      - ./frontend/dist:/app/dist
-    profiles:
-      - build
-    command: npm run build
-
   swagger:
     image: swaggerapi/swagger-ui
     environment:

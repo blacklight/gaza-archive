@@ -1,11 +1,10 @@
 .PHONY: all frontend frontend-clean clean
 
 frontend:
-	docker-compose --profile build up frontend-build
+	cd frontend && npm ci && npm run build
 
 frontend-clean:
 	rm -rf frontend/dist
-	docker-compose --profile build down --volumes --remove-orphans
 
 all: frontend
 
