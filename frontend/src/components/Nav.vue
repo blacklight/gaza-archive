@@ -4,7 +4,8 @@
       <RouterLink to="/" title="Home" :class="{ active: currentView === '/' }">
         <i class="fas fa-home" />
       </RouterLink>
-      <RouterLink to="/accounts" title="Accounts" :class="{ active: currentView === '/accounts' }">
+      <RouterLink to="/accounts" title="Accounts"
+        :class="{ active: currentView?.startsWith('/accounts') }">
         <i class="fas fa-users" />
       </RouterLink>
       <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>

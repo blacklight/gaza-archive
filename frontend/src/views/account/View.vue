@@ -28,29 +28,42 @@
         <p v-html="account.profile_note"></p>
       </div>
     </div>
+
+    <div class="posts">
+      <PostView
+        v-for="post in posts"
+        :key="post.id"
+        :post="post"
+      />
+    </div>
   </div>
 </template>
 
 <script>
 import AccountsApi from '@/mixins/api/Accounts.vue'
 import Loader from '@/elements/Loader.vue'
+import PostView from '@/views/posts/Post.vue'
+import PostsApi from '@/mixins/api/Posts.vue'
 
 export default {
-  mixins: [AccountsApi],
+  mixins: [AccountsApi, PostsApi],
   components: {
     Loader,
+    PostView,
   },
 
   data() {
     return {
       account: null,
       loading: true,
+      posts: [],
     }
   },
 
   methods: {
     async refresh() {
       this.account = await this.getAccount(this.$route.params.fqn)
+      this.posts = await this.getPosts({ account: this.account.fqn })
     }
   },
 
@@ -85,7 +98,7 @@ $banner-height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 2em;
+      gap: 1.25em;
     }
 
     .banner {
@@ -137,6 +150,15 @@ $banner-height: 200px;
         font-weight: 200;
         color: var(--color-text-secondary);
         word-break: break-all;
+      }
+    }
+
+    .note {
+      margin-top: 0.5em;
+      font-size: 0.9em;
+
+      p {
+        margin: 0;
       }
     }
   }
