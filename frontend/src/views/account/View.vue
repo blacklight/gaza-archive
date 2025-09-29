@@ -86,6 +86,7 @@ $banner-height: 200px;
   flex-direction: column;
   margin: 0 auto;
   padding: 1em;
+  position: relative;
 
   .header {
     display: flex;
@@ -99,6 +100,7 @@ $banner-height: 200px;
       align-items: center;
       justify-content: center;
       gap: 1.25em;
+      margin-top: calc($banner-height / 2);
     }
 
     .banner {
@@ -126,7 +128,6 @@ $banner-height: 200px;
     .avatar {
       width: 150px;
       height: 150px;
-      margin-top: calc($banner-height / 4);
       border-radius: 50%;
       overflow: hidden;
       margin-bottom: 0.5em;
@@ -142,7 +143,7 @@ $banner-height: 200px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      margin-top: calc($banner-height / 2.5);
+      margin-top: 75px;
 
       .fqn {
         margin: 0;
