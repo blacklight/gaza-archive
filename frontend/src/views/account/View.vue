@@ -91,14 +91,12 @@ $banner-height: 200px;
   .header {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
     margin-bottom: 1em;
 
     .title {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 1.25em;
       margin-top: calc($banner-height / 2);
     }
