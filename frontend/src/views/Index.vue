@@ -1,6 +1,9 @@
 <template>
   <div class="index view">
-    <h1><img src="/favicon.ico">&nbsp;Gaza Verified Archive</h1>
+    <div class="title">
+      <img src="/favicon.ico">
+      <h1>Gaza Verified Archive</h1>
+    </div>
 
     <p>This is a public archive of verified from Gaza who registered to
     <a href="https://jointhefediverse.net/" target="_blank">the Fediverse</a>
@@ -56,6 +59,14 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 1em;
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1em;
+    gap: 1em;
+  }
 
   h1 {
     margin-bottom: 0.5em;

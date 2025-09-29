@@ -1,8 +1,12 @@
 <template>
   <nav>
     <section class="left">
-      <RouterLink to="/" title="Home"><i class="fas fa-home" /></RouterLink>
-      <RouterLink to="/accounts" title="Accounts"><i class="fas fa-users" /></RouterLink>
+      <RouterLink to="/" title="Home" :class="{ active: currentView === '/' }">
+        <i class="fas fa-home" />
+      </RouterLink>
+      <RouterLink to="/accounts" title="Accounts" :class="{ active: currentView === '/accounts' }">
+        <i class="fas fa-users" />
+      </RouterLink>
       <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
       <a href="/swagger" title="API"><i class="fas fa-code" /></a>
     </section>
@@ -19,6 +23,13 @@
 
 <script>
 export default {
+  props: {
+    currentView: {
+      type: String,
+      default: null,
+    },
+  },
+
   data() {
     return {
       theme: '',
@@ -81,6 +92,10 @@ nav {
 
     &:hover {
       text-decoration: underline;
+    }
+
+    &.active {
+      color: var(--color-secondary);
     }
   }
 }

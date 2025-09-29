@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import AccountView from "@/views/account/View.vue";
 import AccountsView from "@/views/accounts/View.vue";
 import IndexView from "@/views/Index.vue";
 
@@ -13,6 +14,10 @@ const router = createRouter({
     {
       path: '/accounts',
       component: AccountsView,
+    },
+    {
+      path: '/accounts/:fqn',
+      component: AccountView,
     },
   ],
 })

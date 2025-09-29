@@ -1,5 +1,5 @@
 <template>
-  <a :href="`/accounts/${account.fqn}`" class="account">
+  <RouterLink :to="`/accounts/${account.fqn}`" class="account">
     <div class="avatar">
       <img :src="account.avatar_url" :alt="account.name" width="100%" height="100%" />
     </div>
@@ -7,7 +7,7 @@
       <h3>{{ account.display_name }}</h3>
       <p class="fqn">{{ account.fqn }}</p>
     </div>
-  </a>
+  </RouterLink>
 </template>
 
 <script>

@@ -1,6 +1,6 @@
 <template>
   <div id="app-view">
-    <Nav />
+    <Nav :currentView="currentView" />
     <main>
       <RouterView />
       <Footer />
@@ -16,6 +16,23 @@ export default {
   components: {
     Footer,
     Nav,
+  },
+
+  data() {
+    return {
+      currentView: null,
+    }
+  },
+
+  methods: {
+    onRouteChange(to) {
+      this.currentView = to.path
+    },
+  },
+
+  mounted() {
+    this.currentView = this.$route.path
+    this.$router.afterEach(this.onRouteChange)
   },
 }
 </script>
