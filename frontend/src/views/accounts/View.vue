@@ -1,12 +1,20 @@
 <template>
   <div class="accounts view">
-    <h2>
-      <b>{{ accounts.length }}</b>&nbsp;
-      <a href="https://gaza-verified.org" target="_blank" rel="noopener">verified accounts</a>
-    </h2>
     <Loader v-if="loading" />
-    <div class="accounts-list" v-else>
-      <AccountCard v-for="account in accounts" :key="account.fqn" :account="account" />
+    <div class="accounts-list-container" v-else>
+      <h2>
+        <b v-if="filter?.trim()?.length">{{ filteredAccounts.length }} / </b>
+        <b>{{ accounts.length }}</b>&nbsp;
+        <a href="https://gaza-verified.org" target="_blank" rel="noopener">verified accounts</a>
+      </h2>
+
+      <div class="filter">
+        <input id="filter-input" type="text" v-model="filter" placeholder="Type to filter accounts..." />
+      </div>
+
+      <div class="accounts-list">
+        <AccountCard v-for="account in filteredAccounts" :key="account.fqn" :account="account" />
+      </div>
     </div>
   </div>
 </template>
@@ -26,7 +34,23 @@ export default {
   data() {
     return {
       accounts: [],
+      filter: '',
       loading: true,
+    }
+  },
+
+  computed: {
+    filteredAccounts() {
+      const filter = this.filter?.toLowerCase()?.trim()
+      if (!filter?.length) {
+        return this.accounts
+      }
+
+      return this.accounts.filter(account =>
+        account.display_name.toLowerCase().includes(filter) ||
+        account.fqn.toLowerCase().includes(filter) ||
+        account.url.toLowerCase().includes(filter)
+      )
     }
   },
 
@@ -56,6 +80,20 @@ export default {
     font-weight: normal;
     text-align: center;
     margin-bottom: 0.5em;
+  }
+
+  .filter {
+    text-align: center;
+    margin-bottom: 1em;
+
+    #filter-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 0.5em;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
   }
 
   .accounts-list {
