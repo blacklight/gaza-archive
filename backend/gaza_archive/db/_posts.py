@@ -26,6 +26,7 @@ class Posts(ABC):
     def get_posts(
         self,
         *,
+        exclude_replies: bool = False,
         min_id: int | None = None,
         max_id: int | None = None,
         account: str | None = None,
@@ -45,6 +46,8 @@ class Posts(ABC):
                 query = query.filter(DbPost.id > min_id)
             if max_id is not None:
                 query = query.filter(DbPost.id < max_id)
+            if exclude_replies:
+                query = query.filter(DbPost.in_reply_to_url.is_(None))
 
             query = query.order_by(DbPost.created_at.desc())
             if limit is not None:

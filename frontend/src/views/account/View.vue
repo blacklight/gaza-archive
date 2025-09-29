@@ -30,11 +30,7 @@
     </div>
 
     <div class="posts">
-      <PostView
-        v-for="post in posts"
-        :key="post.id"
-        :post="post"
-      />
+      <PostView v-for="post in posts" :key="post.id" :post="post" />
     </div>
   </div>
 </template>
