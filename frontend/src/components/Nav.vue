@@ -4,10 +4,17 @@
       <RouterLink to="/" title="Home" :class="{ active: currentView === '/' }">
         <i class="fas fa-home" />
       </RouterLink>
+
       <RouterLink to="/accounts" title="Accounts"
         :class="{ active: currentView?.startsWith('/accounts') }">
         <i class="fas fa-users" />
       </RouterLink>
+
+      <RouterLink to="/posts" title="Posts"
+        :class="{ active: currentView?.startsWith('/posts') }">
+        <i class="fas fa-stream" />
+      </RouterLink>
+
       <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
       <a href="/swagger" title="API"><i class="fas fa-code" /></a>
     </section>

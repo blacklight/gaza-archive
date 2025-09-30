@@ -10,7 +10,7 @@
       </a>
     </div>
 
-    <RouterLink :href="`/accounts/${post.author.fqn}`" class="author">
+    <RouterLink :to="`/accounts/${post.author.fqn}`" class="author">
       <div class="avatar">
         <img :src="post.author.avatar_url" :alt="post.author.display_name || post.author.username" />
       </div>
@@ -19,7 +19,7 @@
         <span class="username">{{ post.author.fqn }}</span>
       </div>
     </RouterLink>
-    <p class="content" v-html="post.content"></p>
+    <p class="content" @click.stop="onContentClick" v-html="post.content"></p>
     <p class="date">{{ formatDateTime(post.created_at) }}</p>
 
     <div class="attachments" v-if="post.attachments?.length">
@@ -42,6 +42,16 @@ export default {
     post: {
       type: Object,
       required: true,
+    },
+  },
+
+  methods: {
+    onContentClick(event) {
+      const target = event.target
+      if (target.tagName === 'A' && target.href) {
+        window.open(target.href, '_blank', 'noopener')
+        event.preventDefault()
+      }
     },
   },
 }

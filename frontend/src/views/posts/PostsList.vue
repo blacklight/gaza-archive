@@ -118,6 +118,9 @@ export default {
 
 <style scoped lang="scss">
 .posts {
+  max-width: 800px;
+  margin: 0 auto;
+
   .filters {
     margin: 1em 0;
     font-size: 0.9em;
