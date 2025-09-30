@@ -29,37 +29,33 @@
       </div>
     </div>
 
-    <div class="posts">
-      <PostView v-for="post in posts" :key="post.id" :post="post" />
-    </div>
+    <PostsList :filter="{ account: account.fqn }" />
   </div>
 </template>
 
 <script>
 import AccountsApi from '@/mixins/api/Accounts.vue'
 import Loader from '@/elements/Loader.vue'
-import PostView from '@/views/posts/Post.vue'
+import PostsList from '@/views/posts/PostsList.vue'
 import PostsApi from '@/mixins/api/Posts.vue'
 
 export default {
   mixins: [AccountsApi, PostsApi],
   components: {
     Loader,
-    PostView,
+    PostsList,
   },
 
   data() {
     return {
       account: null,
       loading: true,
-      posts: [],
     }
   },
 
   methods: {
     async refresh() {
       this.account = await this.getAccount(this.$route.params.fqn)
-      this.posts = await this.getPosts({ account: this.account.fqn })
     }
   },
 

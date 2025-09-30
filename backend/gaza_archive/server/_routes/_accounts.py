@@ -42,6 +42,7 @@ def get_account(account: str) -> Account:
 @router.get("/{account}/posts", response_model=list[Post])
 def get_account_posts(
     account: str,
+    exclude_replies: bool = False,
     min_id: int | None = None,
     max_id: int | None = None,
     limit: int | None = None,
@@ -50,6 +51,7 @@ def get_account_posts(
     """
     Get posts for a specific account.
 
+    :param exclude_replies: Whether to exclude replies (default: False).
     :param account: Account FQN, in the format `@username@instance`, or full URL.
     :param min_id: Minimum post ID to return (exclusive).
     :param max_id: Maximum post ID to return (exclusive).
@@ -70,6 +72,7 @@ def get_account_posts(
 
     return list(
         ctx.db.get_posts(
+            exclude_replies=exclude_replies,
             account=account_url,
             min_id=min_id,
             max_id=max_id,

@@ -47,7 +47,7 @@ class Posts(ABC):
             if max_id is not None:
                 query = query.filter(DbPost.id < max_id)
             if exclude_replies:
-                query = query.filter(DbPost.in_reply_to_url.is_(None))
+                query = query.filter(DbPost.in_reply_to_id.is_(None))
 
             query = query.order_by(DbPost.created_at.desc())
             if limit is not None:
