@@ -60,7 +60,7 @@ class Posts(ABC):
             posts: dict[str, Post] = {}
 
             for db_post, db_media in db_posts:
-                if db_post.id not in posts:
+                if db_post.url not in posts:
                     posts[db_post.url] = db_post.to_model()
                 if db_media:
                     posts[db_post.url].attachments.append(db_media.to_model())
@@ -68,13 +68,25 @@ class Posts(ABC):
             return list(posts.values())
 
     def get_post(self, post: str) -> Post | None:
+        posts = {}
+
         with self.get_session() as session:
-            db_post = (
-                session.query(DbPost)
+            records = (
+                session.query(DbPost, DbMedia)
+                .outerjoin(DbMedia, DbMedia.post_url == DbPost.url)
                 .filter(or_(DbPost.url == post, DbPost.id == post))
-                .one_or_none()
+                .all()
             )
-            return db_post.to_model() if db_post else None
+
+            for db_post, db_media in records:
+                print(db_post.id, db_media.id if db_media else None)
+                if db_post.url not in posts:
+                    posts[db_post.url] = db_post.to_model()
+                if db_media:
+                    posts[db_post.url].attachments.append(db_media.to_model())
+
+            print([attachment.id for post in posts.values() for attachment in post.attachments])
+            return list(posts.values())[0] if posts else None
 
     def save_posts(self, posts: list[Post]):
         with self._write_lock, self.get_session() as session:

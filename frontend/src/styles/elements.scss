@@ -12,3 +12,7 @@ a {
 .view {
   @extend .fade-in;
 }
+
+.error {
+  color: var(--color-error);
+}

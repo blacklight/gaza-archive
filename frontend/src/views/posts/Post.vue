@@ -11,14 +11,23 @@
     </a>
     <p class="content" v-html="post.content"></p>
     <p class="date">{{ formatDateTime(post.created_at) }}</p>
+
+    <div class="attachments" v-if="post.attachments?.length">
+      <Attachment v-for="attachment in post.attachments"
+                  :key="attachment.url"
+                  preview
+                  :attachment="attachment" />
+    </div>
   </div>
 </template>
 
 <script>
+import Attachment from '@/views/attachments/Attachment.vue'
 import Dates from '@/mixins/Dates.vue'
 
 export default {
   mixins: [Dates],
+  components: { Attachment },
   props: {
     post: {
       type: Object,
@@ -77,12 +86,20 @@ export default {
     font-size: 1em;
     margin-bottom: 0.5em;
     color: #333;
+    overflow-wrap: break-word;
   }
 
   .date {
     font-size: 0.8em;
     color: var(--color-text-secondary);
     text-align: right;
+  }
+
+  .attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    margin-top: 0.5em;
   }
 }
 </style>
