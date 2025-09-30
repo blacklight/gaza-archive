@@ -20,20 +20,17 @@ class FileStorage(Storage):
         super().__init__()
         self.config = config
         self.basedir = os.path.abspath(os.path.expanduser(config.storage_path))
-        self.media_dir = self.basedir
-        if not self.media_dir.endswith("/media"):
-            self.media_dir = os.path.join(self.basedir, "media")
-
+        self.media_dir = os.path.join(self.basedir, "media")
         pathlib.Path(self.media_dir).mkdir(parents=True, exist_ok=True)
         log.info("File storage initialized at %s", self.basedir)
 
     def exists(self, item: Media):
-        filename = os.path.join(self.media_dir, item.path)
+        filename = os.path.join(self.basedir, item.path)
         return os.path.exists(filename)
 
     @contextmanager
     def _download(self, item: Media) -> Iterator[IO]:
-        media_path = os.path.join(self.media_dir, item.path.lstrip("/"))
+        media_path = os.path.join(self.basedir, item.path.lstrip("/"))
         log.info("Downloading attachment %s to %s", item.url, media_path)
         pathlib.Path(os.path.dirname(media_path)).mkdir(parents=True, exist_ok=True)
         with open(media_path, "wb") as handle:
@@ -43,6 +40,6 @@ class FileStorage(Storage):
         handle.write(data)
 
     def delete(self, item: Media):
-        filename = os.path.join(self.media_dir, item.path)
+        filename = os.path.join(self.basedir, item.path)
         if os.path.exists(filename):
             os.remove(filename)
