@@ -14,7 +14,21 @@
       </button>
     </div>
 
+    <div class="author" v-if="showAuthor && attachment.post?.author">
+      <a :href="`/accounts/${attachment.post.author.fqn}`"
+         @click.stop
+         class="author-link"
+         target="_blank"
+         rel="noopener noreferrer">
+        <img class="avatar"
+             :src="attachment.post.author.avatar_path || attachment.post.author.avatar_url"
+             :alt="attachment.post.author.display_name || attachment.post.author.username"
+             :title="attachment.post.author.display_name || attachment.post.author.username" />
+      </a>
+    </div>
+
     <a :href="mediaTarget"
+       class="media-link"
        target="_blank"
        rel="noopener noreferrer"
        ref="link"
@@ -59,6 +73,11 @@ export default {
     },
 
     preview: {
+      type: Boolean,
+      default: false,
+    },
+
+    showAuthor: {
       type: Boolean,
       default: false,
     },
@@ -116,10 +135,13 @@ export default {
 <style scoped lang="scss">
 @use '@/styles/animations' as *;
 
+$actions-height: 2em;
+
 .attachment {
   background: var(--color-media-bg);
   margin: 0.5em 0;
   text-align: center;
+  position: relative;
 
   img, video {
     max-width: 100%;
@@ -138,11 +160,12 @@ export default {
     }
 
     img, video {
-      object-fit: contain;
+      object-fit: fill;
       max-height: 350px;
     }
 
     .actions {
+      height: $actions-height;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -166,6 +189,25 @@ export default {
           font-size: 1.2em;
         }
       }
+    }
+
+    .author {
+      position: absolute;
+      top: $actions-height + 0.5em;
+
+      img.avatar {
+        width: 2em;
+        height: 2em;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+    }
+
+    .media-link {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .footer {

@@ -15,6 +15,11 @@
         <i class="fas fa-stream" />
       </RouterLink>
 
+      <RouterLink to="/attachments" title="Media"
+        :class="{ active: currentView?.startsWith('/attachments') }">
+        <i class="fas fa-photo-video" />
+      </RouterLink>
+
       <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
       <a href="/swagger" title="API"><i class="fas fa-code" /></a>
     </section>

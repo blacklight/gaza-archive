@@ -13,6 +13,7 @@
         <Attachment preview
                     @update:mediaDescriptionId="mediaDescriptionId = $event"
                     :key="attachment.url"
+                    :show-author="showAuthors"
                     :attachment="attachment" />
       </RouterLink>
     </div>
@@ -46,6 +47,11 @@ export default {
     filter: {
       type: Object,
       default: () => ({}),
+    },
+
+    showAuthors: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -104,6 +110,9 @@ export default {
 
     async refresh() {
       this.attachments = await this.getAttachments(this.computedFilter)
+      this.minId = this.attachments.length > 0 ? this.attachments[this.attachments.length - 1].id : null
+      this.maxId = this.attachments.length > 0 ? this.attachments[0].id : null
+      this.hasMore = true
     }
   },
 
@@ -146,11 +155,12 @@ export default {
 
   .list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(175px, 2fr));
     gap: 1em;
   }
 
   .attachment-link {
+    height: 100%;
     text-decoration: none;
     color: inherit;
   }

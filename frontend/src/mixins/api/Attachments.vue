@@ -9,9 +9,6 @@ export default {
       }
 
       url += `?limit=${opts.limit || 20}&offset=${opts.offset || 0}`
-      if (opts.exclude_replies) {
-        url += '&exclude_replies=1'
-      }
       if (opts.min_id) {
         url += `&min_id=${opts.min_id}`
       }
