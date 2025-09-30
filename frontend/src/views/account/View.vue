@@ -29,10 +29,14 @@
       </div>
     </div>
 
-    <select v-model="view">
-      <option value="posts"><i class="fa fa-file-text-o" aria-hidden="true"></i> Posts</option>
-      <option value="attachments"><i class="fa fa-paperclip" aria-hidden="true"></i> Attachments</option>
-    </select>
+    <div class="tabs">
+      <button class="tab" :class="{ active: view === 'posts' }" @click="view = 'posts'">
+        <i class="fas fa-file-text" aria-hidden="true" /> Posts
+      </button>
+      <button class="tab" :class="{ active: view === 'attachments' }" @click="view = 'attachments'">
+        <i class="fas fa-paperclip" aria-hidden="true" /> Attachments
+      </button>
+    </div>
 
     <PostsList :filter="{ account: account.fqn }" v-if="view === 'posts'" />
     <AttachmentsList :filter="{ account: account.fqn, excludeReplies: true }" v-else-if="view === 'attachments'" />
@@ -58,17 +62,24 @@ export default {
     return {
       account: null,
       loading: true,
-      view: 'posts',
+      view: null,
     }
   },
 
   methods: {
     async refresh() {
       this.account = await this.getAccount(this.$route.params.fqn)
-    }
+    },
+  },
+
+  watch: {
+    view(newView) {
+      this.$router.replace({ query: { view: newView } })
+    },
   },
 
   async mounted() {
+    this.view = this.$route.query.view || 'posts'
     try {
       await this.refresh()
     } finally {

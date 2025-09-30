@@ -1,11 +1,6 @@
 <template>
   <div class="attachments">
     <Loader v-if="loading" />
-    <div class="filters">
-      <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
-      <label for="exclude-replies">Exclude replies</label>
-    </div>
-
     <div class="no-attachments" v-if="!loading && attachments.length === 0">
       No attachments found.
     </div>
