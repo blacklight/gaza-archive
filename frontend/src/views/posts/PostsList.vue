@@ -7,10 +7,10 @@
     </div>
 
     <RouterLink class="post-link"
-                :to="`/posts/${encodeURIComponent(post.id)}`"
                 v-for="post in posts"
+                :to="`/posts/${post.id}`"
                 :key="post.id">
-      <Post v-for="post in posts" :key="post.id" :post="post" />
+      <Post :key="post.id" :post="post" />
     </RouterLink>
   </div>
 </template>
