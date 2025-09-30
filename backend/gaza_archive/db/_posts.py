@@ -4,6 +4,7 @@ from logging import getLogger
 from threading import RLock
 from typing import Iterator
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..model import Account, Post
@@ -66,9 +67,13 @@ class Posts(ABC):
 
             return list(posts.values())
 
-    def get_post(self, url: str) -> Post | None:
+    def get_post(self, post: str) -> Post | None:
         with self.get_session() as session:
-            db_post = session.query(DbPost).filter(DbPost.url == url).one_or_none()
+            db_post = (
+                session.query(DbPost)
+                .filter(or_(DbPost.url == post, DbPost.id == post))
+                .one_or_none()
+            )
             return db_post.to_model() if db_post else None
 
     def save_posts(self, posts: list[Post]):

@@ -5,20 +5,26 @@
       <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
       <label for="exclude-replies">Exclude replies</label>
     </div>
-    <PostView v-for="post in posts" :key="post.id" :post="post" />
+
+    <RouterLink class="post-link"
+                :to="`/posts/${encodeURIComponent(post.id)}`"
+                v-for="post in posts"
+                :key="post.id">
+      <Post v-for="post in posts" :key="post.id" :post="post" />
+    </RouterLink>
   </div>
 </template>
 
 <script>
 import Loader from '@/elements/Loader.vue'
-import PostView from '@/views/posts/Post.vue'
+import Post from '@/views/posts/Post.vue'
 import PostsApi from '@/mixins/api/Posts.vue'
 
 export default {
   mixins: [PostsApi],
   components: {
     Loader,
-    PostView,
+    Post,
   },
 
   props: {
@@ -106,6 +112,11 @@ export default {
     input {
       margin-right: 0.5em;
     }
+  }
+
+  .post-link {
+    text-decoration: none;
+    color: inherit;
   }
 }
 </style>

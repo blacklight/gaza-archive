@@ -21,6 +21,10 @@ export default {
 
       return (await fetch(url)).json()
     },
+
+    async getPost(url) {
+      return (await fetch(`/api/v1/posts/${url}`)).json()
+    },
   },
 }
 </script>

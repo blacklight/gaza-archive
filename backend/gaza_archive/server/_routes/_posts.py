@@ -1,3 +1,5 @@
+from urllib.parse import unquote
+
 from fastapi import APIRouter, HTTPException
 
 from ...model import Post
@@ -38,12 +40,12 @@ def get_posts(
 @router.get("/{post}", response_model=Post)
 def get_post(post: str) -> Post:
     """
-    Get a specific post by URL.
+    Get a specific post by URL or ID.
 
     :param post: Post URL.
     :return: The post object, or 404 if not found.
     """
-    db_post = ctx.db.get_post(post)
+    db_post = ctx.db.get_post(unquote(post))
     if not db_post:
         raise HTTPException(status_code=404, detail="Post not found")
     return db_post
