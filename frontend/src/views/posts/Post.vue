@@ -1,5 +1,15 @@
 <template>
   <div class="post">
+    <div class="icons" @click.stop>
+      <i class="fas fa-reply-all reply-icon"
+         v-if="post.in_reply_to_id"
+         title="This post is a reply" />
+
+      <a :href="post.url" target="_blank" rel="noopener" title="View this post on its original site">
+        <i class="fas fa-external-link-alt external-link-icon" />
+      </a>
+    </div>
+
     <a :href="`/accounts/${post.author.fqn}`" class="author">
       <div class="avatar">
         <img :src="post.author.avatar_url" :alt="post.author.display_name || post.author.username" />
@@ -39,11 +49,23 @@ export default {
 
 <style scoped lang="scss">
 .post {
+  max-width: 800px;
   border: 1px solid #ccc;
   padding: 1em;
-  margin-bottom: 1em;
+  margin: 0.5em auto;
   border-radius: 8px;
   background-color: var(--color-bg-secondary);
+
+  .icons {
+    display: flex;
+    align-items: center;
+    color: var(--color-text-secondary);
+    margin: 0.25em;
+    font-size: 0.9em;
+    vertical-align: middle;
+    float: right;
+    gap: 0.5em;
+  }
 
   .author {
     display: flex;
