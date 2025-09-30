@@ -53,6 +53,13 @@ export default {
         exclude_replies: this.excludeReplies,
       }
     },
+
+    postsById() {
+      return this.posts.reduce((map, post) => {
+        map[post.id] = post
+        return map
+      }, {})
+    },
   },
 
   methods: {
@@ -60,10 +67,12 @@ export default {
       if (this.hasMore && !this.loading) {
         this.loading = true
         try {
-          const newPosts = await this.getPosts({
-            ...this.computedFilter,
-            max_id: this.minId,
-          })
+          const newPosts = (
+            await this.getPosts({
+              ...this.computedFilter,
+              max_id: this.minId,
+            })
+          ).filter(post => !this.postsById[post.id])
 
           if (newPosts.length > 0) {
             this.posts = [...this.posts, ...newPosts]

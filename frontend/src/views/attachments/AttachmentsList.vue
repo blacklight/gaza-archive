@@ -23,7 +23,7 @@
          title="Media Description"
          @close="mediaDescriptionId = null">
     <div class="media-description" v-if="mediaDescriptionId">
-      <p>{{ attachments.find(att => att.id === mediaDescriptionId)?.description }}</p>
+      <p>{{ attachmentsById[mediaDescriptionId]?.description }}</p>
     </div>
   </Modal>
 </template>
@@ -61,6 +61,13 @@ export default {
   },
 
   computed: {
+    attachmentsById() {
+      return this.attachments.reduce((map, attachment) => {
+        map[attachment.id] = attachment
+        return map
+      }, {})
+    },
+
     computedFilter() {
       return {
         ...this.filter,
@@ -74,10 +81,14 @@ export default {
         this.loading = true
 
         try {
-          const newAttachments = await this.getAttachments({
-            ...this.computedFilter,
-            max_id: this.minId,
-          })
+          const newAttachments = (
+            await this.getAttachments({
+              ...this.computedFilter,
+              max_id: this.minId,
+            })
+          ).filter(
+            (attachment) => !this.attachmentsById[attachment.id]
+          )
 
           if (newAttachments.length > 0) {
             this.attachments = [...this.attachments, ...newAttachments]
