@@ -51,7 +51,7 @@ export default {
     width: 90%;
     min-width: 300px;
     max-width: 800px;
-    background: white;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
     position: relative;
     max-height: 90%;
@@ -80,7 +80,7 @@ export default {
       border: none;
       font-size: 1.5em;
       cursor: pointer;
-      color: #333;
+      color: var(--color-text-secondary);
       opacity: 0.7;
 
       &:hover {

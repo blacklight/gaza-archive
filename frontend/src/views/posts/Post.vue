@@ -60,7 +60,7 @@ export default {
 <style scoped lang="scss">
 .post {
   max-width: 800px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   padding: 1em;
   margin: 0.5em auto;
   border-radius: 8px;
@@ -117,7 +117,6 @@ export default {
   .content {
     font-size: 1em;
     margin-bottom: 0.5em;
-    color: #333;
     overflow-wrap: break-word;
   }
 
