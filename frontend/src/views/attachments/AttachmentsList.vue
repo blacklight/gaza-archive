@@ -155,7 +155,7 @@ export default {
 
   .list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 2fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 2fr));
     gap: 1em;
   }
 

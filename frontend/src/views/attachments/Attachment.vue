@@ -200,6 +200,7 @@ $actions-height: 2em;
         height: 2em;
         border-radius: 50%;
         object-fit: cover;
+        margin-left: 0.5em;
       }
     }
 
