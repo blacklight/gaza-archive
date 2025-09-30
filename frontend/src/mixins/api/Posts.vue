@@ -2,7 +2,6 @@
 export default {
   methods: {
     async getPosts(opts) {
-      console.log('getPosts', opts)
       let url = '/api/v1/posts'
       if (opts.account) {
         url = `/api/v1/accounts/${opts.account}/posts`

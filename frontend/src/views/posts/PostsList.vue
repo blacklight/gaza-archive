@@ -1,8 +1,8 @@
 <template>
-  <Loader v-if="loading" />
-  <div class="posts" v-else>
+  <div class="posts">
+    <Loader v-if="loading" />
     <div class="filters">
-      <input type="checkbox" id="exclude-replies" v-model="excludeReplies" @change="refresh" />
+      <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
       <label for="exclude-replies">Exclude replies</label>
     </div>
     <PostView v-for="post in posts" :key="post.id" :post="post" />
@@ -28,6 +28,18 @@ export default {
     },
   },
 
+  data() {
+    return {
+      account: null,
+      excludeReplies: false,
+      loading: true,
+      hasMore: true,
+      maxId: null,
+      minId: null,
+      posts: [],
+    }
+  },
+
   computed: {
     computedFilter() {
       return {
@@ -37,22 +49,44 @@ export default {
     },
   },
 
-  data() {
-    return {
-      account: null,
-      excludeReplies: false,
-      loading: true,
-      posts: [],
-    }
-  },
-
   methods: {
+    async onScroll(percentage) {
+      if (percentage > 0.8 && this.hasMore && !this.loading) {
+        this.loading = true
+        try {
+          const newPosts = await this.getPosts({
+            ...this.computedFilter,
+            max_id: this.minId,
+          })
+
+          if (newPosts.length > 0) {
+            this.posts = [...this.posts, ...newPosts]
+            this.minId = newPosts[newPosts.length - 1].id
+          } else {
+            this.hasMore = false
+          }
+        } finally {
+          this.loading = false
+        }
+      }
+    },
+
     async refresh() {
       this.posts = await this.getPosts(this.computedFilter)
     }
   },
 
+  watch: {
+    excludeReplies() {
+      this.maxId = null
+      this.minId = null
+      this.hasMore = true
+      this.refresh()
+    },
+  },
+
   async mounted() {
+    this.$root.bus.on('scroll', this.onScroll)
     try {
       await this.refresh()
     } finally {

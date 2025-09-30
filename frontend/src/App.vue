@@ -1,7 +1,7 @@
 <template>
   <div id="app-view">
     <Nav :currentView="currentView" />
-    <main>
+    <main @scroll.passive="onScroll" ref="main">
       <RouterView />
       <Footer />
     </main>
@@ -11,6 +11,7 @@
 <script>
 import Footer from './components/Footer.vue'
 import Nav from './components/Nav.vue'
+import mitter from 'mitt'
 
 export default {
   components: {
@@ -20,6 +21,7 @@ export default {
 
   data() {
     return {
+      bus: mitter(),
       currentView: null,
     }
   },
@@ -27,6 +29,13 @@ export default {
   methods: {
     onRouteChange(to) {
       this.currentView = to.path
+    },
+
+    onScroll() {
+      this.bus.emit(
+        'scroll',
+        this.$refs.main.scrollTop / (this.$refs.main.scrollHeight - this.$refs.main.clientHeight)
+      )
     },
   },
 
