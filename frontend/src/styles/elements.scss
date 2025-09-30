@@ -26,15 +26,18 @@ a {
     cursor: pointer;
     border: 1px solid transparent;
     border-bottom: none;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
 
     &.active {
       border-color: var(--color-border);
-      border-bottom: 1px solid var(--color-background);
       background-color: var(--color-background);
     }
 
     &:hover {
-      background-color: var(--color-primary);
+      background-color: var(--color-hover-bg);
+      border: 1px solid transparent;
+      border-bottom: none;
     }
   }
 }

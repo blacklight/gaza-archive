@@ -1,5 +1,14 @@
 <template>
   <div class="attachment" :class="{ preview }">
+    <div class="actions" @click.stop v-if="postUrl">
+      <RouterLink :to="postUrl">
+        <i class="fas fa-file-alt" title="View Post" aria-hidden="true" />
+      </RouterLink>
+      <a :href="attachment.path" target="_blank" rel="noopener noreferrer">
+        <i class="fas fa-download" title="Download" aria-hidden="true" />
+      </a>
+    </div>
+
     <a :href="mediaTarget"
        target="_blank"
        rel="noopener noreferrer"
@@ -23,11 +32,19 @@
         {{ errorMessage?.length ? errorMessage : 'Unsupported attachment type' }}
       </span>
     </a>
+
+    <div class="footer" v-if="attachment.post">
+      <i class="fas fa-clock" aria-hidden="true" />
+      <span>{{ formatDateTime(attachment.post.created_at) }}</span>
+    </div>
   </div>
 </template>
 
 <script>
+import Dates from '@/mixins/Dates.vue'
+
 export default {
+  mixins: [Dates],
   props: {
     attachment: {
       type: Object,
@@ -51,6 +68,19 @@ export default {
   computed: {
     extension() {
       return this.mediaTarget?.split('.')?.pop()?.toLowerCase();
+    },
+
+    postUrl() {
+      // Don't show link if already on a post page
+      if (this.$route.path.indexOf('/posts/') >= 0) {
+        return null;
+      }
+
+      if (!this.attachment.post?.id) {
+        return null;
+      }
+
+      return `/posts/${this.attachment.post.id}`;
     },
   },
 
@@ -77,7 +107,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/animations' as *;
+
 .attachment {
+  background: var(--color-media-bg);
   margin: 0.5em 0;
   text-align: center;
 
@@ -87,9 +120,40 @@ export default {
   }
 
   &.preview {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 1em;
+
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      @extend .lighten;
+    }
+
     img, video {
       object-fit: contain;
       max-height: 350px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      padding: 1em;
+      gap: 3em;
+    }
+
+    .footer {
+      font-size: 0.8em;
+      color: var(--color-text-muted);
+      margin-top: auto;
+      padding: 0.5em;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5em;
     }
   }
 }
