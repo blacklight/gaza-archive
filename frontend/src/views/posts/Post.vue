@@ -10,12 +10,15 @@
       </div>
     </a>
     <p class="content" v-html="post.content"></p>
-    <p class="date">{{ new Date(post.created_at).toLocaleString() }}</p>
+    <p class="date">{{ formatDateTime(post.created_at) }}</p>
   </div>
 </template>
 
 <script>
+import Dates from '@/mixins/Dates.vue'
+
 export default {
+  mixins: [Dates],
   props: {
     post: {
       type: Object,
