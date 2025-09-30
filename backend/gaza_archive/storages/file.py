@@ -22,7 +22,7 @@ class FileStorage(Storage):
         self.basedir = os.path.abspath(os.path.expanduser(config.storage_path))
         self.media_dir = self.basedir
         if not self.media_dir.endswith("/media"):
-            self.media_dir += "media"
+            self.media_dir = os.path.join(self.basedir, "media")
 
         pathlib.Path(self.media_dir).mkdir(parents=True, exist_ok=True)
         log.info("File storage initialized at %s", self.basedir)
