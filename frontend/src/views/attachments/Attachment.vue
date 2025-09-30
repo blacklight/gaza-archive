@@ -43,7 +43,7 @@ export default {
   data() {
     return {
       errorMessage: '',
-      mediaTarget: this.attachment.path,
+      mediaTarget: this.attachment.path?.replace("@", "%40") || this.attachment.url,
       videoKey: 0,
     };
   },
