@@ -2,12 +2,15 @@
   <div class="posts">
     <Loader v-if="loading" />
     <div class="filters">
-      <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
-      <label for="exclude-replies">Exclude replies</label>
+      <input type="text" v-model="textFilter" placeholder="Filter posts" />
+      <div class="exclude-replies">
+        <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
+        <label for="exclude-replies">Exclude replies</label>
+      </div>
     </div>
 
     <RouterLink class="post-link"
-                v-for="post in posts"
+                v-for="post in filteredPosts"
                 :to="`/posts/${post.id}`"
                 :key="post.id">
       <Post :key="post.id" :post="post" />
@@ -43,6 +46,7 @@ export default {
       maxId: null,
       minId: null,
       posts: [],
+      textFilter: '',
     }
   },
 
@@ -52,6 +56,27 @@ export default {
         ...this.filter,
         exclude_replies: this.excludeReplies,
       }
+    },
+
+    filteredPosts() {
+      const filter = this.textFilter?.length ? this.textFilter.toLowerCase().trim() : null
+      if (!filter) {
+        return this.posts
+      }
+
+      return this.posts.filter((post, index) =>
+        this.indexedContent[index]?.includes(filter) ||
+        post.author?.display_name?.toLowerCase()?.includes(filter) ||
+        post.author?.fqn?.includes(filter)
+      )
+    },
+
+    indexedContent() {
+      return this.posts.map(post => {
+        const p = document.createElement('p')
+        p.innerHTML = post.content || ''
+        return p.textContent?.toLowerCase() || ''
+      })
     },
 
     postsById() {
@@ -140,12 +165,25 @@ export default {
   margin: 0 auto;
 
   .filters {
+    width: 100%;
+    display: flex;
+    align-items: center;
     margin: 1em 0;
     font-size: 0.9em;
     color: var(--color-text-muted);
 
+    .exclude-replies {
+      display: flex;
+      align-items: center;
+    }
+
     input {
       margin-right: 0.5em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      flex: 1;
     }
   }
 
