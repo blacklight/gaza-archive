@@ -2,11 +2,16 @@
   <div class="attachment" :class="{ preview }">
     <div class="actions" @click.stop v-if="postUrl">
       <RouterLink :to="postUrl">
-        <i class="fas fa-file-alt" title="View Post" aria-hidden="true" />
+        <i class="fas fa-link" title="View Post" aria-hidden="true" />
       </RouterLink>
       <a :href="attachment.path" target="_blank" rel="noopener noreferrer">
         <i class="fas fa-download" title="Download" aria-hidden="true" />
       </a>
+      <button @click.prevent.stop="$emit('update:mediaDescriptionId', attachment.id)"
+              title="View Description"
+              v-if="attachment.description?.length">
+        <i class="fas fa-info-circle" title="View Description" aria-hidden="true" />
+      </button>
     </div>
 
     <a :href="mediaTarget"
@@ -16,6 +21,7 @@
        @click.stop>
       <img :src="mediaTarget"
            :alt="attachment.description"
+           :title="attachment.description || 'Attachment'"
            @load="onMediaLoad"
            @error="onMediaError"
            v-if="attachment.type === 'image' && !errorMessage?.length" />
@@ -45,6 +51,7 @@ import Dates from '@/mixins/Dates.vue'
 
 export default {
   mixins: [Dates],
+  emits: ['update:mediaDescriptionId'],
   props: {
     attachment: {
       type: Object,
@@ -142,6 +149,23 @@ export default {
       font-size: 0.8em;
       padding: 1em;
       gap: 3em;
+
+      button, a, .router-link {
+        background: none;
+        border: none;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        text-decoration: none;
+        transition: color 0.3s;
+
+        &:hover {
+          color: var(--color-accent);
+        }
+
+        i {
+          font-size: 1.2em;
+        }
+      }
     }
 
     .footer {

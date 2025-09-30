@@ -10,22 +10,36 @@
                   v-for="attachment in attachments"
                   :to="attachment.path"
                   :key="attachment.url">
-        <Attachment preview :key="attachment.url" :attachment="attachment" />
+        <Attachment preview
+                    @update:mediaDescriptionId="mediaDescriptionId = $event"
+                    :key="attachment.url"
+                    :attachment="attachment" />
       </RouterLink>
     </div>
   </div>
+
+  <Modal v-if="mediaDescriptionId"
+         :show="!!mediaDescriptionId"
+         title="Media Description"
+         @close="mediaDescriptionId = null">
+    <div class="media-description" v-if="mediaDescriptionId">
+      <p>{{ attachments.find(att => att.id === mediaDescriptionId)?.description }}</p>
+    </div>
+  </Modal>
 </template>
 
 <script>
-import Loader from '@/elements/Loader.vue'
 import Attachment from '@/views/attachments/Attachment.vue'
 import AttachmentsApi from '@/mixins/api/Attachments.vue'
+import Loader from '@/elements/Loader.vue'
+import Modal from '@/elements/Modal.vue'
 
 export default {
   mixins: [AttachmentsApi],
   components: {
-    Loader,
     Attachment,
+    Loader,
+    Modal,
   },
 
   props: {
@@ -42,6 +56,7 @@ export default {
       maxId: null,
       minId: null,
       attachments: [],
+      mediaDescriptionId: null,
     }
   },
 
@@ -127,6 +142,12 @@ export default {
   .attachment-link {
     text-decoration: none;
     color: inherit;
+  }
+
+  .media-description {
+    p {
+      white-space: pre-wrap;
+    }
   }
 }
 </style>

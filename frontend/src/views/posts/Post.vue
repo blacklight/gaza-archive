@@ -10,7 +10,7 @@
       </a>
     </div>
 
-    <a :href="`/accounts/${post.author.fqn}`" class="author">
+    <RouterLink :href="`/accounts/${post.author.fqn}`" class="author">
       <div class="avatar">
         <img :src="post.author.avatar_url" :alt="post.author.display_name || post.author.username" />
       </div>
@@ -18,7 +18,7 @@
         <strong>{{ post.author.display_name || post.author.username }}</strong>
         <span class="username">{{ post.author.fqn }}</span>
       </div>
-    </a>
+    </RouterLink>
     <p class="content" v-html="post.content"></p>
     <p class="date">{{ formatDateTime(post.created_at) }}</p>
 
