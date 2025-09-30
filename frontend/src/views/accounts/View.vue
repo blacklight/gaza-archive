@@ -85,15 +85,6 @@ export default {
   .filter {
     text-align: center;
     margin-bottom: 1em;
-
-    #filter-input {
-      width: 100%;
-      max-width: 400px;
-      padding: 0.5em;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
   }
 
   .accounts-list {
