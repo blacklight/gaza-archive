@@ -69,6 +69,15 @@ class MastodonApi(ABC):
 
         return account.id
 
+    def _convert_datetime(self, value: str) -> datetime | None:
+        if not value:
+            return None
+
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
+
+        return datetime.fromisoformat(value)
+
     def refresh_account(self, account: Account) -> Account:
         """
         Get the Mastodon ID of an account.
@@ -89,7 +98,7 @@ class MastodonApi(ABC):
         account.avatar_url = account_info.get("avatar_static")
         account.header_url = account_info.get("header_static")
         account.profile_note = account_info.get("note")
-        account.created_at = datetime.fromisoformat(account_info["created_at"])
+        account.created_at = self._convert_datetime(account_info["created_at"])
         if account_info.get("locked"):
             account.disabled = account_info["locked"]
 
@@ -138,9 +147,9 @@ class MastodonApi(ABC):
                             if status["in_reply_to_account_id"]
                             else None
                         ),
-                        created_at=datetime.fromisoformat(status["created_at"]),
+                        created_at=self._convert_datetime(status["created_at"]),
                         updated_at=(
-                            datetime.fromisoformat(status["edited_at"])
+                            self._convert_datetime(status["edited_at"])
                             if status.get("edited_at")
                             else None
                         ),
