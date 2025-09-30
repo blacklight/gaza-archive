@@ -29,12 +29,19 @@
       </div>
     </div>
 
-    <PostsList :filter="{ account: account.fqn }" />
+    <select v-model="view">
+      <option value="posts"><i class="fa fa-file-text-o" aria-hidden="true"></i> Posts</option>
+      <option value="attachments"><i class="fa fa-paperclip" aria-hidden="true"></i> Attachments</option>
+    </select>
+
+    <PostsList :filter="{ account: account.fqn }" v-if="view === 'posts'" />
+    <AttachmentsList :filter="{ account: account.fqn, excludeReplies: true }" v-else-if="view === 'attachments'" />
   </div>
 </template>
 
 <script>
 import AccountsApi from '@/mixins/api/Accounts.vue'
+import AttachmentsList from '@/views/attachments/AttachmentsList.vue'
 import Loader from '@/elements/Loader.vue'
 import PostsList from '@/views/posts/PostsList.vue'
 import PostsApi from '@/mixins/api/Posts.vue'
@@ -42,6 +49,7 @@ import PostsApi from '@/mixins/api/Posts.vue'
 export default {
   mixins: [AccountsApi, PostsApi],
   components: {
+    AttachmentsList,
     Loader,
     PostsList,
   },
@@ -50,6 +58,7 @@ export default {
     return {
       account: null,
       loading: true,
+      view: 'posts',
     }
   },
 
