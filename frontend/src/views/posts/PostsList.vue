@@ -84,16 +84,25 @@ export default {
   },
 
   watch: {
-    excludeReplies() {
+    excludeReplies(newVal) {
       this.maxId = null
       this.minId = null
       this.hasMore = true
+      this.$router.replace({
+        query: {
+          ...this.$route.query,
+          exclude_replies: newVal ? '1' : '0'
+        }
+      })
+
       this.refresh()
     },
   },
 
   async mounted() {
+    this.excludeReplies = this.$route.query.exclude_replies === '1'
     this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
+
     try {
       await this.refresh()
     } finally {

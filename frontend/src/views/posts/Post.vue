@@ -92,7 +92,6 @@ export default {
   .date {
     font-size: 0.8em;
     color: var(--color-text-secondary);
-    text-align: right;
   }
 
   .attachments {

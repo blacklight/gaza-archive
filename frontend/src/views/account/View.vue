@@ -74,7 +74,12 @@ export default {
 
   watch: {
     view(newView) {
-      this.$router.replace({ query: { view: newView } })
+      this.$router.replace({
+        query: {
+          ...this.$route.query,
+          view: newView
+        }
+      })
     },
   },
 
