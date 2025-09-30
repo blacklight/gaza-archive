@@ -110,6 +110,12 @@ export default {
 
   async mounted() {
     this.excludeReplies = this.$route.query.exclude_replies === '1'
+    if (!this.excludeReplies && this.$route.query.exclude_replies === '0') {
+      const query = { ...this.$route.query }
+      delete query.exclude_replies
+      this.$router.replace({ query })
+    }
+
     this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
 
     try {
