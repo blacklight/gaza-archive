@@ -89,6 +89,9 @@ export default {
 
     async refresh() {
       this.posts = await this.getPosts(this.computedFilter)
+      this.minId = this.posts.length > 0 ? this.posts[this.posts.length - 1].id : null
+      this.maxId = this.posts.length > 0 ? this.posts[0].id : null
+      this.hasMore = true
     }
   },
 
