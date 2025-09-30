@@ -5,7 +5,7 @@
       No attachments found.
     </div>
 
-    <div class="list" v-else-if="attachments.length > 0">
+    <div class="list" ref="list" v-else-if="attachments.length > 0">
       <RouterLink class="attachment-link"
                   v-for="attachment in attachments"
                   :to="attachment.path"
@@ -42,7 +42,6 @@ export default {
       maxId: null,
       minId: null,
       attachments: [],
-      scrollTimeout: null,
     }
   },
 
@@ -55,32 +54,26 @@ export default {
   },
 
   methods: {
-    async onScroll(percentage) {
-      if (this.scrollTimeout) {
-        return
-      }
+    async onBottomScroll() {
+      if (this.hasMore && !this.loading) {
+        this.loading = true
 
-      setTimeout(async () => {
-        if (percentage > 0.8 && this.hasMore && !this.loading) {
-          this.loading = true
-          try {
-            const newAttachments = await this.getAttachments({
-              ...this.computedFilter,
-              max_id: this.minId,
-            })
+        try {
+          const newAttachments = await this.getAttachments({
+            ...this.computedFilter,
+            max_id: this.minId,
+          })
 
-            if (newAttachments.length > 0) {
-              this.attachments = [...this.attachments, ...newAttachments]
-              this.minId = newAttachments[newAttachments.length - 1].id
-            } else {
-              this.hasMore = false
-            }
-          } finally {
-            this.loading = false
-            clearTimeout(this.scrollTimeout)
+          if (newAttachments.length > 0) {
+            this.attachments = [...this.attachments, ...newAttachments]
+            this.minId = newAttachments[newAttachments.length - 1].id
+          } else {
+            this.hasMore = false
           }
+        } finally {
+          this.loading = false
         }
-      }, 100)
+      }
     },
 
     async refresh() {
@@ -98,12 +91,17 @@ export default {
   },
 
   async mounted() {
-    this.$root.bus.on('scroll', this.onScroll)
+    this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
+
     try {
       await this.refresh()
     } finally {
       this.loading = false
     }
+  },
+
+  unmounted() {
+    this.$root.unregisterInfiniteScrollCallback()
   },
 }
 </script>

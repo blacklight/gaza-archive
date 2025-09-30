@@ -23,6 +23,8 @@ export default {
     return {
       bus: mitter(),
       currentView: null,
+      infiniteScrollCallback: null,
+      scrollTimeout: null,
     }
   },
 
@@ -31,11 +33,44 @@ export default {
       this.currentView = to.path
     },
 
-    onScroll() {
-      this.bus.emit(
-        'scroll',
-        this.$refs.main.scrollTop / (this.$refs.main.scrollHeight - this.$refs.main.clientHeight)
-      )
+    onScroll(e) {
+      const percent = this.$refs.main.scrollTop / (this.$refs.main.scrollHeight - this.$refs.main.clientHeight)
+      this.bus.emit('scroll', [percent, e])
+
+      if (percent > 0.8) {
+        this.onPageBottom(e)
+      }
+    },
+
+    onPageBottom(e) {
+      if (this.scrollTimeout || !this.infiniteScrollCallback) {
+        return
+      }
+
+      this.scrollTimeout = setTimeout(async () => {
+        // Store the current scroll position
+        const scrollPosition = e.target.scrollTop
+
+        try {
+          await this.infiniteScrollCallback()
+          // Restore the scroll position
+        } finally {
+          e.target.scrollTop = scrollPosition
+        }
+      }, 250)
+
+      setTimeout(() => {
+        clearTimeout(this.scrollTimeout)
+        this.scrollTimeout = null
+      }, 500)
+    },
+
+    registerInfiniteScrollCallback(callback) {
+      this.infiniteScrollCallback = callback
+    },
+
+    unregisterInfiniteScrollCallback() {
+      this.infiniteScrollCallback = null
     },
   },
 

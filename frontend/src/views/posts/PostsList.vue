@@ -43,7 +43,6 @@ export default {
       maxId: null,
       minId: null,
       posts: [],
-      scrollTimeout: null,
     }
   },
 
@@ -57,32 +56,26 @@ export default {
   },
 
   methods: {
-    async onScroll(percentage) {
-      if (this.scrollTimeout) {
-        return
-      }
+    async onBottomScroll() {
+      if (this.hasMore && !this.loading) {
+        this.loading = true
+        try {
+          const newPosts = await this.getPosts({
+            ...this.computedFilter,
+            max_id: this.minId,
+          })
 
-      setTimeout(async () => {
-        if (percentage > 0.8 && this.hasMore && !this.loading) {
-          this.loading = true
-          try {
-            const newPosts = await this.getPosts({
-              ...this.computedFilter,
-              max_id: this.minId,
-            })
-
-            if (newPosts.length > 0) {
-              this.posts = [...this.posts, ...newPosts]
-              this.minId = newPosts[newPosts.length - 1].id
-            } else {
-              this.hasMore = false
-            }
-          } finally {
-            this.loading = false
-            clearTimeout(this.scrollTimeout)
+          if (newPosts.length > 0) {
+            this.posts = [...this.posts, ...newPosts]
+            this.minId = newPosts[newPosts.length - 1].id
+          } else {
+            this.hasMore = false
           }
+        } finally {
+          this.loading = false
+          clearTimeout(this.scrollTimeout)
         }
-      }, 100)
+      }
     },
 
     async refresh() {
@@ -100,12 +93,16 @@ export default {
   },
 
   async mounted() {
-    this.$root.bus.on('scroll', this.onScroll)
+    this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
     try {
       await this.refresh()
     } finally {
       this.loading = false
     }
+  },
+
+  unmounted() {
+    this.$root.unregisterInfiniteScrollCallback()
   },
 }
 </script>
