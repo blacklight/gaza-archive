@@ -193,11 +193,11 @@ $actions-height: 2em;
 
     .author {
       position: absolute;
-      top: $actions-height + 0.5em;
+      top: $actions-height + 1.5em;
 
       img.avatar {
-        width: 2em;
-        height: 2em;
+        width: 2.5em;
+        height: 2.5em;
         border-radius: 50%;
         object-fit: cover;
         margin-left: 0.5em;
@@ -205,6 +205,7 @@ $actions-height: 2em;
     }
 
     .media-link {
+      background: black;
       flex: 1;
       display: flex;
       align-items: center;
