@@ -53,11 +53,11 @@ class Loop(Thread):
                 account.last_status_id = db_account.last_status_id
 
         posts = self.client.refresh_posts(accounts)
-
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)
 
         if self.config.download_media:
+            self.client.download_account_images(accounts)
             self.client.download_attachments(posts)
 
         log.info(

@@ -5,7 +5,6 @@ from typing import Any, Callable, Iterator, Generator
 
 from ..config import Config
 from ..errors import DownloadError
-from ..model import Media
 
 log = getLogger(__name__)
 
@@ -18,11 +17,11 @@ class Storage(ABC):
     config: Config
 
     @abstractmethod
-    def exists(self, item: Media) -> bool: ...
+    def exists(self, path: str) -> bool: ...
 
     @abstractmethod
     @contextmanager
-    def _download(self, item: Media) -> Iterator[Any]:
+    def _start_download(self, url: str, path: str) -> Iterator[Any]:
         """
         Context manager for downloading media.
         Yields a callable that returns a generator of bytes.
@@ -33,21 +32,22 @@ class Storage(ABC):
 
     def save(
         self,
-        item: Media,
+        url: str,
+        path: str,
         get_data: Callable[[], Generator[bytes, None, None]],
     ) -> None:
         try:
-            with self._download(item) as handle:
+            with self._start_download(url=url, path=path) as handle:
                 for chunk in get_data():
                     self._save(handle, chunk)
         except Exception as exc:
             try:
-                self.delete(item)
+                self.delete(path)
             except Exception:
                 pass
 
             log.exception(exc)
-            raise DownloadError(f"Failed to save media {item.url}") from exc
+            raise DownloadError(f"Failed to save media {url}") from exc
 
     @abstractmethod
-    def delete(self, item: Media) -> None: ...
+    def delete(self, path: str) -> None: ...

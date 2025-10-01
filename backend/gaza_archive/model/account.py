@@ -54,6 +54,18 @@ class Account(Item):
         assert self.id, "Account ID is not set"
         return f"{self.instanceApiUrl}/accounts/{self.id}"
 
+    @property
+    def avatar_path(self) -> str | None:
+        if not self.avatar_url:
+            return None
+        return f"/media/{self.fqn}/avatars/{self.avatar_url.split('/')[-1]}"
+
+    @property
+    def header_path(self) -> str | None:
+        if not self.header_url:
+            return None
+        return f"/media/{self.fqn}/headers/{self.header_url.split('/')[-1]}"
+
     def __eq__(self, other) -> bool:
         """
         Compare two Account instances for equality.

@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from typing import IO, Iterator
 
 from ..config import Config
-from ..model import Media
 from ._base import Storage
 
 log = logging.getLogger(__name__)
@@ -24,14 +23,17 @@ class FileStorage(Storage):
         pathlib.Path(self.media_dir).mkdir(parents=True, exist_ok=True)
         log.info("File storage initialized at %s", self.basedir)
 
-    def exists(self, item: Media):
-        filename = os.path.join(self.basedir, item.path)
+    def exists(self, path: str):
+        filename = os.path.abspath(os.path.join(self.basedir, path))
+        assert filename.startswith(
+            self.basedir
+        ), "Attempt to check file outside of storage directory"
         return os.path.exists(filename)
 
     @contextmanager
-    def _download(self, item: Media) -> Iterator[IO]:
-        media_path = os.path.join(self.basedir, item.path.lstrip("/"))
-        log.info("Downloading attachment %s to %s", item.url, media_path)
+    def _start_download(self, url: str, path: str) -> Iterator[IO]:
+        media_path = os.path.join(self.basedir, path.lstrip("/"))
+        log.info("Downloading attachment %s to %s", url, media_path)
         pathlib.Path(os.path.dirname(media_path)).mkdir(parents=True, exist_ok=True)
         with open(media_path, "wb") as handle:
             yield handle
@@ -39,7 +41,10 @@ class FileStorage(Storage):
     def _save(self, handle: IO, data: bytes) -> None:
         handle.write(data)
 
-    def delete(self, item: Media):
-        filename = os.path.join(self.basedir, item.path)
+    def delete(self, path: str):
+        filename = os.path.abspath(os.path.join(self.basedir, path))
+        assert filename.startswith(
+            self.basedir
+        ), "Attempt to delete file outside of storage directory"
         if os.path.exists(filename):
             os.remove(filename)
