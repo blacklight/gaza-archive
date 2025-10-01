@@ -170,7 +170,7 @@ export default {
   }
 
   @include until($tablet) {
-    max-width: 90%;
+    max-width: 100%;
   }
 
   .filters {

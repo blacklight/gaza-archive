@@ -71,15 +71,11 @@ export default {
   background-color: var(--color-bg-secondary);
 
   @media (min-width: $tablet) {
-    & {
-      max-width: $tablet;
-    }
+    max-width: $tablet;
   }
 
   @media (max-width: $tablet) {
-    & {
-      max-width: 90%;
-    }
+    max-width: 90%;
   }
 
   .icons {
