@@ -27,6 +27,9 @@
     <span class="spacer" style="flex-grow: 1;"></span>
 
     <section class="right">
+      <a :href="getFeedUrl()" title="RSS Feed">
+        <i class="fas fa-rss" />
+      </a>
       <a href="#" @click.prevent="toggleTheme" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
         <i :class="theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'" />
       </a>
@@ -35,7 +38,10 @@
 </template>
 
 <script>
+import Webpage from "@/mixins/Webpage.vue";
+
 export default {
+  mixins: [Webpage],
   props: {
     currentView: {
       type: String,

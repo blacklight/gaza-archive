@@ -31,7 +31,11 @@ class FeedsGenerator:
             item_link.text = account.url
 
             item_description = ET.SubElement(item, "description")
-            item_description.text = f"Account: {account.username} on {account.instance}"
+            item_description.text = (
+                f"User: {account.fqn}<br/>"
+                f"Original URL: <a href=\"{account.url}\">{account.url}</a><br/>"
+                f"Archived URL: <a href=\"{self.config.base_url}/accounts/{account.fqn}\">/accounts/{account.fqn}</a><br/>"
+            )
 
             guid = ET.SubElement(item, "guid")
             guid.text = account.url
@@ -58,9 +62,12 @@ class FeedsGenerator:
         for post in posts:
             item = ET.SubElement(channel, "item")
 
-            post_content = (post.content or '').strip()
             item_title = ET.SubElement(item, "title")
-            item_title.text = post_content[:30] + "..." if len(post_content) > 30 else post_content
+            item_title.text = 'Published'
+            if post.author:
+                item_title.text += f' by {post.author.fqn}'
+            if post.created_at:
+                item_title.text += f' on {post.created_at.date()}'
 
             item_link = ET.SubElement(item, "link")
             item_link.text = post.url
@@ -107,7 +114,7 @@ class FeedsGenerator:
             item_description.text = f"Media Type: {media.type}"
 
             guid = ET.SubElement(item, "guid")
-            guid.text = media.url
+            guid.text = media.path
             pub_date = ET.SubElement(item, "pubDate")
             if media.post.created_at:
                 pub_date.text = media.post.created_at.isoformat()

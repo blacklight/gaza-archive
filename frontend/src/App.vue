@@ -11,9 +11,11 @@
 <script>
 import Footer from './components/Footer.vue'
 import Nav from './components/Nav.vue'
+import Webpage from '@/mixins/Webpage.vue'
 import mitter from 'mitt'
 
 export default {
+  mixins: [Webpage],
   components: {
     Footer,
     Nav,
@@ -31,6 +33,8 @@ export default {
   methods: {
     onRouteChange(to) {
       this.currentView = to.path
+      this.refreshPageTitle()
+      this.refreshPageMetadata()
     },
 
     onScroll(e) {
@@ -76,6 +80,8 @@ export default {
 
   mounted() {
     this.currentView = this.$route.path
+    this.refreshPageTitle()
+    this.refreshPageMetadata()
     this.$router.afterEach(this.onRouteChange)
   },
 }
