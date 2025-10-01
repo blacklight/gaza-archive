@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from ...model import Media
 from .. import ctx
+from ..feeds import FeedsGenerator
 
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
@@ -30,6 +31,33 @@ def get_attachments(
             offset=offset,
         )
     )
+
+
+@router.get("/rss", response_model=str)
+def get_attachments_feed(
+    min_id: int | None = None,
+    max_id: int | None = None,
+    limit: int = 50,
+    offset: int | None = None,
+) -> str:
+    """
+    Get media (RSS feed).
+
+    :param min_id: Minimum media ID to return (exclusive).
+    :param max_id: Maximum media ID to return (exclusive).
+    :param limit: Maximum number of attachments to return (default: 50).
+    :param offset: Number of attachments to skip before starting to collect the result set.
+    :return: RSS feed of media.
+    """
+    media = list(
+        ctx.db.get_attachments(
+            min_id=min_id,
+            max_id=max_id,
+            limit=limit,
+            offset=offset,
+        )
+    )
+    return FeedsGenerator(ctx.config).generate_media_feed(media)
 
 
 @router.get("/{media}", response_model=Media)
