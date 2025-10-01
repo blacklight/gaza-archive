@@ -133,7 +133,7 @@ $banner-height: 200px;
   }
 
   @include until($tablet) {
-    max-width: 100%;
+    max-width: 90%;
   }
 
   .header {

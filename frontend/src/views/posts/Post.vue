@@ -78,7 +78,7 @@ export default {
 
   @media (max-width: $tablet) {
     & {
-      max-width: 100%;
+      max-width: 90%;
     }
   }
 
