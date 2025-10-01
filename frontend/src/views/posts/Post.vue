@@ -61,13 +61,26 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/index' as *;
+
 .post {
-  max-width: 800px;
   border: 1px solid var(--color-border);
   padding: 1em;
   margin: 0.5em auto;
   border-radius: 8px;
   background-color: var(--color-bg-secondary);
+
+  @media (min-width: $tablet) {
+    & {
+      max-width: $tablet;
+    }
+  }
+
+  @media (max-width: $tablet) {
+    & {
+      max-width: 100%;
+    }
+  }
 
   .icons {
     display: flex;

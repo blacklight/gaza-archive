@@ -160,9 +160,18 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/index' as *;
+
 .posts {
-  max-width: 800px;
   margin: 0 auto;
+
+  @include from($tablet) {
+    max-width: $tablet;
+  }
+
+  @include until($tablet) {
+    max-width: 100%;
+  }
 
   .filters {
     width: 100%;

@@ -117,15 +117,24 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/index' as *;
+
 $banner-height: 200px;
 
 .account.view {
-  max-width: 800px;
   display: flex;
   flex-direction: column;
   margin: 0 auto;
   padding: 1em;
   position: relative;
+
+  @include from($tablet) {
+    max-width: $tablet;
+  }
+
+  @include until($tablet) {
+    max-width: 100%;
+  }
 
   .header {
     display: flex;

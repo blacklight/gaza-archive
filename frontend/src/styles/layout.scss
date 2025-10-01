@@ -1,0 +1,16 @@
+$tablet: 768px;
+$desktop: 1024px;
+$large-desktop: 1200px;
+$max-width: 1440px;
+
+@mixin from($breakpoint) {
+  @media screen and (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin until($breakpoint) {
+  @media screen and (max-width: #{$breakpoint - 1}) {
+    @content;
+  }
+}

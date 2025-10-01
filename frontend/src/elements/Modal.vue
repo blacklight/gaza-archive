@@ -35,6 +35,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@use '@/styles/index' as *;
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -50,12 +52,19 @@ export default {
   .modal-content {
     width: 90%;
     min-width: 300px;
-    max-width: 800px;
     background: var(--color-bg-secondary);
     border-radius: 8px;
     position: relative;
     max-height: 90%;
     overflow-y: auto;
+
+    @include from($tablet) {
+      max-width: $tablet;
+    }
+
+    @include until($tablet) {
+      max-width: 100%;
+    }
   }
 
   .modal-header {
