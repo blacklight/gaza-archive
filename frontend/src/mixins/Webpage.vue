@@ -29,7 +29,9 @@ export default {
       const properties = document.querySelectorAll('meta[property^="og:"]')
       properties.forEach((element) => element.remove())
       head.insertAdjacentHTML('beforeend', `
+        <meta property="og:url" content="${window.location.href}" />
         <meta property="og:title" content="${this.getPageTitle()}" />
+        <meta property="og:description" content="A permanent archive of public material uploaded by the people of Gaza.</meta>
         <meta property="og:image" content="/favicon.ico" />
         <meta property="og:site_name" content="Gaza Verified Archive" />
       `)
