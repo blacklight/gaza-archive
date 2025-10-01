@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="modal-overlay" @click.self="close">
-    <div class="modal-content">
+    <div class="modal-content fade-in">
       <div class="modal-header">
         <h2 v-if="title?.length">{{ title }}</h2>
         <button class="modal-close" @click="close">&times;</button>
