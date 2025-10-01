@@ -203,6 +203,7 @@ $banner-height: 200px;
     .note {
       margin-top: 0.5em;
       font-size: 0.9em;
+      overflow-x: hidden;
 
       p {
         margin: 0;
