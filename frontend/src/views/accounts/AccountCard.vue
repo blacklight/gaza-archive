@@ -1,7 +1,11 @@
 <template>
   <RouterLink :to="`/accounts/${account.fqn}`" class="account">
     <div class="avatar">
-      <img :src="account.avatar_url" :alt="account.name" width="100%" height="100%" />
+      <img :src="account.avatar_path"
+           :alt="account.name"
+           ref="avatar"
+           @error="avatar.$refs.src = account.avatar_url"
+           width="100%" height="100%" />
     </div>
     <div class="details">
       <h3>{{ account.display_name }}</h3>

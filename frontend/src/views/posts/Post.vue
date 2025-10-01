@@ -12,7 +12,10 @@
 
     <RouterLink :to="`/accounts/${post.author.fqn}`" class="author">
       <div class="avatar">
-        <img :src="post.author.avatar_url" :alt="post.author.display_name || post.author.username" />
+        <img :src="post.author.avatar_path"
+             :alt="post.author.display_name || post.author.username"
+             ref="avatar"
+             @error="$refs.avatar.src = post.author.avatar_url" />
       </div>
       <div class="name">
         <strong>{{ post.author.display_name || post.author.username }}</strong>

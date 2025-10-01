@@ -21,9 +21,11 @@
          target="_blank"
          rel="noopener noreferrer">
         <img class="avatar"
-             :src="attachment.post.author.avatar_path || attachment.post.author.avatar_url"
+             :src="attachment.post.author.avatar_path"
              :alt="attachment.post.author.display_name || attachment.post.author.username"
-             :title="attachment.post.author.display_name || attachment.post.author.username" />
+             :title="attachment.post.author.display_name || attachment.post.author.username"
+             ref="avatar"
+             @error="$refs.avatar.src = attachment.post.author.avatar_url" />
       </a>
     </div>
 

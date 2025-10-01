@@ -8,11 +8,19 @@
       <div class="title">
         <div class="banner">
           <a :href="account.header_url" target="_blank" rel="noopener" v-if="account.header_url">
-            <img :src="account.header_url" :alt="`Banner of ${account.display_name}`" />
+            <img :src="account.header_path"
+                 :alt="`Banner of ${account.display_name}`"
+                 ref="banner"
+                 @error="$refs.banner.src = account.header_url" />
           </a>
         </div>
         <div class="avatar">
-          <img :src="account.avatar_url" :alt="`Avatar of ${account.display_name}`" />
+          <a href="#" @click.prevent="showProfilePicModal = true">
+            <img :src="account.avatar_path"
+                 :alt="`Avatar of ${account.display_name}`"
+                 ref="avatar"
+                 @error="$refs.avatar.src = account.avatar_url" />
+          </a>
         </div>
         <div class="details">
           <h2>{{ account.display_name }}</h2>
@@ -41,12 +49,24 @@
     <PostsList :filter="{ account: account.fqn }" v-if="view === 'posts'" />
     <AttachmentsList :filter="{ account: account.fqn, excludeReplies: true }" v-else-if="view === 'attachments'" />
   </div>
+
+  <Modal :show="showProfilePicModal"
+         title="Profile picture"
+         @close="showProfilePicModal = false">
+    <div class="avatar-container">
+      <img :src="account.avatar_path"
+           :alt="`Avatar of ${account.display_name}`"
+           ref="avatarModal"
+           @error="$refs.avatarModal.src = account.avatar_url" />
+    </div>
+  </Modal>
 </template>
 
 <script>
 import AccountsApi from '@/mixins/api/Accounts.vue'
 import AttachmentsList from '@/views/attachments/AttachmentsList.vue'
 import Loader from '@/elements/Loader.vue'
+import Modal from '@/elements/Modal.vue'
 import PostsList from '@/views/posts/PostsList.vue'
 import PostsApi from '@/mixins/api/Posts.vue'
 
@@ -55,12 +75,14 @@ export default {
   components: {
     AttachmentsList,
     Loader,
+    Modal,
     PostsList,
   },
 
   data() {
     return {
       account: null,
+      showProfilePicModal: false,
       loading: true,
       view: null,
     }
@@ -178,5 +200,21 @@ $banner-height: 200px;
       }
     }
   }
+}
+</style>
+
+<style>
+.avatar-container {
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1em;
+}
+
+.avatar-container img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
 }
 </style>
