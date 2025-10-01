@@ -46,7 +46,7 @@ class Loop(Thread):
         t_start = time()
 
         verified_accounts = self.client.get_verified_accounts()
-        accounts = self.client.refresh_accounts(verified_accounts)
+        accounts = self.client.refresh_accounts(verified_accounts)[:1]  # TODO REMOVE
         for account in accounts:
             if account.url in self.db._accounts:
                 db_account = self.db._accounts[account.url]

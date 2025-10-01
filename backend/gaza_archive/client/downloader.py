@@ -47,11 +47,18 @@ class MediaDownloader(ABC):
             self.download(url=media.url, path=media.path)
 
     def download_attachments(self, posts: list[Post]):
+        futs = []
         with ThreadPoolExecutor(
             max_workers=self.config.concurrent_requests
         ) as executor:
             for post in posts:
-                executor.submit(self.download_post_attachments, post)
+                futs.append(executor.submit(self.download_post_attachments, post))
+
+        for fut in futs:
+            try:
+                fut.result()
+            except Exception as e:
+                log.error("Error downloading attachment: %s", e)
 
     def download_profile_image(self, account: Account):
         if (
@@ -80,9 +87,21 @@ class MediaDownloader(ABC):
         self.download(url=account.header_url, path=account.header_path)
 
     def download_account_images(self, accounts: list[Account]):
+        futs = []
+
         with ThreadPoolExecutor(
             max_workers=self.config.concurrent_requests
         ) as executor:
             for account in accounts:
-                executor.submit(self.download_profile_image, account)
-                executor.submit(self.download_header_image, account)
+                futs.extend(
+                    [
+                        executor.submit(self.download_profile_image, account),
+                        executor.submit(self.download_header_image, account),
+                    ]
+                )
+
+        for fut in futs:
+            try:
+                fut.result()
+            except Exception as e:
+                log.error("Error downloading image: %s", e)

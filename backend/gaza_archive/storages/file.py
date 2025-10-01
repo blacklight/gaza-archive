@@ -24,10 +24,10 @@ class FileStorage(Storage):
         log.info("File storage initialized at %s", self.basedir)
 
     def exists(self, path: str):
-        filename = os.path.abspath(os.path.join(self.basedir, path))
+        filename = os.path.abspath(os.path.join(self.basedir, path.lstrip("/")))
         assert filename.startswith(
             self.basedir
-        ), "Attempt to check file outside of storage directory"
+        ), f"Attempt to check file outside of storage directory: {filename}"
         return os.path.exists(filename)
 
     @contextmanager
@@ -42,9 +42,9 @@ class FileStorage(Storage):
         handle.write(data)
 
     def delete(self, path: str):
-        filename = os.path.abspath(os.path.join(self.basedir, path))
+        filename = os.path.abspath(os.path.join(self.basedir, path.lstrip("/")))
         assert filename.startswith(
             self.basedir
-        ), "Attempt to delete file outside of storage directory"
+        ), f"Attempt to delete file outside of storage directory: {filename}"
         if os.path.exists(filename):
             os.remove(filename)

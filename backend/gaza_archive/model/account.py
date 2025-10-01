@@ -49,17 +49,20 @@ class Account(Item):
     def fqn(self) -> str:
         return f"@{self.username}@{self.instance}"
 
+    @computed_field
     @property
     def apiURL(self) -> str:
         assert self.id, "Account ID is not set"
         return f"{self.instanceApiUrl}/accounts/{self.id}"
 
+    @computed_field
     @property
     def avatar_path(self) -> str | None:
         if not self.avatar_url:
             return None
         return f"/media/{self.fqn}/avatars/{self.avatar_url.split('/')[-1]}"
 
+    @computed_field
     @property
     def header_path(self) -> str | None:
         if not self.header_url:
