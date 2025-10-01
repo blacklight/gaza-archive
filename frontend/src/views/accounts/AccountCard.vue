@@ -4,7 +4,7 @@
       <img :src="account.avatar_path"
            :alt="account.name"
            ref="avatar"
-           @error="avatar.$refs.src = account.avatar_url"
+           @error="$refs.avatar.src = account.avatar_url"
            width="100%" height="100%" />
     </div>
     <div class="details">
