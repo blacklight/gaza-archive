@@ -56,3 +56,8 @@ An OpenAPI specification is available at
 
 If you run the service in docker-compose you can also access a Swagger UI at
 `http://localhost:8000/swagger`.
+
+## RSS
+
+All public list API endpoints are also available as RSS feeds by appending
+`/rss`, for example `/api/v1/posts/rss`.
