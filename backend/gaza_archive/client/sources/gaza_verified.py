@@ -1,17 +1,17 @@
-from abc import ABC
 import logging
 
 import requests
 from bs4 import BeautifulSoup
 
-from ..config import Config
-from ..errors import HttpError
-from ..model import Account
+from ...config import Config
+from ...errors import HttpError
+from ...model import Account
+from ._base import AccountsSource
 
 log = logging.getLogger(__name__)
 
 
-class GazaVerifiedApi(ABC):
+class GazaVerifiedApi(AccountsSource):  # pylint: disable=too-few-public-methods
     """
     Parser for Gaza Verified accounts
 
@@ -20,7 +20,8 @@ class GazaVerifiedApi(ABC):
         env var)
     """
 
-    config: Config
+    def __init__(self, config: Config) -> None:
+        self.config = config
 
     def _extract_accounts(self, html: str) -> list[Account]:
         soup = BeautifulSoup(html, "html.parser")
