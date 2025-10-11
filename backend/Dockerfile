@@ -2,9 +2,9 @@ FROM python:3.13-alpine
 
 WORKDIR /
 
-COPY requirements.txt .
-COPY gaza_archive /app
-COPY ../frontend /
+COPY ./backend/requirements.txt .
+COPY ./backend/gaza_archive /app
+COPY ./frontend/dist /frontend/dist
 
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -r requirements.txt && \
