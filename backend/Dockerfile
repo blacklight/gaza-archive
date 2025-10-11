@@ -4,6 +4,7 @@ WORKDIR /
 
 COPY requirements.txt .
 COPY gaza_archive /app
+COPY ../frontend /
 
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -r requirements.txt && \
