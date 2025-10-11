@@ -25,6 +25,7 @@ class MollyShahApi(AccountsSource):  # pylint: disable=too-few-public-methods
     # Known accounts to exclude
     excluded_accounts = {
         "divya",
+        "fabio",
         "raphaellakay",
     }
 
