@@ -42,7 +42,7 @@ class ApiServer(Thread):
                     app.include_router(module.router)
 
         # Add catch-all route for serving the Vue.js app AFTER all other routes
-        @app.get("/{full_path:path}")
+        @app.get("/{full_path:path}", include_in_schema=False)
         async def _(request: Request, full_path: str):
             # Only serve the Vue app for non-API routes
             if full_path.startswith("api/"):

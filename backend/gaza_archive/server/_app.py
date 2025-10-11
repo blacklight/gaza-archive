@@ -33,13 +33,13 @@ def render_index(request: Request):
     )
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def read_root(request: Request):
     return render_index(request)
 
 
 # Database download endpoint
-@app.get("/app.db")
+@app.get("/app.db", include_in_schema=False)
 async def download_database():
     return FileResponse(
         os.path.join(config.storage_path, "app.db"),
@@ -53,7 +53,7 @@ async def favicon():
     return FileResponse(os.path.join(dist_dir, "favicon.ico"))
 
 
-@app.get("/media/{file_path:path}")
+@app.get("/media/{file_path:path}", include_in_schema=False)
 async def serve_media(_: Request, file_path: str = ""):
     media_root = Path(config.storage_path) / "media"
     requested_path = media_root / file_path
@@ -127,6 +127,6 @@ async def serve_media(_: Request, file_path: str = ""):
         return HTMLResponse(content=html_content)
 
 
-@app.get("/media")
+@app.get("/media", include_in_schema=False)
 async def serve_media_root(request: Request):
     return await serve_media(request, "")
