@@ -1,5 +1,6 @@
 beautifulsoup4
+fastapi[standard]
+jinja2
 requests
 sqlalchemy
-fastapi[standard]
 uvicorn

@@ -3,7 +3,7 @@ from urllib.parse import unquote
 from fastapi import APIRouter, HTTPException
 
 from ...model import Post
-from .. import ctx
+from .. import get_ctx
 from ..feeds import FeedsGenerator
 
 router = APIRouter(prefix="/api/v1/posts", tags=["posts"])
@@ -28,7 +28,7 @@ def get_posts(
     :return: List of posts.
     """
     return list(
-        ctx.db.get_posts(
+        get_ctx().db.get_posts(
             exclude_replies=exclude_replies,
             min_id=min_id,
             max_id=max_id,
@@ -56,6 +56,7 @@ def get_posts_feed(
     :param offset: Number of posts to skip before starting to collect the result set.
     :return: RSS feed of posts.
     """
+    ctx = get_ctx()
     posts = list(
         ctx.db.get_posts(
             exclude_replies=exclude_replies,
@@ -76,7 +77,7 @@ def get_post(post: str) -> Post:
     :param post: Post URL.
     :return: The post object, or 404 if not found.
     """
-    db_post = ctx.db.get_post(unquote(post))
+    db_post = get_ctx().db.get_post(unquote(post))
     if not db_post:
         raise HTTPException(status_code=404, detail="Post not found")
     return db_post

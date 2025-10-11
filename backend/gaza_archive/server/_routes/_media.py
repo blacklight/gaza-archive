@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from ...model import Media
-from .. import ctx
+from .. import get_ctx
 from ..feeds import FeedsGenerator
 
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
@@ -24,7 +24,7 @@ def get_attachments(
     :return: List of attachments.
     """
     return list(
-        ctx.db.get_attachments(
+        get_ctx().db.get_attachments(
             min_id=min_id,
             max_id=max_id,
             limit=limit,
@@ -49,6 +49,7 @@ def get_attachments_feed(
     :param offset: Number of attachments to skip before starting to collect the result set.
     :return: RSS feed of media.
     """
+    ctx = get_ctx()
     media = list(
         ctx.db.get_attachments(
             min_id=min_id,
@@ -68,7 +69,7 @@ def get_attachment(media: str) -> Media:
     :param media: Media URL.
     :return: The media object, or 404 if not found.
     """
-    db_media = ctx.db.get_attachment(media)
+    db_media = get_ctx().db.get_attachment(media)
     if not db_media:
         raise HTTPException(status_code=404, detail="Media not found")
     return db_media

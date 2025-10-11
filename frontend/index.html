@@ -16,5 +16,28 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <noscript>
+      <h1>List of verified accounts from Gaza</h1>
+
+      <p>
+          Main page of the initiative:
+          <a href="https://gaza-verified.org" target="_blank" rel="noopener noreferrer">
+              gaza-verified.org
+          </a>
+      </p>
+
+      <small>
+        This page requires JavaScript to function properly. Please enable JavaScript in your browser settings and reload
+        the page.
+      </small>
+
+      <ul>
+      {% for account in accounts %}
+        <li>
+          <a rel="me" href="{{ account.url }}">{{ account.fqn }}</a>
+        </li>
+      {% endfor %}
+      </ul>
+    </noscript>
   </body>
 </html>

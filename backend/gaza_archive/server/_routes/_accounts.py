@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Response
 
 from ...model import Account, Media, Post
-from .. import ctx
+from .. import get_ctx
 from ..feeds import FeedsGenerator
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
@@ -22,6 +22,7 @@ def _get_account_posts(
             status_code=400, detail=f"Invalid account format: {e}"
         ) from e
 
+    ctx = get_ctx()
     db_account = ctx.db.get_account(account_url)
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -52,6 +53,7 @@ def _get_account_media(
             status_code=400, detail=f"Invalid account format: {e}"
         ) from e
 
+    ctx = get_ctx()
     db_account = ctx.db.get_account(account_url)
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -75,11 +77,11 @@ def get_accounts(limit: int | None = None, offset: int | None = None) -> list[Ac
     :param rss: If True, return an RSS feed of the accounts.
     :return: List of accounts.
     """
-    return list(ctx.db.get_accounts(limit=limit, offset=offset).values())
+    return list(get_ctx().db.get_accounts(limit=limit, offset=offset).values())
 
 
 @router.get("/rss", response_model=str)
-def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> str:
+def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> Response:
     """
     Get all accounts (RSS feed).
 
@@ -88,6 +90,7 @@ def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> st
     :param rss: If True, return an RSS feed of the accounts.
     :return: List of accounts.
     """
+    ctx = get_ctx()
     accounts = list(ctx.db.get_accounts(limit=limit, offset=offset).values())
     return Response(
         content=FeedsGenerator(ctx.config).generate_accounts_feed(accounts),
@@ -110,7 +113,7 @@ def get_account(account: str) -> Account:
             status_code=400, detail=f"Invalid account format: {e}"
         ) from e
 
-    db_account = ctx.db.get_account(account_url)
+    db_account = get_ctx().db.get_account(account_url)
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
     return db_account
@@ -154,7 +157,7 @@ def get_account_posts_feed(
     max_id: int | None = None,
     limit: int | None = None,
     offset: int | None = None,
-) -> str:
+) -> Response:
     """
     Get posts for a specific account (RSS feed).
 
@@ -175,12 +178,14 @@ def get_account_posts_feed(
         offset=offset,
     )
 
+    ctx = get_ctx()
     return Response(
         content=FeedsGenerator(ctx.config).generate_posts_feed(
             posts=posts, account=ctx.db.get_account(Account.to_url(account))
         ),
         media_type="application/rss+xml",
     )
+
 
 @router.get("/{account}/media", response_model=list[Media])
 def get_account_media(
@@ -216,7 +221,7 @@ def get_account_media_feed(
     max_id: int | None = None,
     limit: int | None = None,
     offset: int | None = None,
-) -> str:
+) -> Response:
     """
     Get media attachments for a specific account (RSS feed).
 
@@ -235,6 +240,7 @@ def get_account_media_feed(
         offset=offset,
     )
 
+    ctx = get_ctx()
     return Response(
         content=FeedsGenerator(ctx.config).generate_media_feed(
             media, account=ctx.db.get_account(Account.to_url(account))
