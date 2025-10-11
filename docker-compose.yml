@@ -14,12 +14,23 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    ports:
-      - "8000:8000"
+    # Optional, for debugging purposes
+    # Otherwise use the nginx container to reverse proxy to the backend API
+    # ports:
+    #   - "8001:8000"
 
   swagger:
     image: swaggerapi/swagger-ui
     environment:
       - API_URL=/api/v1/openapi.json
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+    ports:
+      - "8000:80"
     depends_on:
       - backend
