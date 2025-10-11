@@ -4,10 +4,11 @@ from logging import getLogger
 from threading import Thread
 
 import uvicorn
+from fastapi import HTTPException, Request
 
 from ..config import Config
 from ..db import Db
-from ._app import app
+from ._app import app, render_index
 from ._ctx import get_ctx
 
 log = getLogger(__name__)
@@ -39,6 +40,15 @@ class ApiServer(Thread):
                 # Check if the module has a `router` attribute
                 if hasattr(module, "router"):
                     app.include_router(module.router)
+
+        # Add catch-all route for serving the Vue.js app AFTER all other routes
+        @app.get("/{full_path:path}")
+        async def _(request: Request, full_path: str):
+            # Only serve the Vue app for non-API routes
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="API endpoint not found")
+
+            return render_index(request)
 
     def run(self):
         super().run()
