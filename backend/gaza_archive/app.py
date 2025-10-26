@@ -1,3 +1,4 @@
+import signal
 from logging import getLogger
 
 from .db import Db
@@ -20,13 +21,21 @@ class App:
         self.api = ApiServer(config=self.config, db=self.db)
 
     def run(self):
+        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGTERM, self.handle_exit)
+
         try:
             self.loop.start()
             self.api.start()
             self.loop.join()
         except KeyboardInterrupt:
-            self.api.join()
             self.loop.stop()
             self.loop.join()
         finally:
             log.info("Exiting...")
+
+    def handle_exit(self, signum, *_):
+        """Handle shutdown signals (SIGINT, SIGTERM)."""
+        log.info("%s received. Stopping application...", signal.Signals(signum).name)
+        self.loop.stop()
+        self.api.stop()
