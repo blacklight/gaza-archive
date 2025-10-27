@@ -10,4 +10,4 @@ class GFMCampaignSource(CampaignSource):  # pylint: disable=too-few-public-metho
 
     @property
     def url_pattern(self) -> re.Pattern:
-        return re.compile(r"^https://gofund.me/")
+        return re.compile(r"^https://(www\.)?(gofund.me)|(gofundme\.com)/")
