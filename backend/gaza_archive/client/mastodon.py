@@ -8,6 +8,7 @@ import requests
 from ..config import Config
 from ..errors import AccountNotFoundError, HttpError
 from ..model import Account, Media, Post
+from .sources.campaigns import CampaignParser
 
 log = getLogger(__name__)
 
@@ -18,6 +19,7 @@ class MastodonApi(ABC):
     """
 
     config: Config
+    campaign_parser: CampaignParser
 
     def _http_get(self, url: str, *args, **kwargs) -> dict:
         """
@@ -69,6 +71,15 @@ class MastodonApi(ABC):
 
         return account.id
 
+    def get_campaign_url(self, account: Account) -> str | None:
+        """
+        Get the campaign URL from the account's profile note.
+        """
+        if not account.profile_note:
+            return None
+
+        return self.campaign_parser.parse_url(account) or None
+
     def _convert_datetime(self, value: str) -> datetime | None:
         if not value:
             return None
@@ -98,6 +109,7 @@ class MastodonApi(ABC):
         account.avatar_url = account_info.get("avatar_static")
         account.header_url = account_info.get("header_static")
         account.profile_note = account_info.get("note")
+        account.campaign_url = self.get_campaign_url(account)
         account.created_at = self._convert_datetime(account_info["created_at"])
         if account_info.get("locked"):
             account.disabled = account_info["locked"]

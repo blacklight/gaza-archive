@@ -5,6 +5,7 @@ from ..storages import Storage
 from .downloader import MediaDownloader
 from .mastodon import MastodonApi
 from .sources import sources
+from .sources.campaigns import CampaignParser
 
 
 class Client(MastodonApi, MediaDownloader):
@@ -16,6 +17,7 @@ class Client(MastodonApi, MediaDownloader):
         super().__init__()
         self.config = config
         self.storage = storage
+        self.campaign_parser = CampaignParser()
         self.sources = [source(config) for source in sources if source is not None]
 
     def get_verified_accounts(self) -> list[Account]:

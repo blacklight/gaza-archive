@@ -32,6 +32,7 @@ class Account(Base):
     profile_note = Column(Text)
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utcnow)
+    campaign_url = Column(String)
 
     # Relationships
     posts = relationship("Post", back_populates="author")
@@ -61,6 +62,7 @@ class Account(Base):
             display_name=model.display_name,
             avatar_url=model.avatar_url,
             header_url=model.header_url,
+            campaign_url=model.campaign_url,
             profile_note=model.profile_note,
             created_at=model.created_at,
         )
@@ -72,6 +74,7 @@ class Account(Base):
             display_name=self.display_name,  # type: ignore
             avatar_url=self.avatar_url,  # type: ignore
             header_url=self.header_url,  # type: ignore
+            campaign_url=self.campaign_url,  # type: ignore
             profile_note=self.profile_note,  # type: ignore
             created_at=self.created_at,  # type: ignore
             last_status_id=last_status_id,
@@ -81,6 +84,9 @@ class Account(Base):
         self.display_name = model.display_name
         self.avatar_url = model.avatar_url
         self.header_url = model.header_url
+        self.campaign_url = (
+            model.campaign_url if model.campaign_url else self.campaign_url
+        )
         self.profile_note = model.profile_note
         self.disabled = model.disabled
         self.created_at = model.created_at

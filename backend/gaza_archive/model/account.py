@@ -1,4 +1,3 @@
-# from dataclasses import dataclass
 from datetime import datetime
 
 from pydantic import computed_field
@@ -17,6 +16,7 @@ class Account(Item):
     header_url: str | None = None
     profile_note: str | None = None
     disabled: bool = False
+    campaign_url: str | None = None
     last_status_id: str | None = None
     created_at: datetime | None = None
 
@@ -83,6 +83,7 @@ class Account(Item):
             and self.avatar_url == other.avatar_url
             and self.header_url == other.header_url
             and self.profile_note == other.profile_note
+            and self.campaign_url == other.campaign_url
             and self.disabled == other.disabled
         )
 
