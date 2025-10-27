@@ -79,13 +79,11 @@ class Posts(ABC):
             )
 
             for db_post, db_media in records:
-                print(db_post.id, db_media.id if db_media else None)
                 if db_post.url not in posts:
                     posts[db_post.url] = db_post.to_model()
                 if db_media:
                     posts[db_post.url].attachments.append(db_media.to_model())
 
-            print([attachment.id for post in posts.values() for attachment in post.attachments])
             return list(posts.values())[0] if posts else None
 
     def save_posts(self, posts: list[Post]):
