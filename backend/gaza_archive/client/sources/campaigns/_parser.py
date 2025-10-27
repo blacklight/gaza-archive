@@ -1,5 +1,6 @@
 import logging
-import requests
+
+# import requests
 from bs4 import BeautifulSoup
 
 from ....model import Account
@@ -37,12 +38,12 @@ class CampaignParser:
         if not url:
             return
 
-        # Parse any redirects
-        try:
-            response = requests.head(url, timeout=5)
-            url = response.headers.get("Location", url)
-            # Strip query parameters for clarity
-        except requests.RequestException as e:
-            log.warning("Error fetching campaign URL %s: %s", url, e)
+        # # Parse any redirects
+        # try:
+        #     response = requests.head(url, timeout=5)
+        #     url = response.headers.get("Location", url)
+        #     # Strip query parameters for clarity
+        # except requests.RequestException as e:
+        #     log.warning("Error fetching campaign URL %s: %s", url, e)
 
         return url.split("?", 1)[0]
