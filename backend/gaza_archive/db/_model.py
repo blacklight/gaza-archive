@@ -1,10 +1,27 @@
+import json
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    JSON,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from ..model import Account as ModelAccount, Media as ModelMedia, Post as ModelPost
+from ..model import (
+    Account as ModelAccount,
+    Campaign as ModelCampaign,
+    CampaignDonation as ModelCampaignDonation,
+    Media as ModelMedia,
+    Post as ModelPost,
+)
 
 Base = declarative_base()
 
@@ -30,12 +47,14 @@ class Account(Base):
     avatar_url = Column(String)
     header_url = Column(String)
     profile_note = Column(Text)
+    profile_fields = Column(JSON)
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utcnow)
-    campaign_url = Column(String)
+    campaign_url = Column(String, ForeignKey("campaigns.url"), unique=True)
 
     # Relationships
     posts = relationship("Post", back_populates="author")
+    campaign = relationship("Campaign", back_populates="account", uselist=False)
 
     # Self-referential many-to-many for followers
     following = relationship(
@@ -64,6 +83,7 @@ class Account(Base):
             header_url=model.header_url,
             campaign_url=model.campaign_url,
             profile_note=model.profile_note,
+            profile_fields=model.profile_fields,
             created_at=model.created_at,
         )
 
@@ -76,8 +96,10 @@ class Account(Base):
             header_url=self.header_url,  # type: ignore
             campaign_url=self.campaign_url,  # type: ignore
             profile_note=self.profile_note,  # type: ignore
+            profile_fields=self.profile_fields or {},  # type: ignore
             created_at=self.created_at,  # type: ignore
             last_status_id=last_status_id,
+            disabled=False,
         )
 
     def update_from_model(self, model: ModelAccount):
@@ -88,6 +110,7 @@ class Account(Base):
             model.campaign_url if model.campaign_url else self.campaign_url
         )
         self.profile_note = model.profile_note
+        self.profile_fields = model.profile_fields
         self.disabled = model.disabled
         self.created_at = model.created_at
 
@@ -138,7 +161,8 @@ class Post(Base):
             in_reply_to_account_id=self.in_reply_to_account_id,  # type: ignore
             quote=self.quote,  # type: ignore
             created_at=self.created_at,  # type: ignore
-            updated_at=self.updated_at,  # type: ignore
+            updated_at=self.updated_at,   # type: ignore
+            attachments=[],
         )
 
 
@@ -176,4 +200,105 @@ class Media(Base):
             type=self.type,  # type: ignore
             description=self.description,  # type: ignore
             post=self.post.to_model() if self.post else None,  # type: ignore
+        )
+
+
+class ExchangeRate(Base):
+    """SQLAlchemy model for exchange rates cache."""
+
+    __tablename__ = "exchange_rates"
+
+    date = Column(String, nullable=False, primary_key=True)
+    rates_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    def __init__(self, date: str, rates: dict):
+        self.date = date
+        self.rates_json = json.dumps(rates)
+
+    @property
+    def rates(self) -> dict:
+        """Get rates as dictionary."""
+        return json.loads(str(self.rates_json))
+
+    @rates.setter
+    def rates(self, value: dict):
+        """Set rates from dictionary."""
+        self.rates_json = json.dumps(value)
+        self.updated_at = utcnow()
+
+    def __repr__(self):
+        """String representation of ExchangeRate."""
+        return f"<ExchangeRate(date='{self.date}', rates_count={len(self.rates)})>"
+
+
+class Campaign(Base):
+    """SQLAlchemy model for fundraising campaigns."""
+
+    __tablename__ = "campaigns"
+
+    url = Column(String, primary_key=True)
+    donations_cursor = Column(String)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    # Relationships
+    account = relationship("Account", back_populates="campaign")
+    donations = relationship("CampaignDonation", back_populates="campaign")
+
+    @classmethod
+    def from_model(cls, model: "ModelCampaign") -> "Campaign":
+        return cls(
+            url=model.url,
+            donations_cursor=model.donations_cursor,
+        )
+
+    def to_model(self) -> "Campaign":
+        donations = [donation.to_model() for donation in self.donations]
+        return ModelCampaign(
+            url=self.url,  # type: ignore
+            account_url=self.account[0].url,  # type: ignore
+            donations_cursor=self.donations_cursor,  # type: ignore
+            donations=donations,
+        )
+
+
+class CampaignDonation(Base):
+    """SQLAlchemy model for donations to campaigns."""
+
+    __tablename__ = "campaign_donations"
+
+    id = Column(String, primary_key=True)
+    campaign_url = Column(
+        String,
+        ForeignKey("campaigns.url", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    donor = Column(String, index=True)
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=utcnow, index=True)
+
+    # Relationships
+    campaign = relationship("Campaign", back_populates="donations")
+
+    @classmethod
+    def from_model(cls, model: "ModelCampaignDonation") -> "CampaignDonation":
+        return cls(
+            id=model.id,
+            campaign_url=model.campaign_url,
+            donor=model.donor,
+            amount=model.amount,
+            created_at=model.created_at,
+        )
+
+    def to_model(self) -> "ModelCampaignDonation":
+        return ModelCampaignDonation(
+            id=self.id,  # type: ignore
+            url=f"{self.campaign_url}#donation-{self.id}",  # type: ignore
+            campaign_url=self.campaign_url,  # type: ignore
+            donor=self.donor,  # type: ignore
+            amount=self.amount,  # type: ignore
+            created_at=self.created_at,  # type: ignore
         )

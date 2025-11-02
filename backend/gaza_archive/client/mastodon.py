@@ -1,14 +1,17 @@
-from abc import ABC
+import json
+import re
+import time
+from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from logging import getLogger
 
 import requests
+from bs4 import BeautifulSoup
 
 from ..config import Config
 from ..errors import AccountNotFoundError, HttpError
 from ..model import Account, Media, Post
-from .sources.campaigns import CampaignParser
 
 log = getLogger(__name__)
 
@@ -19,7 +22,6 @@ class MastodonApi(ABC):
     """
 
     config: Config
-    campaign_parser: CampaignParser
 
     def _http_get(self, url: str, *args, **kwargs) -> dict:
         """
@@ -110,16 +112,8 @@ class MastodonApi(ABC):
 
         return account.id
 
-    def get_campaign_url(self, account: Account) -> str | None:
-        """
-        Get the campaign URL from the account's profile note.
-        """
-        if not account.profile_note:
-            return None
-
-        return self.campaign_parser.parse_url(account) or None
-
-    def _convert_datetime(self, value: str) -> datetime | None:
+    @staticmethod
+    def _convert_datetime(value: str) -> datetime | None:
         if not value:
             return None
 
@@ -127,6 +121,9 @@ class MastodonApi(ABC):
             value = value[:-1] + "+00:00"
 
         return datetime.fromisoformat(value)
+
+    @abstractmethod
+    def get_campaign_url(self, account: Account) -> str | None: ...
 
     def refresh_account(self, account: Account) -> Account:
         """
@@ -151,8 +148,9 @@ class MastodonApi(ABC):
         account.profile_fields = self._parse_profile_fields(account_info.get("fields", []))
         account.disabled = bool(account_info["locked"])
         account.created_at = self._convert_datetime(account_info["created_at"])
-        if account_info.get("locked"):
-            account.disabled = account_info["locked"]
+        campaign_url = self.get_campaign_url(account)
+        if campaign_url:
+            account.campaign_url = campaign_url
 
         log.debug("Refreshed account: %s", account.url)
         return account

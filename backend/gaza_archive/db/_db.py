@@ -6,6 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from ..config import Config
+from ._campaigns import Campaigns
+from ._currency import CurrencyConverter
 from ._accounts import Accounts
 from ._media import Media
 from ._model import Base
@@ -14,7 +16,7 @@ from ._posts import Posts
 log = getLogger(__name__)
 
 
-class Db(Accounts, Media, Posts):
+class Db(Accounts, Campaigns, Media, Posts, CurrencyConverter):
     """
     Database class for managing the database connection and sessions.
     """

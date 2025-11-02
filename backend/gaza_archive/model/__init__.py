@@ -1,5 +1,6 @@
 from ._base import Item
 from .account import Account
+from .campaign import Campaign, CampaignDonation
 from .media import Media
 from .post import Post
 
@@ -7,4 +8,11 @@ from .post import Post
 Media.model_rebuild()
 Post.model_rebuild()
 
-__all__ = ["Item", "Account", "Media", "Post"]
+__all__ = [
+    "Account",
+    "Campaign",
+    "CampaignDonation",
+    "Item",
+    "Media",
+    "Post",
+]

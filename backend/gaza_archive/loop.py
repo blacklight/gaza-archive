@@ -5,7 +5,7 @@ from time import time
 from .client import Client
 from .config import Config
 from .db import Db
-from .model import Account
+from .model import Account, Campaign
 from .storages import FileStorage
 
 log = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class Loop(Thread):
         self.db = db
         self.config = config
         self.storage = FileStorage(config)
-        self.client = Client(config=config, storage=self.storage)
+        self.client = Client(config=config, storage=self.storage, db=db)
         self._stop_event = Event()
 
     def _main(self):
@@ -34,7 +34,8 @@ class Loop(Thread):
 
         while not self._stop_event.is_set():
             try:
-                self.refresh_accounts()
+                accounts = self.refresh_accounts()
+                self.refresh_campaigns(accounts)
             except Exception as e:
                 log.error("Error in main loop: %s", e)
                 log.exception(e)
@@ -48,8 +49,10 @@ class Loop(Thread):
         verified_accounts = self.client.get_verified_accounts()
         accounts = self.client.refresh_accounts(verified_accounts)
         for account in accounts:
-            if account.url in self.db._accounts:
-                db_account = self.db._accounts[account.url]
+            if account.url in self.db._accounts:  # pylint: disable=protected-access
+                db_account = self.db._accounts[  # pylint: disable=protected-access
+                    account.url
+                ]
                 account.last_status_id = db_account.last_status_id
 
         posts = self.client.refresh_posts(accounts)
@@ -64,6 +67,11 @@ class Loop(Thread):
             "Refreshed %d accounts in %.2f seconds.", len(accounts), time() - t_start
         )
         return accounts
+
+    def refresh_campaigns(self, accounts: list[Account]) -> list[Campaign]:
+        campaigns = self.client.refresh_campaigns(accounts)
+        self.db.save_campaigns(campaigns)
+        return campaigns
 
     def run(self):
         """
