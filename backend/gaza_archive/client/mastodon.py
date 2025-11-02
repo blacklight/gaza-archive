@@ -70,7 +70,22 @@ class MastodonApi(ABC):
                         exception=exc,
                     ) from exc
 
-        return response.json()
+    @staticmethod
+    def _parse_profile_fields(fields: list[dict]) -> dict[str, str]:
+        """
+        Parse profile fields from Mastodon account data.
+        """
+        parsed_fields = {}
+        for field in fields:
+            name = field.get("name")
+            value_html = field.get("value", "")
+            if name:
+                # Use BeautifulSoup to extract text from HTML
+                soup = BeautifulSoup(value_html, "html.parser")
+                value_text = soup.get_text(strip=True)
+                parsed_fields[name] = value_text
+
+        return parsed_fields
 
     def _get_account_id(self, account: Account) -> str:
         """
@@ -79,7 +94,7 @@ class MastodonApi(ABC):
         if not account.id:
             try:
                 account_info = self._http_get(
-                    f"{account.instanceApiUrl}/accounts/lookup",
+                    f"{account.instance_api_url}/accounts/lookup",
                     params={"acct": account.username},
                 )
             except HttpError as exc:
@@ -127,13 +142,14 @@ class MastodonApi(ABC):
             account.disabled = True
             return account
 
-        account_info = self._http_get(account.apiURL)
+        account_info = self._http_get(account.api_url)
         account.id = str(account_info["id"])
         account.display_name = account_info.get("display_name") or account.username
         account.avatar_url = account_info.get("avatar_static")
         account.header_url = account_info.get("header_static")
         account.profile_note = account_info.get("note")
-        account.campaign_url = self.get_campaign_url(account)
+        account.profile_fields = self._parse_profile_fields(account_info.get("fields", []))
+        account.disabled = bool(account_info["locked"])
         account.created_at = self._convert_datetime(account_info["created_at"])
         if account_info.get("locked"):
             account.disabled = account_info["locked"]
@@ -158,7 +174,7 @@ class MastodonApi(ABC):
 
             while True:
                 response = self._http_get(
-                    f"{account.apiURL}/statuses",
+                    f"{account.api_url}/statuses",
                     params={
                         "exclude_replies": int(False),
                         "exclude_reblogs": int(True),
@@ -189,6 +205,8 @@ class MastodonApi(ABC):
                             if status.get("edited_at")
                             else None
                         ),
+                        quote=json.dumps(status.get("quote")) if status.get("quote") else None,
+                        attachments=[],
                     )
                     for status in response
                 }

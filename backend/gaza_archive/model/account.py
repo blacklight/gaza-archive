@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import computed_field
+from pydantic import Field, computed_field
 
 from ._base import Item
 
@@ -15,6 +15,7 @@ class Account(Item):
     avatar_url: str | None = None
     header_url: str | None = None
     profile_note: str | None = None
+    profile_fields: dict[str, str] = Field(default_factory=dict)
     disabled: bool = False
     campaign_url: str | None = None
     last_status_id: str | None = None
@@ -27,7 +28,7 @@ class Account(Item):
 
     @computed_field
     @property
-    def feedURL(self) -> str:
+    def feed_url(self) -> str:
         return f"{self.url}.rss"
 
     @computed_field
@@ -37,11 +38,11 @@ class Account(Item):
 
     @computed_field
     @property
-    def instanceURL(self) -> str:
+    def instance_url(self) -> str:
         return f"https://{self.instance}"
 
     @property
-    def instanceApiUrl(self) -> str:
+    def instance_api_url(self) -> str:
         return f"https://{self.instance}/api/v1"
 
     @computed_field
@@ -51,9 +52,9 @@ class Account(Item):
 
     @computed_field
     @property
-    def apiURL(self) -> str:
+    def api_url(self) -> str:
         assert self.id, "Account ID is not set"
-        return f"{self.instanceApiUrl}/accounts/{self.id}"
+        return f"{self.instance_api_url}/accounts/{self.id}"
 
     @computed_field
     @property
@@ -83,6 +84,7 @@ class Account(Item):
             and self.avatar_url == other.avatar_url
             and self.header_url == other.header_url
             and self.profile_note == other.profile_note
+            and self.profile_fields == other.profile_fields
             and self.campaign_url == other.campaign_url
             and self.disabled == other.disabled
         )
@@ -98,6 +100,7 @@ class Account(Item):
         self.avatar_url = other.avatar_url
         self.header_url = other.header_url
         self.profile_note = other.profile_note
+        self.profile_fields = dict(other.profile_fields)
         self.disabled = other.disabled
         if other.created_at:
             self.created_at = other.created_at
