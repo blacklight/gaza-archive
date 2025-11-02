@@ -25,26 +25,50 @@ class MastodonApi(ABC):
         """
         Perform a GET request to the Mastodon API.
         """
-        response = requests.get(
-            url,
-            *args,
-            timeout=kwargs.pop("timeout", self.config.http_timeout),
-            headers={
-                "User-Agent": self.config.user_agent,
-                "Accept": "application/json",
-                **kwargs.pop("headers", {}),
-            },
-            **kwargs,
-        )
+        while True:
+            response = requests.get(
+                url,
+                *args,
+                timeout=kwargs.pop("timeout", self.config.http_timeout),
+                headers={
+                    "User-Agent": self.config.user_agent,
+                    "Accept": "application/json",
+                    **kwargs.pop("headers", {}),
+                },
+                **kwargs,
+            )
 
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as exc:
-            raise HttpError(
-                f"HTTP error {response.status_code} for {url}",
-                status_code=response.status_code,
-                exception=exc,
-            ) from exc
+            try:
+                response.raise_for_status()
+                return response.json()
+            except requests.ConnectionError as exc:
+                raise HttpError(
+                    f"Connection error for {url}",
+                    exception=exc,
+                ) from exc
+            except requests.HTTPError as exc:
+                if response.status_code == 429:
+                    rate_limit_reset_date = response.headers.get("X-RateLimit-Reset")
+                    if rate_limit_reset_date:
+                        reset_timestamp = datetime.fromisoformat(
+                            re.sub(r"Z$", "+00:00", rate_limit_reset_date)
+                        ).timestamp()
+                    else:
+                        reset_timestamp = datetime.now().timestamp() + 10
+
+                    sleep_seconds = int(max(0., reset_timestamp - datetime.now().timestamp()) + 1)
+                    log.warning(
+                        "Rate limit exceeded for %s, sleeping for %d seconds...",
+                        url,
+                        sleep_seconds,
+                    )
+                    time.sleep(sleep_seconds)
+                else:
+                    raise HttpError(
+                        f"HTTP error {response.status_code} for {url}",
+                        status_code=response.status_code,
+                        exception=exc,
+                    ) from exc
 
         return response.json()
 
