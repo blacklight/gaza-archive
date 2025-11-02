@@ -14,10 +14,6 @@ log = logging.getLogger(__name__)
 class GazaVerifiedApi(AccountsSource):  # pylint: disable=too-few-public-methods
     """
     Parser for Gaza Verified accounts
-
-    :param accounts_source_url: URL to fetch verified accounts from
-        (default: `https://gaza-verified.org` or value of `ACCOUNTS_SOURCE_URL`
-        env var)
     """
 
     def __init__(self, config: Config) -> None:
@@ -30,7 +26,7 @@ class GazaVerifiedApi(AccountsSource):  # pylint: disable=too-few-public-methods
             for elem in soup.find_all(attrs={"rel": "me"})
             if elem.get("href")
             # Exclude the author of the campaign
-            and not str(elem.get("href", "")).endswith("/@aral")
+            and str(elem.get("href", "")) not in self.config.exclude_profiles
         ]
 
     def get_verified_accounts(self) -> list[Account]:
