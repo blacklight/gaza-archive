@@ -56,7 +56,7 @@ class MastodonApi(ABC):
                     else:
                         reset_timestamp = datetime.now().timestamp() + 10
 
-                    sleep_seconds = int(max(0., reset_timestamp - datetime.now().timestamp()) + 1)
+                    sleep_seconds = int(max(20., reset_timestamp - datetime.now().timestamp()) + 1)
                     log.warning(
                         "Rate limit exceeded for %s, sleeping for %d seconds...",
                         url,
