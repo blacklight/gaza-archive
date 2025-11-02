@@ -25,6 +25,7 @@ class Config:  # pylint: disable=too-few-public-methods
     enable_crawlers: bool
     enable_campaign_crawlers: bool
     campaign_url_http_proxy: str | None
+    exchange_rates_api_key: str | None
     fixer_io_api_key: str | None
     exclude_profiles: list[str]
     debug: bool
@@ -66,6 +67,7 @@ class Config:  # pylint: disable=too-few-public-methods
                 in ("true", "1", "yes")
             ),
             campaign_url_http_proxy=os.getenv("CAMPAIGN_URL_HTTP_PROXY"),
+            exchange_rates_api_key=os.getenv("EXCHANGE_RATES_API_KEY"),
             fixer_io_api_key=os.getenv("FIXER_IO_API_KEY"),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
             exclude_profiles=list({
