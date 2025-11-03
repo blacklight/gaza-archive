@@ -203,7 +203,11 @@ class CurrencyConverter(ABC):
         rates = self._fetch_rates_from_api(date)
 
         # Cache the results
-        self._save_to_cache(date, rates)
+        try:
+            self._save_to_cache(date, rates)
+        except Exception as e:
+            log.warning("Failed to save exchange rates to cache: %s", e)
+
         return rates
 
     def convert(
