@@ -66,14 +66,15 @@ class Campaigns(ABC):
                         if donation.id not in existing_donations
                     ]
 
-                    log.info(
-                        "Added %d donations to campaign: %s",
-                        len(new_donations),
-                        campaign.url,
-                    )
-
                     db_campaign.donations_cursor = campaign.donations_cursor
-                    for donation in new_donations:
-                        session.add(DbCampaignDonation.from_model(donation))
+                    if new_donations:
+                        log.info(
+                            "Added %d donations to campaign: %s",
+                            len(new_donations),
+                            campaign.url,
+                        )
+
+                        for donation in new_donations:
+                            session.add(DbCampaignDonation.from_model(donation))
 
             session.commit()
