@@ -218,12 +218,4 @@ fragment FundraiserDonationFields on Donation {
 
         campaign.donations = donations
         campaign.donations_cursor = page_cursor
-        if donations:
-            log.info(
-                "Fetched %d new donations for account %s, campaign: %s",
-                len(donations),
-                campaign.account_url,
-                campaign.url,
-            )
-
         return campaign

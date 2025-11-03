@@ -2,6 +2,7 @@ import logging
 import warnings
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timezone
 from time import time
 
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
@@ -146,13 +147,31 @@ class CampaignParser(ABC):
             for donation in campaign.donations
         }
 
-        campaign = campaign_source.fetch_donations(campaign)
+        try:
+            campaign = campaign_source.fetch_donations(campaign)
+        except Exception as e:
+            log.error(
+                "Error fetching donations for campaign %s: %s",
+                campaign.url,
+                e,
+            )
+            log.exception(e)
+            return campaign
+
+        if campaign.donations:
+            log.info(
+                "Fetched %d new donations for account %s, campaign: %s",
+                len(campaign.donations),
+                campaign.account_url,
+                campaign.url,
+            )
+
         campaign.donations = sorted(
             {
                 **donations,
-                **({donation.url: donation for donation in list(campaign.donations)}),
+                **({donation.url: donation for donation in campaign.donations}),
             }.values(),
-            key=lambda d: d.created_at,
+            key=lambda d: d.created_at.astimezone(timezone.utc),
             reverse=True,
         )
 
