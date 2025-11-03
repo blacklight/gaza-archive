@@ -47,7 +47,8 @@ class Campaigns(ABC):
             }
 
             for campaign in campaigns:
-                if campaign.url not in db_campaigns:
+                db_campaign = db_campaigns.get(campaign.url)
+                if not db_campaign:
                     log.info(
                         "Adding new campaign with %d donations: %s",
                         len(campaign.donations),
@@ -56,6 +57,23 @@ class Campaigns(ABC):
                     session.add(DbCampaign.from_model(campaign))
 
                     for donation in campaign.donations:
+                        session.add(DbCampaignDonation.from_model(donation))
+                elif db_campaign.donations_cursor != campaign.donations_cursor:
+                    existing_donations = {donation.id for donation in db_campaign.donations}
+                    new_donations = [
+                        donation
+                        for donation in campaign.donations
+                        if donation.id not in existing_donations
+                    ]
+
+                    log.info(
+                        "Added %d donations to campaign: %s",
+                        len(new_donations),
+                        campaign.url,
+                    )
+
+                    db_campaign.donations_cursor = campaign.donations_cursor
+                    for donation in new_donations:
                         session.add(DbCampaignDonation.from_model(donation))
 
             session.commit()
