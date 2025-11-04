@@ -16,7 +16,7 @@ from ._posts import Posts
 log = getLogger(__name__)
 
 
-class Db(Accounts, Campaigns, Media, Posts, CurrencyConverter):
+class Db(CurrencyConverter, Accounts, Campaigns, Media, Posts):
     """
     Database class for managing the database connection and sessions.
     """
