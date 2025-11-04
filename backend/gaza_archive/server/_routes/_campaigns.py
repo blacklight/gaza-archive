@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 from ...model import ApiSortType, CampaignStats, api_split_args
 from .. import get_ctx
 
-router = APIRouter(prefix="/api/v1/campaigns", tags=["posts"])
+router = APIRouter(prefix="/api/v1/campaigns", tags=["campaigns"])
 
 def _get_campaigns(
     accounts: str | Collection[str] | None = None,
