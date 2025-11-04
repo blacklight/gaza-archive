@@ -53,12 +53,12 @@ def _get_campaigns(
 
 @router.get("/accounts")
 def get_accounts_campaigns(
-    accounts: list[str] | None = Query(
-        None,
+    accounts: list[str] = Query(
+        [],
         description="Filter by account URLs or FQDNs.",
     ),
-    donors: list[str] | None = Query(
-        None,
+    donors: list[str] = Query(
+        [],
         description="Filter by donor names.",
     ),
     start_time: str | None = Query(
@@ -125,8 +125,8 @@ def get_account_campaigns(
         ...,
         description="Account URLs or FQDNs.",
     ),
-    donors: str | list[str] | None = Query(
-        None,
+    donors: list[str] = Query(
+        [],
         description="Filter by donor names.",
     ),
     start_time: str | None = Query(
