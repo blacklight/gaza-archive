@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from ...model import Account, Media, Post
 from .. import get_ctx
@@ -68,25 +68,33 @@ def _get_account_media(
 
 
 @router.get("", response_model=list[Account])
-def get_accounts(limit: int | None = None, offset: int | None = None) -> list[Account]:
+def get_accounts(
+    limit: int | None = Query(
+        None, description="Maximum number of accounts to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of accounts to skip before starting to collect the result set.",
+    ),
+) -> list[Account]:
     """
     Get all accounts.
-
-    :param limit: Maximum number of accounts to return.
-    :param offset: Number of accounts to skip before starting to collect the result set.
-    :return: List of accounts.
     """
     return list(get_ctx().db.get_accounts(limit=limit, offset=offset).values())
 
 
 @router.get("/rss", response_model=str)
-def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> Response:
+def get_accounts_feed(
+    limit: int | None = Query(
+        None, description="Maximum number of accounts to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of accounts to skip before starting to collect the result set.",
+    ),
+) -> Response:
     """
     Get all accounts (RSS feed).
-
-    :param limit: Maximum number of accounts to return.
-    :param offset: Number of accounts to skip before starting to collect the result set.
-    :return: List of accounts.
     """
     ctx = get_ctx()
     accounts = list(ctx.db.get_accounts(limit=limit, offset=offset).values())
@@ -97,12 +105,14 @@ def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> Re
 
 
 @router.get("/{account}", response_model=Account)
-def get_account(account: str) -> Account:
+def get_account(
+    account: str = Query(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    )
+) -> Account:
     """
     Get account by URL.
-
-    :param account: Account FQN, in the format `@username@instance`, or full URL.
-    :return: Account object, or 404 if not found.
     """
     try:
         account_url = Account.to_url(account)
@@ -119,23 +129,27 @@ def get_account(account: str) -> Account:
 
 @router.get("/{account}/posts", response_model=list[Post])
 def get_account_posts(
-    account: str,
-    exclude_replies: bool = False,
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int | None = None,
-    offset: int | None = None,
+    account: str = Query(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    exclude_replies: bool = Query(
+        False, description="Whether to exclude replies (default: False)."
+    ),
+    min_id: int | None = Query(
+        None, description="Minimum post ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum post ID to return (exclusive)."
+    ),
+    limit: int | None = Query(None, description="Maximum number of posts to return."),
+    offset: int | None = Query(
+        None,
+        description="Number of posts to skip before starting to collect the result set.",
+    ),
 ) -> list[Post]:
     """
     Get posts for a specific account.
-
-    :param exclude_replies: Whether to exclude replies (default: False).
-    :param account: Account FQN, in the format `@username@instance`, or full URL.
-    :param min_id: Minimum post ID to return (exclusive).
-    :param max_id: Maximum post ID to return (exclusive).
-    :param limit: Maximum number of posts to return.
-    :param offset: Number of posts to skip before starting to collect the result set.
-    :return: List of posts.
     """
     return _get_account_posts(
         account=account,
@@ -149,23 +163,27 @@ def get_account_posts(
 
 @router.get("/{account}/posts/rss", response_model=str)
 def get_account_posts_feed(
-    account: str,
-    exclude_replies: bool = False,
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int | None = None,
-    offset: int | None = None,
+    account: str = Query(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    exclude_replies: bool = Query(
+        False, description="Whether to exclude replies (default: False)."
+    ),
+    min_id: int | None = Query(
+        None, description="Minimum post ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum post ID to return (exclusive)."
+    ),
+    limit: int | None = Query(None, description="Maximum number of posts to return."),
+    offset: int | None = Query(
+        None,
+        description="Number of posts to skip before starting to collect the result set.",
+    ),
 ) -> Response:
     """
     Get posts for a specific account (RSS feed).
-
-    :param exclude_replies: Whether to exclude replies (default: False).
-    :param account: Account FQN, in the format `@username@instance`, or full URL.
-    :param min_id: Minimum post ID to return (exclusive).
-    :param max_id: Maximum post ID to return (exclusive).
-    :param limit: Maximum number of posts to return.
-    :param offset: Number of posts to skip before starting to collect the result set.
-    :return: List of posts.
     """
     posts = _get_account_posts(
         account=account,
@@ -187,21 +205,26 @@ def get_account_posts_feed(
 
 @router.get("/{account}/media", response_model=list[Media])
 def get_account_media(
-    account: str,
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int | None = None,
-    offset: int | None = None,
+    account: str = Query(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    min_id: int | None = Query(
+        None, description="Minimum media ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum media ID to return (exclusive)."
+    ),
+    limit: int | None = Query(
+        None, description="Maximum number of media items to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of media items to skip before starting to collect the result set.",
+    ),
 ) -> list[Media]:
     """
     Get media attachments for a specific account.
-
-    :param account: Account FQN, in the format `@username@instance`, or full URL.
-    :param min_id: Minimum media ID to return (exclusive).
-    :param max_id: Maximum media ID to return (exclusive).
-    :param limit: Maximum number of media items to return.
-    :param offset: Number of media items to skip before starting to collect the result set.
-    :return: List of media attachments.
     """
     return _get_account_media(
         account=account,
@@ -214,21 +237,26 @@ def get_account_media(
 
 @router.get("/{account}/media/rss", response_model=str)
 def get_account_media_feed(
-    account: str,
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int | None = None,
-    offset: int | None = None,
+    account: str = Query(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    min_id: int | None = Query(
+        None, description="Minimum media ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum media ID to return (exclusive)."
+    ),
+    limit: int | None = Query(
+        None, description="Maximum number of media items to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of media items to skip before starting to collect the result set.",
+    ),
 ) -> Response:
     """
     Get media attachments for a specific account (RSS feed).
-
-    :param account: Account FQN, in the format `@username@instance`, or full URL.
-    :param min_id: Minimum media ID to return (exclusive).
-    :param max_id: Maximum media ID to return (exclusive).
-    :param limit: Maximum number of media items to return.
-    :param offset: Number of media items to skip before starting to collect the result set.
-    :return: List of media attachments.
     """
     media = _get_account_media(
         account=account,

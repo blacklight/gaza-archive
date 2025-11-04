@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from ...model import Media
 from .. import get_ctx
@@ -9,19 +9,25 @@ router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
 @router.get("", response_model=list[Media])
 def get_attachments(
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int = 50,
-    offset: int | None = None,
+    min_id: int | None = Query(
+        None, description="Minimum media ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum media ID to return (exclusive)."
+    ),
+    limit: int = Query(
+        50,
+        description="Maximum number of attachments to return (default: 50).",
+        gt=0,
+        le=100,
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of attachments to skip before starting to collect the result set.",
+    ),
 ) -> list[Media]:
     """
     List all media.
-
-    :param min_id: Minimum media ID to return (exclusive).
-    :param max_id: Maximum media ID to return (exclusive).
-    :param limit: Maximum number of attachments to return (default: 50).
-    :param offset: Number of attachments to skip before starting to collect the result set.
-    :return: List of attachments.
     """
     return list(
         get_ctx().db.get_attachments(
@@ -35,19 +41,25 @@ def get_attachments(
 
 @router.get("/rss", response_model=str)
 def get_attachments_feed(
-    min_id: int | None = None,
-    max_id: int | None = None,
-    limit: int = 50,
-    offset: int | None = None,
+    min_id: int | None = Query(
+        None, description="Minimum media ID to return (exclusive)."
+    ),
+    max_id: int | None = Query(
+        None, description="Maximum media ID to return (exclusive)."
+    ),
+    limit: int = Query(
+        50,
+        description="Maximum number of attachments to return (default: 50).",
+        gt=0,
+        le=100,
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of attachments to skip before starting to collect the result set.",
+    ),
 ) -> str:
     """
     Get media (RSS feed).
-
-    :param min_id: Minimum media ID to return (exclusive).
-    :param max_id: Maximum media ID to return (exclusive).
-    :param limit: Maximum number of attachments to return (default: 50).
-    :param offset: Number of attachments to skip before starting to collect the result set.
-    :return: RSS feed of media.
     """
     ctx = get_ctx()
     media = list(
@@ -62,12 +74,11 @@ def get_attachments_feed(
 
 
 @router.get("/{media}", response_model=Media)
-def get_attachment(media: str) -> Media:
+def get_attachment(
+    media: str = Query(..., description="Media URL."),
+) -> Media:
     """
     Get a specific media by URL.
-
-    :param media: Media URL.
-    :return: The media object, or 404 if not found.
     """
     db_media = get_ctx().db.get_attachment(media)
     if not db_media:

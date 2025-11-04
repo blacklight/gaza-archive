@@ -53,31 +53,53 @@ def _get_campaigns(
 
 @router.get("/accounts")
 def get_accounts_campaigns(
-    accounts: str | list[str] | None = Query(None),
-    donors: str | list[str] | None = Query(None),
-    start_time: str | None = None,
-    end_time: str | None = None,
-    group_by: str | list[str] | None = Query(None),
-    sort: str | list[str] | None = Query(None),
-    limit: int | None = None,
-    offset: int | None = None,
-    currency: str | None = None,
+    accounts: list[str] | None = Query(
+        None,
+        description="Filter by account URLs or FQDNs.",
+    ),
+    donors: list[str] | None = Query(
+        None,
+        description="Filter by donor names.",
+    ),
+    start_time: str | None = Query(
+        None,
+        description="Filter donations created after this time (ISO 8601 format).",
+    ),
+    end_time: str | None = Query(
+        None,
+        description="Filter donations created before this time (ISO 8601 format).",
+    ),
+    group_by: str | list[str] | None = Query(
+        None,
+        description=(
+            'Fields to group by (e.g., "account.url", "donation.donor"). '
+            'Date units are also supported (e.g., "donation.created_at:day", '
+            '"donation.created_at:week", "donation.created_at:month", '
+            '"donation.created_at:year").'
+        ),
+    ),
+    sort: str | list[str] | None = Query(
+        None,
+        description=(
+            'Fields to sort by (e.g., "amount", "donation.created_at"). '
+            'Add ":desc" for descending order.'
+        ),
+    ),
+    limit: int | None = Query(
+        None,
+        description="Maximum number of results to return.",
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of results to skip before starting to collect the result set.",
+    ),
+    currency: str | None = Query(
+        None,
+        description="Currency code for amounts (default: USD).",
+    ),
 ) -> CampaignStats:
     """
-    Get account campaign stats.
-
-    :param accounts: Filter by account URLs or FQDNs.
-    :param donors: Filter by donor names.
-    :param start_time: Filter donations created after this time (ISO 8601 format).
-    :param end_time: Filter donations created before this time (ISO 8601 format).
-    :param group_by: Fields to group by (e.g., "account.url", "donation.donor").
-        Date units are also supported (e.g., "donation.created_at:day",
-        "donation.created_at:week", "donation.created_at:month", "donation.created_at:year").
-    :param sort: Fields to sort by (e.g., "amount", "donation.created_at"). Add ":desc" for descending order.
-    :param limit: Maximum number of results to return.
-    :param offset: Number of results to skip before starting to collect the result set.
-    :param currency: Currency code for amounts (default: USD).
-    :return: Campaign stats.
+    Get account campaigns stats.
     """
     if not group_by:
         group_by = []
@@ -98,32 +120,54 @@ def get_accounts_campaigns(
 
 
 @router.get("/accounts/{account}")
-def get_accounts_campaigns(
-        account: str,
-        donors: str | list[str] | None = Query(None),
-        start_time: str | None = None,
-        end_time: str | None = None,
-        group_by: str | list[str] | None = Query(None),
-        sort: str | list[str] | None = Query(None),
-        limit: int | None = None,
-        offset: int | None = None,
-        currency: str | None = None,
+def get_account_campaigns(
+    account: str = Query(
+        None,
+        description="Account URLs or FQDNs.",
+    ),
+    donors: str | list[str] | None = Query(
+        None,
+        description="Filter by donor names.",
+    ),
+    start_time: str | None = Query(
+        None,
+        description="Filter donations created after this time (ISO 8601 format).",
+    ),
+    end_time: str | None = Query(
+        None,
+        description="Filter donations created before this time (ISO 8601 format).",
+    ),
+    group_by: str | list[str] | None = Query(
+        None,
+        description=(
+                'Fields to group by (e.g., "account.url", "donation.donor"). '
+                'Date units are also supported (e.g., "donation.created_at:day", '
+                '"donation.created_at:week", "donation.created_at:month", '
+                '"donation.created_at:year").'
+        ),
+    ),
+    sort: str | list[str] | None = Query(
+        None,
+        description=(
+                'Fields to sort by (e.g., "amount", "donation.created_at"). '
+                'Add ":desc" for descending order.'
+        ),
+    ),
+    limit: int | None = Query(
+        None,
+        description="Maximum number of results to return.",
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of results to skip before starting to collect the result set.",
+    ),
+    currency: str | None = Query(
+        None,
+        description="Currency code for amounts (default: USD).",
+    ),
 ) -> CampaignStats:
     """
     Get campaign stats for a specific account.
-
-    :param account: Account URL or FQDN.
-    :param donors: Filter by donor names.
-    :param start_time: Filter donations created after this time (ISO 8601 format).
-    :param end_time: Filter donations created before this time (ISO 8601 format).
-    :param group_by: Fields to group by (e.g., "account_url", "donor").
-        Date units are also supported
-        (e.g., "created_at:day", "created_at:week", "created_at:month", "created_at:year").
-    :param sort: Fields to sort by (e.g., "amount", "created_at"). Add ":desc" for descending order.
-    :param limit: Maximum number of results to return.
-    :param offset: Number of results to skip before starting to collect the result set.
-    :param currency: Currency code for amounts (default: USD).
-    :return: Campaign stats.
     """
     if not group_by:
         group_by = []
