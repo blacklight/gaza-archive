@@ -74,7 +74,6 @@ def get_accounts(limit: int | None = None, offset: int | None = None) -> list[Ac
 
     :param limit: Maximum number of accounts to return.
     :param offset: Number of accounts to skip before starting to collect the result set.
-    :param rss: If True, return an RSS feed of the accounts.
     :return: List of accounts.
     """
     return list(get_ctx().db.get_accounts(limit=limit, offset=offset).values())
@@ -87,7 +86,6 @@ def get_accounts_feed(limit: int | None = None, offset: int | None = None) -> Re
 
     :param limit: Maximum number of accounts to return.
     :param offset: Number of accounts to skip before starting to collect the result set.
-    :param rss: If True, return an RSS feed of the accounts.
     :return: List of accounts.
     """
     ctx = get_ctx()
