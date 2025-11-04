@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from ...model import Media
 from .. import get_ctx
@@ -75,7 +75,7 @@ def get_attachments_feed(
 
 @router.get("/{media}", response_model=Media)
 def get_attachment(
-    media: str = Query(..., description="Media URL."),
+    media: str = Path(..., description="Media URL."),
 ) -> Media:
     """
     Get a specific media by URL.
