@@ -1,6 +1,6 @@
 from urllib.parse import unquote
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from ...model import Post
 from .. import get_ctx
@@ -85,7 +85,7 @@ def get_posts_feed(
 
 @router.get("/{post}", response_model=Post)
 def get_post(
-    post: str = Query(
+    post: str = Path(
         ...,
         description="Post URL or ID.",
     ),
