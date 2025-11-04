@@ -47,7 +47,7 @@ class Config:  # pylint: disable=too-few-public-methods
             base_url=os.getenv("BASE_URL", "http://localhost:8000"),
             storage_path=os.getenv("STORAGE_PATH", "./data"),
             accounts_source_url=os.getenv(
-                "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org"
+                "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org/people.json"
             ),
             http_timeout=int(os.getenv("HTTP_TIMEOUT", "20")),
             poll_interval=int(os.getenv("POLL_INTERVAL", "300")),
