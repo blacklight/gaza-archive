@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Collection
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query
 
 from ...model import ApiSortType, CampaignStats, api_split_args
 from .. import get_ctx
@@ -121,8 +121,8 @@ def get_accounts_campaigns(
 
 @router.get("/accounts/{account}")
 def get_account_campaigns(
-    account: str = Query(
-        None,
+    account: str = Path(
+        ...,
         description="Account URLs or FQDNs.",
     ),
     donors: str | list[str] | None = Query(

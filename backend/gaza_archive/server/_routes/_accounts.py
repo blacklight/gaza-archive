@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from ...model import Account, Media, Post
 from .. import get_ctx
@@ -106,7 +106,7 @@ def get_accounts_feed(
 
 @router.get("/{account}", response_model=Account)
 def get_account(
-    account: str = Query(
+    account: str = Path(
         ...,
         description="Account FQN, in the format `@username@instance`, or full URL.",
     )
@@ -129,7 +129,7 @@ def get_account(
 
 @router.get("/{account}/posts", response_model=list[Post])
 def get_account_posts(
-    account: str = Query(
+    account: str = Path(
         ...,
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
@@ -163,7 +163,7 @@ def get_account_posts(
 
 @router.get("/{account}/posts/rss", response_model=str)
 def get_account_posts_feed(
-    account: str = Query(
+    account: str = Path(
         ...,
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
@@ -205,7 +205,7 @@ def get_account_posts_feed(
 
 @router.get("/{account}/media", response_model=list[Media])
 def get_account_media(
-    account: str = Query(
+    account: str = Path(
         ...,
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
@@ -237,7 +237,7 @@ def get_account_media(
 
 @router.get("/{account}/media/rss", response_model=str)
 def get_account_media_feed(
-    account: str = Query(
+    account: str = Path(
         ...,
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
