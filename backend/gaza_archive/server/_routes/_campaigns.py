@@ -290,15 +290,17 @@ def get_account_donations(
         description="Filter donations created before this time (ISO 8601 format).",
     ),
     sort: list[str] = Query(
-        [],
+        ["donation.created_at:desc"],
         description=(
             'Fields to sort by (e.g., "amount", "donation.created_at"). '
             'Add ":desc" for descending order.'
         ),
     ),
-    limit: int | None = Query(
-        None,
+    limit: int = Query(
+        50,
         description="Maximum number of results to return.",
+        le=100,
+        ge=1,
     ),
     offset: int | None = Query(
         None,
@@ -359,9 +361,11 @@ def get_accounts_donors(
             'Add ":desc" for descending order.'
         ),
     ),
-    limit: int | None = Query(
-        None,
+    limit: int = Query(
+        50,
         description="Maximum number of results to return.",
+        le=100,
+        ge=1,
     ),
     offset: int | None = Query(
         None,
