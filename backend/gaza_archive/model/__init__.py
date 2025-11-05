@@ -5,6 +5,7 @@ from .campaign import (
     Campaign,
     CampaignAccountStats,
     CampaignDonation,
+    CampaignDonationInfo,
     CampaignStats,
     CampaignStatsAmount,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "Campaign",
     "CampaignAccountStats",
     "CampaignDonation",
+    "CampaignDonationInfo",
     "CampaignStats",
     "CampaignStatsAmount",
     "Item",

@@ -14,6 +14,7 @@ from ..model import (
     ApiSortType,
     Campaign,
     CampaignAccountStats,
+    CampaignDonationInfo,
     CampaignStats,
     CampaignStatsAmount,
 )
@@ -53,9 +54,11 @@ class Campaigns(ABC):
 
     def get_campaign(self, campaign_url: str) -> Campaign | None:
         with self.get_session() as session:
-            campaign = session.query(DbCampaign).filter(
-                DbCampaign.url == campaign_url  # type: ignore
-            ).first()
+            campaign = (
+                session.query(DbCampaign)
+                .filter(DbCampaign.url == campaign_url)  # type: ignore
+                .first()
+            )
 
             if campaign:
                 donations = list(campaign.donations)
@@ -84,15 +87,21 @@ class Campaigns(ABC):
             if time_unit:
                 time_unit = time_unit.lower()
                 if time_unit == "day":
-                    column = func.strftime("%Y-%m-%d", getattr(table, attr)).label("day")
+                    column = func.strftime("%Y-%m-%d", getattr(table, attr)).label(
+                        "day"
+                    )
                 elif time_unit == "week":
-                    column = func.date(getattr(table, attr), 'weekday 1', '-6 days').label("week")
+                    column = func.date(
+                        getattr(table, attr), "weekday 1", "-6 days"
+                    ).label("week")
                 elif time_unit == "month":
                     column = func.strftime("%Y-%m", getattr(table, attr)).label("month")
                 elif time_unit == "year":
                     column = func.strftime("%Y", getattr(table, attr)).label("year")
                 else:
-                    raise AssertionError(f"Invalid time unit in group_by field: {param}.")
+                    raise AssertionError(
+                        f"Invalid time unit in group_by field: {param}."
+                    )
             else:
                 column = getattr(table, attr, None)
 
@@ -122,11 +131,7 @@ class Campaigns(ABC):
 
             output = [
                 *[
-                    (
-                        DbAccount
-                        if group_column == DbAccount.url
-                        else group_column
-                    )
+                    (DbAccount if group_column == DbAccount.url else group_column)
                     for group_column in group_columns.values()
                 ],
                 func.sum(DbCampaignDonation.amount).label("amount"),
@@ -165,6 +170,62 @@ class Campaigns(ABC):
                 group_columns=group_columns,
                 currency=currency,
             )
+
+    def get_donations(
+        self,
+        accounts: list[str] | None = None,
+        donors: list[str] | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        sort: list[tuple[str, ApiSortType]] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        currency: str | None = None,
+    ) -> list[CampaignDonationInfo]:
+        with self.get_session() as session:
+            query = (
+                session.query(DbAccount, DbCampaign, DbCampaignDonation)
+                .join(DbCampaignDonation.campaign)
+                .join(DbCampaign.account)
+            )
+
+            if accounts:
+                query = query.filter(
+                    DbAccount.url.in_([Account.to_url(account) for account in accounts])
+                )
+            if donors:
+                query = query.filter(DbCampaignDonation.donor.in_(donors))
+            if start_time:
+                query = query.filter(DbCampaignDonation.created_at >= start_time)
+            if end_time:
+                query = query.filter(DbCampaignDonation.created_at <= end_time)
+
+            query = self._apply_sort(query, sort or [("created_at", ApiSortType.DESC)])
+
+            if limit is not None:
+                query = query.limit(limit)
+            if offset is not None:
+                query = query.offset(offset)
+
+            return [
+                CampaignDonationInfo(
+                    id=donation.id,
+                    account=account.to_model(),
+                    campaign_url=campaign.url,
+                    amount=CampaignStatsAmount(
+                        amount=self.convert(
+                            donation.amount,
+                            from_currency="USD",
+                            to_currency=currency or "USD",
+                            date=None,  # Use current rate for simplicity
+                        )["converted_amount"],
+                        currency=currency or "USD",
+                    ),
+                    donor=donation.donor,
+                    created_at=donation.created_at,
+                )
+                for account, campaign, donation in query.all()
+            ]
 
     def _records_to_stats(
         self,
@@ -224,7 +285,14 @@ class Campaigns(ABC):
         }
 
         for key, value in data_node.items():
-            if key in ("group_key", "group_value", "account", "amount", "first_donation_time", "last_donation_time"):
+            if key in (
+                "group_key",
+                "group_value",
+                "account",
+                "amount",
+                "first_donation_time",
+                "last_donation_time",
+            ):
                 args[key] = value
             else:
                 args["data"].append(cls._data_to_stats(value))
@@ -241,9 +309,7 @@ class Campaigns(ABC):
         }
 
         table_sort_columns_str = [
-            column
-            for column, _ in sort
-            if column not in group_sort_columns
+            column for column, _ in sort if column not in group_sort_columns
         ]
 
         table_sort_columns = cls._params_to_columns(table_sort_columns_str)
@@ -254,7 +320,11 @@ class Campaigns(ABC):
                 sort_column = table_sort_columns.get(sort_field)
                 assert sort_column, f"Invalid sort field: {sort_field}."
 
-            sort_column = sort_column.asc() if sort_type == ApiSortType.ASC else sort_column.desc()
+            sort_column = (
+                sort_column.asc()
+                if sort_type == ApiSortType.ASC
+                else sort_column.desc()
+            )
             query = query.order_by(sort_column)
 
         return query
@@ -265,7 +335,9 @@ class Campaigns(ABC):
                 str(db_campaign.url): db_campaign
                 for db_campaign in (
                     session.query(DbCampaign)
-                    .filter(DbCampaign.url.in_([campaign.url for campaign in campaigns]))
+                    .filter(
+                        DbCampaign.url.in_([campaign.url for campaign in campaigns])
+                    )
                     .all()
                 )
             }
@@ -283,7 +355,9 @@ class Campaigns(ABC):
                     for donation in campaign.donations:
                         session.add(DbCampaignDonation.from_model(donation))
                 elif db_campaign.donations_cursor != campaign.donations_cursor:
-                    existing_donations = {donation.id for donation in db_campaign.donations}
+                    existing_donations = {
+                        donation.id for donation in db_campaign.donations
+                    }
                     new_donations = [
                         donation
                         for donation in campaign.donations

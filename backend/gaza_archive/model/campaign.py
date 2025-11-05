@@ -55,7 +55,7 @@ class CampaignStatsAmount(BaseModel):
     amount: float
     currency: str = "USD"
 
-    @field_serializer('amount')
+    @field_serializer("amount")
     def serialize_amount(self, value: float) -> float:
         """Round amount to 2 decimal places for serialization"""
         return round(value, 2)
@@ -64,9 +64,9 @@ class CampaignStatsAmount(BaseModel):
         """
         Adds two CampaignStatsAmount objects.
         """
-        if self.amount == 0.:
+        if self.amount == 0.0:
             return other
-        if other.amount == 0.:
+        if other.amount == 0.0:
             return self
         if self.currency != other.currency:
             raise ValueError("Cannot add amounts with different currencies")
@@ -94,7 +94,7 @@ class CampaignStats(BaseModel):
         amount: CampaignStatsAmount | None = None,
         first_donation_time: datetime | None = None,
         last_donation_time: datetime | None = None,
-        **data
+        **data,
     ):
         super().__init__(**data)
         if amount is not None:
@@ -152,3 +152,16 @@ class CampaignAccountStats(CampaignStats):
     """
 
     account: Account
+
+
+class CampaignDonationInfo(BaseModel):
+    """
+    Model for a campaign donation response item.
+    """
+
+    id: str
+    account: Account
+    campaign_url: str
+    amount: CampaignStatsAmount
+    donor: str | None = None
+    created_at: datetime
