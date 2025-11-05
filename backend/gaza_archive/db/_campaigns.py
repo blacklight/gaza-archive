@@ -375,4 +375,6 @@ class Campaigns(ABC):
                         for donation in new_donations:
                             session.add(DbCampaignDonation.from_model(donation))
 
+                    session.add(db_campaign)
+
             session.commit()
