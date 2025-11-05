@@ -76,8 +76,27 @@ class Campaigns(ABC):
             )
             attr = field_tokens[1] if len(field_tokens) > 1 else None
             assert attr, f"Invalid group_by field attribute: {param}."
-            column = getattr(table, attr, None)
-            assert column, f"Invalid group_by field: {param}."
+
+            # Split time-based grouping (e.g., created_at:day)
+            attr_tokens = attr.split(":")
+            attr = attr_tokens[0]
+            time_unit = attr_tokens[1] if len(attr_tokens) > 1 else None
+            if time_unit:
+                time_unit = time_unit.lower()
+                if time_unit == "day":
+                    column = func.strftime("%Y-%m-%d", getattr(table, attr)).label("day")
+                elif time_unit == "week":
+                    column = func.date(getattr(table, attr), 'weekday 1', '-6 days').label("week")
+                elif time_unit == "month":
+                    column = func.strftime("%Y-%m", getattr(table, attr)).label("month")
+                elif time_unit == "year":
+                    column = func.strftime("%Y", getattr(table, attr)).label("year")
+                else:
+                    raise AssertionError(f"Invalid time unit in group_by field: {param}.")
+            else:
+                column = getattr(table, attr, None)
+
+            assert column is not None, f"Invalid group_by field: {param}."
             columns[param] = column
 
         return columns
