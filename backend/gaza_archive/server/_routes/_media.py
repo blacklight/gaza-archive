@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from ...model import Media
 from .. import get_ctx
@@ -39,7 +39,7 @@ def get_attachments(
     )
 
 
-@router.get("/rss", response_model=str)
+@router.get("/rss", response_model=Response)
 def get_attachments_feed(
     min_id: int | None = Query(
         None, description="Minimum media ID to return (exclusive)."
@@ -57,7 +57,7 @@ def get_attachments_feed(
         None,
         description="Number of attachments to skip before starting to collect the result set.",
     ),
-) -> str:
+) -> Response:
     """
     Get media (RSS feed).
     """
@@ -70,7 +70,10 @@ def get_attachments_feed(
             offset=offset,
         )
     )
-    return FeedsGenerator(ctx.config).generate_media_feed(media)
+    return Response(
+        content=FeedsGenerator(ctx.config).generate_media_feed(media),
+        media_type="application/rss+xml",
+    )
 
 
 @router.get("/{media}", response_model=Media)

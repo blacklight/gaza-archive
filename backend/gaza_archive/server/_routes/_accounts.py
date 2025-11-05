@@ -83,7 +83,7 @@ def get_accounts(
     return list(get_ctx().db.get_accounts(limit=limit, offset=offset).values())
 
 
-@router.get("/rss", response_model=str)
+@router.get("/rss", response_model=Response)
 def get_accounts_feed(
     limit: int | None = Query(
         None, description="Maximum number of accounts to return."
@@ -161,7 +161,7 @@ def get_account_posts(
     )
 
 
-@router.get("/{account}/posts/rss", response_model=str)
+@router.get("/{account}/posts/rss", response_model=Response)
 def get_account_posts_feed(
     account: str = Path(
         ...,
@@ -235,7 +235,7 @@ def get_account_media(
     )
 
 
-@router.get("/{account}/media/rss", response_model=str)
+@router.get("/{account}/media/rss", response_model=Response)
 def get_account_media_feed(
     account: str = Path(
         ...,

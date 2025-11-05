@@ -1,6 +1,6 @@
 from urllib.parse import unquote
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from ...model import Post
 from .. import get_ctx
@@ -45,7 +45,7 @@ def get_posts(
     )
 
 
-@router.get("/rss", response_model=str)
+@router.get("/rss", response_model=Response)
 def get_posts_feed(
     exclude_replies: bool = Query(
         False, description="Whether to exclude replies (default: False)."
@@ -66,7 +66,7 @@ def get_posts_feed(
         None,
         description="Number of posts to skip before starting to collect the result set.",
     ),
-) -> str:
+) -> Response:
     """
     Get posts (RSS feed).
     """
@@ -80,7 +80,10 @@ def get_posts_feed(
             offset=offset,
         )
     )
-    return FeedsGenerator(ctx.config).generate_posts_feed(posts)
+    return Response(
+        content=FeedsGenerator(ctx.config).generate_posts_feed(posts),
+        media_type="application/rss+xml",
+    )
 
 
 @router.get("/{post}", response_model=Post)

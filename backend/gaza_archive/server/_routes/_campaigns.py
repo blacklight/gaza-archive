@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Collection
 
 from fastapi import APIRouter, Path, Query
+from fastapi.responses import Response
 
 from ...model import ApiSortType, CampaignDonationInfo, CampaignStats, api_split_args
 from .. import get_ctx
@@ -402,7 +403,7 @@ def get_accounts_donors(
     )
 
 
-@router.get("/donations/rss")
+@router.get("/donations/rss", response_model=Response)
 def get_donations_feed(
     accounts: list[str] = Query(
         [],
@@ -439,7 +440,7 @@ def get_donations_feed(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> str:
+) -> Response:
     """
     Get donations (RSS feed).
     """
@@ -454,10 +455,13 @@ def get_donations_feed(
         offset=offset,
         currency=currency,
     )
-    return FeedsGenerator(ctx.config).generate_donations_feed(donations)
+    return Response(
+        content=FeedsGenerator(ctx.config).generate_donations_feed(donations),
+        media_type="application/rss+xml",
+    )
 
 
-@router.get("/accounts/{account}/donations/rss")
+@router.get("/accounts/{account}/donations/rss", response_model=Response)
 def get_account_donations_feed(
     account: str = Path(
         ...,
@@ -494,7 +498,7 @@ def get_account_donations_feed(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> str:
+) -> Response:
     """
     Get donations for a specific account (RSS feed).
     """
@@ -509,4 +513,8 @@ def get_account_donations_feed(
         offset=offset,
         currency=currency,
     )
-    return FeedsGenerator(ctx.config).generate_donations_feed(donations)
+
+    return Response(
+        content=FeedsGenerator(ctx.config).generate_donations_feed(donations),
+        media_type="application/rss+xml",
+    )
