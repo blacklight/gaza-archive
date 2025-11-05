@@ -76,6 +76,12 @@ class CampaignStatsAmount(BaseModel):
             currency=self.currency,
         )
 
+    def __str__(self) -> str:
+        """
+        String representation of the amount.
+        """
+        return f"{self.amount:.2f} {self.currency}"
+
 
 class CampaignStats(BaseModel):
     """
@@ -84,7 +90,9 @@ class CampaignStats(BaseModel):
 
     group_key: list[str] = Field(default_factory=list)
     group_value: list[str | None] = Field(default_factory=list)
-    data: list["CampaignStats"] | list["CampaignAccountStats"] = Field(default_factory=list)
+    data: list["CampaignStats"] | list["CampaignAccountStats"] = Field(
+        default_factory=list
+    )
     _amount: CampaignStatsAmount | None = None
     _first_donation_time: datetime | None = None
     _last_donation_time: datetime | None = None

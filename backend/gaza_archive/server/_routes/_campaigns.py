@@ -5,11 +5,13 @@ from fastapi import APIRouter, Path, Query
 
 from ...model import ApiSortType, CampaignDonationInfo, CampaignStats, api_split_args
 from .. import get_ctx
+from ..feeds import FeedsGenerator
 
 router = APIRouter(prefix="/api/v1/campaigns", tags=["campaigns"])
 
 
 def _get_campaigns(
+    *,
     accounts: str | Collection[str] | None = None,
     donors: str | Collection[str] | None = None,
     start_time: str | None = None,
@@ -22,24 +24,26 @@ def _get_campaigns(
 ) -> CampaignStats:
     accounts = api_split_args(accounts) if accounts else None
     donors = api_split_args(donors) if donors else None
-    start_time = (
+    start_time_dt = (
         datetime.fromisoformat(start_time.replace("Z", "+00:00"))
         if start_time
         else None
     )
-    end_time = (
+    end_time_dt = (
         datetime.fromisoformat(end_time.replace("Z", "+00:00")) if end_time else None
     )
     group_by = api_split_args(group_by) if group_by else None
-    sort = [ApiSortType.parse(arg) for arg in api_split_args(sort)] if sort else None
+    sort_keys = (
+        [ApiSortType.parse(arg) for arg in api_split_args(sort)] if sort else None
+    )
 
     return get_ctx().db.get_campaigns(
         accounts=accounts,
         donors=donors,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=start_time_dt,
+        end_time=end_time_dt,
         group_by=group_by,
-        sort=sort,
+        sort=sort_keys,
         limit=limit,
         offset=offset,
         currency=currency,
@@ -47,8 +51,9 @@ def _get_campaigns(
 
 
 def _get_donations(
-    accounts: str | Collection[str] | None = None,
-    donors: str | Collection[str] | None = None,
+    *,
+    accounts: list[str] | None = None,
+    donors: list[str] | None = None,
     start_time: str | None = None,
     end_time: str | None = None,
     sort: str | Collection[str] | None = None,
@@ -395,3 +400,113 @@ def get_accounts_donors(
         offset=offset,
         currency=currency,
     )
+
+
+@router.get("/donations/rss")
+def get_donations_feed(
+    accounts: list[str] = Query(
+        [],
+        description="Filter by account URLs or FQDNs.",
+    ),
+    donors: list[str] = Query(
+        [],
+        description="Filter by donor names.",
+    ),
+    start_time: str | None = Query(
+        None,
+        description="Filter donations created after this time (ISO 8601 format).",
+    ),
+    end_time: str | None = Query(
+        None,
+        description="Filter donations created before this time (ISO 8601 format).",
+    ),
+    sort: list[str] = Query(
+        ["donation.created_at:desc"],
+        description=(
+            'Fields to sort by (e.g., "amount", "donation.created_at"). '
+            'Add ":desc" for descending order.'
+        ),
+    ),
+    limit: int = Query(
+        25,
+        description="Maximum number of results to return.",
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of results to skip before starting to collect the result set.",
+    ),
+    currency: str | None = Query(
+        None,
+        description="Currency code for amounts (default: USD).",
+    ),
+) -> str:
+    """
+    Get donations (RSS feed).
+    """
+    ctx = get_ctx()
+    donations = _get_donations(
+        accounts=accounts,
+        donors=donors,
+        start_time=start_time,
+        end_time=end_time,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+        currency=currency,
+    )
+    return FeedsGenerator(ctx.config).generate_donations_feed(donations)
+
+
+@router.get("/accounts/{account}/donations/rss")
+def get_account_donations_feed(
+    account: str = Path(
+        ...,
+        description="Account URLs or FQDNs.",
+    ),
+    donors: list[str] = Query(
+        [],
+        description="Filter by donor names.",
+    ),
+    start_time: str | None = Query(
+        None,
+        description="Filter donations created after this time (ISO 8601 format).",
+    ),
+    end_time: str | None = Query(
+        None,
+        description="Filter donations created before this time (ISO 8601 format).",
+    ),
+    sort: list[str] = Query(
+        ["donation.created_at:desc"],
+        description=(
+            'Fields to sort by (e.g., "amount", "donation.created_at"). '
+            'Add ":desc" for descending order.'
+        ),
+    ),
+    limit: int = Query(
+        25,
+        description="Maximum number of results to return.",
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of results to skip before starting to collect the result set.",
+    ),
+    currency: str | None = Query(
+        None,
+        description="Currency code for amounts (default: USD).",
+    ),
+) -> str:
+    """
+    Get donations for a specific account (RSS feed).
+    """
+    ctx = get_ctx()
+    donations = _get_donations(
+        accounts=[account],
+        donors=donors,
+        start_time=start_time,
+        end_time=end_time,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+        currency=currency,
+    )
+    return FeedsGenerator(ctx.config).generate_donations_feed(donations)
