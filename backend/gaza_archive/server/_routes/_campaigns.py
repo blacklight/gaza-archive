@@ -403,7 +403,7 @@ def get_accounts_donors(
     )
 
 
-@router.get("/donations/rss", response_model=Response)
+@router.get("/donations/rss", response_model=str)
 def get_donations_feed(
     accounts: list[str] = Query(
         [],
@@ -461,7 +461,7 @@ def get_donations_feed(
     )
 
 
-@router.get("/accounts/{account}/donations/rss", response_model=Response)
+@router.get("/accounts/{account}/donations/rss", response_model=str)
 def get_account_donations_feed(
     account: str = Path(
         ...,

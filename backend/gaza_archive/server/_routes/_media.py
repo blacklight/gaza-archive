@@ -39,7 +39,7 @@ def get_attachments(
     )
 
 
-@router.get("/rss", response_model=Response)
+@router.get("/rss", response_model=str)
 def get_attachments_feed(
     min_id: int | None = Query(
         None, description="Minimum media ID to return (exclusive)."

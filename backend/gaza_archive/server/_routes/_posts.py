@@ -45,7 +45,7 @@ def get_posts(
     )
 
 
-@router.get("/rss", response_model=Response)
+@router.get("/rss", response_model=str)
 def get_posts_feed(
     exclude_replies: bool = Query(
         False, description="Whether to exclude replies (default: False)."
