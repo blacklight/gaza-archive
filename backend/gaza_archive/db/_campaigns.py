@@ -75,7 +75,7 @@ class Campaigns(ABC):
             table = cls._table_by_search_key.get(field_tokens[0])
             assert table, (
                 f"Invalid group_by field table: {param}. "
-                "Supported tables are: {list(Campaigns._table_by_search_key.keys())}"
+                f"Supported tables are: {list(Campaigns._table_by_search_key.keys())}"
             )
             attr = field_tokens[1] if len(field_tokens) > 1 else None
             assert attr, f"Invalid group_by field attribute: {param}."
@@ -200,7 +200,7 @@ class Campaigns(ABC):
             if end_time:
                 query = query.filter(DbCampaignDonation.created_at <= end_time)
 
-            query = self._apply_sort(query, sort or [("created_at", ApiSortType.DESC)])
+            query = self._apply_sort(query, sort or [("donation.created_at", ApiSortType.DESC)])
 
             if limit is not None:
                 query = query.limit(limit)
