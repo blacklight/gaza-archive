@@ -84,7 +84,7 @@ class CampaignStats(BaseModel):
 
     group_key: list[str] = Field(default_factory=list)
     group_value: list[str | None] = Field(default_factory=list)
-    data: list["CampaignStats"] = Field(default_factory=list)
+    data: list["CampaignStats"] | list["CampaignAccountStats"] = Field(default_factory=list)
     _amount: CampaignStatsAmount | None = None
     _first_donation_time: datetime | None = None
     _last_donation_time: datetime | None = None
