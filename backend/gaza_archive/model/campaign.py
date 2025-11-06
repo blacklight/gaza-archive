@@ -55,6 +55,11 @@ class CampaignStatsAmount(BaseModel):
     amount: float
     currency: str = "USD"
 
+    @computed_field
+    @property
+    def string(self) -> str:
+        return str(self)
+
     @field_serializer("amount")
     def serialize_amount(self, value: float) -> float:
         """Round amount to 2 decimal places for serialization"""
@@ -80,7 +85,139 @@ class CampaignStatsAmount(BaseModel):
         """
         String representation of the amount.
         """
-        return f"{self.amount:.2f} {self.currency}"
+        display_amount = f"{self.amount:,.2f}"
+        if self.currency == "USD":
+            return f"${display_amount}"
+        if self.currency == "EUR":
+            return f"€{display_amount}"
+        if self.currency == "GBP":
+            return f"£{display_amount}"
+        if self.currency == "JPY":
+            return f"¥{display_amount}"
+        if self.currency == "CNY":
+            return f"¥{display_amount}"
+        if self.currency == "INR":
+            return f"₹{display_amount}"
+        if self.currency == "AUD":
+            return f"A${display_amount}"
+        if self.currency == "CAD":
+            return f"C${display_amount}"
+        if self.currency == "CHF":
+            return f"CHF {display_amount}"
+        if self.currency == "SEK":
+            return f"{display_amount} kr"
+        if self.currency == "NZD":
+            return f"NZ${display_amount}"
+        if self.currency == "MXN":
+            return f"${display_amount} MXN"
+        if self.currency == "SGD":
+            return f"S${display_amount}"
+        if self.currency == "HKD":
+            return f"HK${display_amount}"
+        if self.currency == "NOK":
+            return f"{display_amount} kr"
+        if self.currency == "KRW":
+            return f"₩{display_amount}"
+        if self.currency == "TRY":
+            return f"₺{display_amount}"
+        if self.currency == "RUB":
+            return f"₽{display_amount}"
+        if self.currency == "BRL":
+            return f"R${display_amount}"
+        if self.currency == "ZAR":
+            return f"R {display_amount}"
+        if self.currency == "PLN":
+            return f"{display_amount} zł"
+        if self.currency == "DKK":
+            return f"{display_amount} kr"
+        if self.currency == "TWD":
+            return f"NT${display_amount}"
+        if self.currency == "THB":
+            return f"฿{display_amount}"
+        if self.currency == "MYR":
+            return f"RM{display_amount}"
+        if self.currency == "IDR":
+            return f"Rp{display_amount}"
+        if self.currency == "CZK":
+            return f"{display_amount} Kč"
+        if self.currency == "HUF":
+            return f"{display_amount} Ft"
+        if self.currency == "ILS":
+            return f"₪{display_amount}"
+        if self.currency == "AED":
+            return f"د.إ {display_amount}"
+        if self.currency == "SAR":
+            return f"ر.س {display_amount}"
+        if self.currency == "CLP":
+            return f"${display_amount} CLP"
+        if self.currency == "COP":
+            return f"${display_amount} COP"
+        if self.currency == "PEN":
+            return f"S/ {display_amount}"
+        if self.currency == "ARS":
+            return f"${display_amount} ARS"
+        if self.currency == "VND":
+            return f"₫{display_amount}"
+        if self.currency == "EGP":
+            return f"ج.م {display_amount}"
+        if self.currency == "PKR":
+            return f"₨{display_amount}"
+        if self.currency == "BDT":
+            return f"৳{display_amount}"
+        if self.currency == "LKR":
+            return f"රු{display_amount}"
+        if self.currency == "NGN":
+            return f"₦{display_amount}"
+        if self.currency == "GHS":
+            return f"₵{display_amount}"
+        if self.currency == "KES":
+            return f"KSh {display_amount}"
+        if self.currency == "TZS":
+            return f"TSh {display_amount}"
+        if self.currency == "UGX":
+            return f"USh {display_amount}"
+        if self.currency == "MAD":
+            return f"د.م. {display_amount}"
+        if self.currency == "DZD":
+            return f"د.ج {display_amount}"
+        if self.currency == "TND":
+            return f"د.ت {display_amount}"
+        if self.currency == "LYD":
+            return f"ل.د {display_amount}"
+        if self.currency == "BHD":
+            return f".د.ب {display_amount}"
+        if self.currency == "OMR":
+            return f"ر.ع. {display_amount}"
+        if self.currency == "JOD":
+            return f"د.ا {display_amount}"
+        if self.currency == "QAR":
+            return f"ر.ق {display_amount}"
+        if self.currency == "KWD":
+            return f"د.ك {display_amount}"
+        if self.currency == "BND":
+            return f"B${display_amount}"
+        if self.currency == "COP":
+            return f"${display_amount} COP"
+        if self.currency == "DOP":
+            return f"RD${display_amount}"
+        if self.currency == "CRC":
+            return f"₡{display_amount}"
+        if self.currency == "HNL":
+            return f"L {display_amount}"
+        if self.currency == "NIO":
+            return f"C$ {display_amount}"
+        if self.currency == "PAB":
+            return f"B/. {display_amount}"
+        if self.currency == "SVC":
+            return f"$ {display_amount} SVC"
+        if self.currency == "JMD":
+            return f"J$ {display_amount}"
+        if self.currency == "BBD":
+            return f"Bds$ {display_amount}"
+        if self.currency == "TTD":
+            return f"TT$ {display_amount}"
+
+        return f"{display_amount} {self.currency}"
 
 
 class CampaignStats(BaseModel):
