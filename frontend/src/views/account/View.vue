@@ -37,6 +37,20 @@
       </div>
     </div>
 
+    <p class="fundraiser-campaign" v-if="account.campaign_url">
+      <RouterLink :to="'/campaigns/accounts/' + account.fqn">
+        <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
+        View Fundraising Campaign
+      </RouterLink>
+    </p>
+
+    <p class="profile-fields" v-if="profileFields?.length">
+      <div class="field" v-for="field in profileFields" :key="field.key">
+        <span class="field-key">{{ field.key }}</span>
+        <span class="field-value" v-html="field.value"></span>
+      </div>
+    </p>
+
     <div class="tabs">
       <button class="tab" :class="{ active: view === 'posts' }" @click="view = 'posts'">
         <i class="fas fa-file-text" aria-hidden="true" /> Posts
@@ -86,6 +100,20 @@ export default {
       loading: true,
       view: null,
     }
+  },
+
+  computed: {
+    profileFields() {
+      return Object.entries(this.account?.profile_fields || {})?.map(
+        ([key, value]) => {
+          if (value?.match(/^https?:\/\/\S+$/)) {
+            value = `<a href="${value}" target="_blank" rel="noopener">${value}</a>`
+          }
+
+          return { key, value }
+        }
+      ) || []
+    },
   },
 
   methods: {
@@ -207,6 +235,50 @@ $banner-height: 200px;
 
       p {
         margin: 0;
+      }
+    }
+  }
+
+  .fundraiser-campaign {
+    margin-top: -0.75em;
+
+    a {
+      text-decoration: none;
+      color: var(--color-primary);
+
+      i {
+        margin-right: 0.4em;
+      }
+    }
+  }
+
+  .profile-fields {
+    margin-top: 1em;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    border: 1px solid var(--color-border);
+    padding: 0.5em;
+
+    .field {
+      display: flex;
+      gap: 0.5em;
+
+      .field-key {
+        width: 10em;
+        font-weight: bold;
+        border-right: 1px solid var(--color-border);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .field-value {
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }
