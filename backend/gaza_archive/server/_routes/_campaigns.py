@@ -248,9 +248,11 @@ def get_donations(
             'Add ":desc" for descending order.'
         ),
     ),
-    limit: int | None = Query(
-        None,
+    limit: int = Query(
+        50,
         description="Maximum number of results to return.",
+        le=100,
+        ge=1,
     ),
     offset: int | None = Query(
         None,
@@ -431,6 +433,8 @@ def get_donations_feed(
     limit: int = Query(
         25,
         description="Maximum number of results to return.",
+        le=100,
+        ge=1,
     ),
     offset: int | None = Query(
         None,
@@ -489,6 +493,8 @@ def get_account_donations_feed(
     limit: int = Query(
         25,
         description="Maximum number of results to return.",
+        le=100,
+        ge=1,
     ),
     offset: int | None = Query(
         None,
