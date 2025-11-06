@@ -372,7 +372,6 @@ def get_accounts_donors(
     limit: int = Query(
         50,
         description="Maximum number of results to return.",
-        le=100,
         ge=1,
     ),
     offset: int | None = Query(
