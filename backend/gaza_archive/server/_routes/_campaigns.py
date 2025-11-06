@@ -91,11 +91,11 @@ def _get_donations(
 def get_accounts_campaigns(
     accounts: list[str] = Query(
         [],
-        description="Filter by account URLs or FQDNs.",
+        description="Filter by account URLs or FQDNs. Wildcards are supported.",
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -163,7 +163,7 @@ def get_account_campaigns(
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -227,11 +227,11 @@ def get_account_campaigns(
 def get_donations(
     accounts: list[str] = Query(
         [],
-        description="Filter by account URLs or FQDNs.",
+        description="Filter by account URLs or FQDNs. Wildcards are supported.",
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -287,7 +287,7 @@ def get_account_donations(
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -339,11 +339,11 @@ def get_account_donations(
 def get_accounts_donors(
     accounts: list[str] = Query(
         [],
-        description="Filter by account URLs or FQDNs.",
+        description="Filter by account URLs or FQDNs. Wildcards are supported.",
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -408,11 +408,11 @@ def get_accounts_donors(
 def get_donations_feed(
     accounts: list[str] = Query(
         [],
-        description="Filter by account URLs or FQDNs.",
+        description="Filter by account URLs or FQDNs. Wildcards are supported.",
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,
@@ -472,7 +472,7 @@ def get_account_donations_feed(
     ),
     donors: list[str] = Query(
         [],
-        description="Filter by donor names.",
+        description="Filter by donor names. Wildcards are supported.",
     ),
     start_time: str | None = Query(
         None,

@@ -6,7 +6,7 @@ from logging import getLogger
 from threading import RLock
 from typing import Iterator, Any
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session
 
 from ..model import (
@@ -146,11 +146,9 @@ class Campaigns(ABC):
             )
 
             if accounts:
-                query = query.filter(
-                    DbAccount.url.in_([Account.to_url(account) for account in accounts])
-                )
+                query = self._accounts_filter(query, accounts)
             if donors:
-                query = query.filter(DbCampaignDonation.donor.in_(donors))
+                query = self._donors_filter(query, donors)
             if start_time:
                 query = query.filter(DbCampaignDonation.created_at >= start_time)
             if end_time:
@@ -190,17 +188,17 @@ class Campaigns(ABC):
             )
 
             if accounts:
-                query = query.filter(
-                    DbAccount.url.in_([Account.to_url(account) for account in accounts])
-                )
+                query = self._accounts_filter(query, accounts)
             if donors:
-                query = query.filter(DbCampaignDonation.donor.in_(donors))
+                query = self._donors_filter(query, donors)
             if start_time:
                 query = query.filter(DbCampaignDonation.created_at >= start_time)
             if end_time:
                 query = query.filter(DbCampaignDonation.created_at <= end_time)
 
-            query = self._apply_sort(query, sort or [("donation.created_at", ApiSortType.DESC)])
+            query = self._apply_sort(
+                query, sort or [("donation.created_at", ApiSortType.DESC)]
+            )
 
             if limit is not None:
                 query = query.limit(limit)
@@ -235,6 +233,7 @@ class Campaigns(ABC):
     ) -> CampaignStats:
         nested_dict = lambda: defaultdict(nested_dict)
         data = defaultdict(nested_dict)
+        group_columns = group_columns or {}
 
         for record in records:
             amount, first_donation_time, last_donation_time = record[-3:]
@@ -243,7 +242,7 @@ class Campaigns(ABC):
             group_value = []
             data_node = data
 
-            for i, (group_field, group_column) in enumerate(group_columns.items()):
+            for i, (group_field, _) in enumerate(group_columns.items()):
                 account = None
                 value = columns[i]
 
@@ -327,6 +326,44 @@ class Campaigns(ABC):
             )
             query = query.order_by(sort_column)
 
+        return query
+
+    @staticmethod
+    def _accounts_filter(query: Query, accounts: list[str]) -> Query:
+        normalized_accounts = [
+            (
+                account.replace("*", "%") if "*" in account else Account.to_url(account)
+            ).lower()
+            for account in accounts
+        ]
+
+        conditions = []
+        for account in normalized_accounts:
+            if "%" in account:
+                conditions.append(func.lower(DbAccount.url).like(account))
+                conditions.append(func.lower(DbAccount.display_name).like(account))
+            else:
+                conditions.append(func.lower(DbAccount.url) == account)
+
+        query = query.filter(or_(*conditions))
+        return query
+
+    @staticmethod
+    def _donors_filter(query: Query, donors: list[str]) -> Query:
+        normalized_donors = [
+            donor.replace("*", "%") if "*" in donor else donor for donor in donors
+        ]
+
+        conditions = [
+            (
+                DbCampaignDonation.donor.like(donor)
+                if "%" in donor
+                else DbCampaignDonation.donor == donor
+            )
+            for donor in normalized_donors
+        ]
+
+        query = query.filter(or_(*conditions))
         return query
 
     def save_campaigns(self, campaigns: list[Campaign]):
