@@ -1,5 +1,15 @@
 <template>
   <div class="donations-list">
+    <div class="filter-container">
+      <input
+        type="text"
+        v-model="filterText"
+        placeholder="Filter donors..."
+        class="filter-input"
+        @input="$emit('update:filter:donors', filterText)"
+      />
+    </div>
+
     <div class="donation" v-for="donation in donations" :key="donation.id">
       <RouterLink :to="`/campaigns/donors/${donation.donor}`" class="donor-link">
         <div class="donor-avatar">
@@ -25,11 +35,19 @@ export default {
     Dates,
   ],
 
+  emits: ['update:filter:donors'],
+
   props: {
     donations: {
       type: Array,
       required: true,
     },
+  },
+
+  data() {
+    return {
+      filterText: '',
+    }
   },
 }
 </script>
@@ -106,6 +124,21 @@ $amount-width: 6rem;
         font-size: 1.1rem;
         color: var(--color-primary);
       }
+    }
+  }
+
+  .filter-container {
+    display: flex;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+
+    input[type="text"] {
+      max-width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.25rem;
+      font-size: 1rem;
     }
   }
 }

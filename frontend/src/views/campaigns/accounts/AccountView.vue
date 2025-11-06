@@ -22,7 +22,9 @@
     </template>
 
     <template #list>
-      <DonationsList :donations="donations" />
+      <DonationsList
+          :donations="donations"
+          @update:filter:donors="onDonorFilterTextUpdate" />
     </template>
   </CampaignsView>
 </template>
@@ -64,23 +66,51 @@ export default {
         offset: 0,
         sort: ['donation.created_at:desc'],
       },
+      donorFilterText: '',
+      donorFilterTimeout: null,
     }
   },
 
   methods: {
-    async refresh() {
-      this.loading = true
+    onDonorFilterTextUpdate(text) {
+      if (this.donorFilterTimeout) {
+        clearTimeout(this.donorFilterTimeout)
+      }
+
+      this.donorFilterTimeout = setTimeout(() => {
+        this.donorFilterText = text
+      }, 500)
+    },
+
+    async refresh(loadAll = true) {
+      if (loadAll) {
+        this.loading = true
+      } else {
+        this.donationsLoading = true
+      }
+
+      this.donationsQuery.offset = 0
+      let donorFilter = null
+      if (this.donorFilterText?.trim().length) {
+        donorFilter = [`*${this.donorFilterText.trim()}*`]
+        this.donationsQuery.donors = donorFilter
+      } else {
+        delete this.donationsQuery.donors
+      }
 
       try {
         [this.data, this.account, this.donations] = await Promise.all(
           [
-            await this.getCampaignAccountStats(this.accountFqn),
+            await this.getCampaignAccountStats(
+              this.accountFqn, donorFilter ? { donors: donorFilter } : {}
+            ),
             await this.getAccount(this.accountFqn),
             await this.getCampaignAccountDonations(this.accountFqn, this.donationsQuery),
           ]
         )
       } finally {
         this.loading = false
+        this.donationsLoading = false
       }
     },
 
@@ -98,6 +128,12 @@ export default {
       } finally {
         this.donationsLoading = false
       }
+    },
+  },
+
+  watch: {
+    donorFilterText: async function() {
+      await this.refresh(false)
     },
   },
 
