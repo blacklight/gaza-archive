@@ -1,6 +1,8 @@
 <template>
   <Loader v-if="loading" />
-  <CampaignsView :data="data" v-else-if="data">
+  <CampaignsView :data="data"
+                 @update:filter:dates="setDateFilter"
+                 v-else-if="data">
     <template #list>
       <AccountsList :accounts="accounts" />
     </template>
@@ -27,18 +29,41 @@ export default {
   },
 
   data() {
+    const now = new Date()
     return {
       loading: false,
       data: null,
       accounts: [],
       query: {
         sort: ['amount'],
+        // Last month
+        start_time: new Date(
+          now.getFullYear(), now.getMonth() - 1, now.getDate()
+        ).toISOString().split('T')[0] + 'T00:00:00',
       },
     }
   },
 
   methods: {
+    setDateFilter(dates) {
+      if (dates?.start) {
+        this.query.start_time = dates.start + 'T00:00:00'
+      } else {
+        delete this.query.start_time
+      }
+
+      if (dates?.end) {
+        this.query.end_time = dates.end + 'T23:59:59'
+      } else {
+        delete this.query.end_time
+      }
+
+      this.serializeQueryToRoute(this.query)
+      this.refresh()
+    },
+
     async refresh() {
+      this.serializeQueryToRoute(this.query)
       this.loading = true
 
       try {
@@ -51,6 +76,14 @@ export default {
   },
 
   async mounted() {
+    const query = this.deserializeQueryFromRoute()
+    if (query) {
+      this.query = {
+        ...this.query,
+        ...query,
+      }
+    }
+
     await this.refresh()
   }
 }

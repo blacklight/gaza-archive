@@ -10,7 +10,8 @@
     </div>
 
     <div class="account" v-for="data in filteredAccounts" :key="data.account.fqn">
-      <RouterLink :to="`/campaigns/accounts/${data.account.fqn}`" class="account-link">
+      <RouterLink :to="`/campaigns/accounts/${data.account.fqn}?${accountsQueryString}`"
+                  class="account-link">
         <div class="account-avatar">
           <img :src="data.account.avatar_path" :alt="`${data.account.display_name}'s avatar`" />
         </div>
@@ -27,7 +28,13 @@
 </template>
 
 <script>
+import CampaignsApi from '@/mixins/api/Campaigns.vue'
+
 export default {
+  mixins: [
+    CampaignsApi,
+  ],
+
   props: {
     accounts: {
       type: Array,
@@ -38,10 +45,15 @@ export default {
   data() {
     return {
       filterText: '',
+      accountsQuery: {},
     }
   },
 
   computed: {
+    accountsQueryString() {
+      return new URLSearchParams(this.accountsQuery).toString()
+    },
+
     filteredAccounts() {
       const filter = this.filterText.toLowerCase().trim()
       if (!filter) {
@@ -54,6 +66,27 @@ export default {
         const url = data.account.url.toLowerCase()
         return displayName.includes(filter) || fqn.includes(filter) || url.includes(filter)
       })
+    },
+  },
+
+  methods: {
+    updateAccountsQuery(newQuery) {
+      const query = { ...newQuery }
+      // Discard sort parameter for accounts list
+      delete query.sort
+      this.accountsQuery = query
+    },
+  },
+
+  mounted() {
+    const query = { ...this.deserializeQueryFromRoute() }
+    this.updateAccountsQuery(query)
+  },
+
+  watch: {
+    $route() {
+      const query = { ...this.deserializeQueryFromRoute() }
+      this.updateAccountsQuery(query)
     },
   },
 }

@@ -1,6 +1,8 @@
 <template>
   <Loader v-if="loading" />
-  <CampaignsView :data="data" v-else-if="data">
+  <CampaignsView :data="data"
+                 @update:filter:dates="setDateFilter"
+                 v-else-if="data">
     <template #header>
       <div class="account-header" v-if="account">
         <div class="account-avatar">
@@ -24,6 +26,7 @@
     <template #list>
       <DonationsList
           :donations="donations"
+          :filter="donorFilterText"
           @update:filter:donors="onDonorFilterTextUpdate" />
     </template>
   </CampaignsView>
@@ -79,7 +82,42 @@ export default {
 
       this.donorFilterTimeout = setTimeout(() => {
         this.donorFilterText = text
+        if (this.donorFilterText?.trim().length) {
+          this.donationsQuery.donors = [`*${this.donorFilterText.trim()}*`]
+        } else {
+          delete this.donationsQuery.donors
+        }
+
+        this.serializeQueryToRoute(
+          {
+            ...this.donationsQuery,
+            donors: this.donationsQuery.donors || '',
+          },
+          { overwrite: true }
+        )
+
+        if (this.donorFilterTimeout) {
+          clearTimeout(this.donorFilterTimeout)
+          this.donorFilterTimeout = null
+        }
       }, 500)
+    },
+
+    setDateFilter(dates) {
+      if (dates?.start) {
+        this.donationsQuery.start_time = dates.start + 'T00:00:00'
+      } else {
+        delete this.donationsQuery.start_time
+      }
+
+      if (dates?.end) {
+        this.donationsQuery.end_time = dates.end + 'T23:59:59'
+      } else {
+        delete this.donationsQuery.end_time
+      }
+
+      this.serializeQueryToRoute(this.donationsQuery)
+      this.refresh()
     },
 
     async refresh(loadAll = true) {
@@ -90,20 +128,22 @@ export default {
       }
 
       this.donationsQuery.offset = 0
-      let donorFilter = null
-      if (this.donorFilterText?.trim().length) {
-        donorFilter = [`*${this.donorFilterText.trim()}*`]
-        this.donationsQuery.donors = donorFilter
-      } else {
-        delete this.donationsQuery.donors
-      }
+      this.serializeQueryToRoute(
+        {
+          ...this.donationsQuery,
+          donors: this.donationsQuery.donors || '',
+        }
+      )
+
+      const campaignAccountStatsArgs = { ...this.donationsQuery }
+      delete campaignAccountStatsArgs.limit
+      delete campaignAccountStatsArgs.offset
+      delete campaignAccountStatsArgs.sort
 
       try {
         [this.data, this.account, this.donations] = await Promise.all(
           [
-            await this.getCampaignAccountStats(
-              this.accountFqn, donorFilter ? { donors: donorFilter } : {}
-            ),
+            await this.getCampaignAccountStats(this.accountFqn, campaignAccountStatsArgs),
             await this.getAccount(this.accountFqn),
             await this.getCampaignAccountDonations(this.accountFqn, this.donationsQuery),
           ]
@@ -120,7 +160,7 @@ export default {
       }
 
       this.donationsLoading = true
-      this.donationsQuery.offset += this.donationsQuery.limit
+      this.donationsQuery.offset += (this.donationsQuery.limit || 0)
 
       try {
         const newDonations = await this.getCampaignAccountDonations(this.accountFqn, this.donationsQuery)
@@ -138,6 +178,16 @@ export default {
   },
 
   async mounted() {
+    this.donationsQuery = {
+      ...this.donationsQuery,
+      ...(this.deserializeQueryFromRoute() || {}),
+    }
+
+    if (this.donationsQuery.donors && this.donationsQuery.donors.length > 0) {
+      const donorFilter = this.donationsQuery.donors[0]
+      this.donorFilterText = donorFilter.replace(/\*/g, '')
+    }
+
     await this.refresh()
     this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
   },

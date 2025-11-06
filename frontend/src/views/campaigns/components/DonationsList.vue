@@ -42,12 +42,21 @@ export default {
       type: Array,
       required: true,
     },
+
+    filter: {
+      type: String,
+      default: '',
+    },
   },
 
   data() {
     return {
       filterText: '',
     }
+  },
+
+  mounted() {
+    this.filterText = this.filter
   },
 }
 </script>
