@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import AccountCampaignView from "@/views/campaigns/accounts/AccountView.vue";
 import AccountView from "@/views/account/View.vue";
+import AccountsCampaignsView from "@/views/campaigns/accounts/AccountsView.vue";
 import AccountsView from "@/views/accounts/View.vue";
-import IndexView from "@/views/Index.vue";
 import AttachmentsView from "@/views/attachments/View.vue";
-import PostsView from "@/views/posts/View.vue";
+import IndexView from "@/views/Index.vue";
 import PostView from "@/views/posts/PostView.vue";
+import PostsView from "@/views/posts/View.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +23,14 @@ const router = createRouter({
     {
       path: '/accounts/:fqn',
       component: AccountView,
+    },
+    {
+      path: '/campaigns/accounts',
+      component: AccountsCampaignsView,
+    },
+    {
+      path: '/campaigns/accounts/:fqn',
+      component: AccountCampaignView,
     },
     {
       path: '/posts',

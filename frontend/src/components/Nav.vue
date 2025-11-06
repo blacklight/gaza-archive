@@ -20,6 +20,11 @@
         <i class="fas fa-photo-video" />
       </RouterLink>
 
+      <RouterLink to="/campaigns/accounts" title="Fundraising campaigns"
+        :class="{ active: currentView?.startsWith('/campaigns') }">
+        <i class="fas fa-hand-holding-usd" />
+      </RouterLink>
+
       <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
       <a href="/swagger" title="API"><i class="fas fa-code" /></a>
     </section>
