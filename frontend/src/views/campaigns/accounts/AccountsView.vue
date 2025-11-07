@@ -37,9 +37,11 @@ export default {
       accounts: [],
       query: {
         sort: ['amount'],
-        // Last month
+        // Last week
         start_time: new Date(
-          now.getFullYear(), now.getMonth() - 1, now.getDate()
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 7,
         ).toISOString().split('T')[0] + 'T00:00:00',
       },
     }
