@@ -3,8 +3,20 @@
     <div class="header container">
       <slot name="header" />
       <div class="total item">
-        <span class="label">Total Raised</span>
-        <span class="value">{{ data?.amount?.string || 0 }}</span>
+        <div class="left side">
+          <span class="label">Total Raised</span>
+          <span class="value">{{ data?.amount?.string || 0 }}</span>
+        </div>
+        <div class="right side currencies">
+          <select v-model="currency">
+            <option v-for="curr in currencies"
+                    :key="curr"
+                    :value="curr"
+                    :selected="curr === currency">
+              {{ curr }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <div class="first donation date item">
@@ -89,6 +101,7 @@ export default {
   ],
 
   emits: [
+    'update:currency',
     'update:filter:dates',
   ],
 
@@ -105,16 +118,35 @@ export default {
 
   data() {
     return {
+      currencies: [],
+      currency: null,
       startDate: null,
       endDate: null,
       showDateFilter: false,
     }
   },
 
-  mounted() {
+  async mounted() {
     const query = this.deserializeQueryFromRoute()
     this.startDate = query.start_time ? query.start_time.split('T')[0] : null
     this.endDate = query.end_time ? query.end_time.split('T')[0] : null
+    this.currencies = await this.getCurrencies()
+  },
+
+  watch: {
+    currency(newCurrency) {
+      this.$emit('update:currency', newCurrency)
+    },
+
+    data: {
+      immediate: true,
+      handler(newData) {
+        const newCurrency = newData?.amount?.currency
+        if (newCurrency && newCurrency !== this.currency) {
+          this.currency = newData.amount.currency
+        }
+      },
+    },
   },
 }
 </script>
@@ -149,8 +181,33 @@ $clear-btn-size: 1.5em;
       }
 
       &.total {
+        display: flex;
+        align-items: center;
         font-size: 1.25em;
         margin-left: -0.3em;
+
+        .side {
+          display: flex;
+          align-items: center;
+
+          &.currencies {
+            margin-left: 1em;
+
+            select {
+              padding: 0.2em;
+              font-size: 1em;
+              border: 1px solid var(--color-border);
+              border-radius: 0.25em;
+              background: var(--color-bg-secondary);
+              color: var(--color-text);
+              cursor: pointer;
+            }
+          }
+
+          &.left {
+            margin-right: 0.5em;
+          }
+        }
 
         .value {
           font-size: 1.5em;

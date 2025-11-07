@@ -39,8 +39,16 @@ export default {
       return (await fetch(`${url}?${query}`)).json()
     },
 
+    async getCurrencies() {
+      return (await fetch('/api/v1/internal/currencies')).json()
+    },
+
     deserializeQueryFromRoute() {
       const params = {}
+
+      if (this.$route.query.currency) {
+        params.currency = this.$route.query.currency
+      }
 
       if (this.$route.query.accounts) {
         params.accounts = Array.isArray(this.$route.query.accounts)
@@ -87,6 +95,10 @@ export default {
 
     parseQuery(params) {
       const query = {}
+
+      if (params.currency) {
+        query.currency = params.currency
+      }
 
       if (params.accounts === '') {
         query.accounts = null

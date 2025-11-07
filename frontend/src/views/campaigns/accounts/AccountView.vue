@@ -1,6 +1,7 @@
 <template>
   <Loader v-if="loading" />
   <CampaignsView :data="data"
+                 @update:currency="setCurrency"
                  @update:filter:dates="setDateFilter"
                  v-else-if="data">
     <template #header>
@@ -75,6 +76,16 @@ export default {
   },
 
   methods: {
+    setCurrency(currency) {
+      if (this.donationsQuery.currency === currency) {
+        return
+      }
+
+      this.donationsQuery.currency = currency
+      this.serializeQueryToRoute(this.donationsQuery)
+      this.refresh()
+    },
+
     onDonorFilterTextUpdate(text) {
       if (this.donorFilterTimeout) {
         clearTimeout(this.donorFilterTimeout)

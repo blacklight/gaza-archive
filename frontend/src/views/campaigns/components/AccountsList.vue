@@ -94,7 +94,7 @@ export default {
 
 <style scoped lang="scss">
 $account-avatar-size: 3rem;
-$amount-width: 6rem;
+$amount-width: 8.5rem;
 
 .accounts-list {
   display: flex;

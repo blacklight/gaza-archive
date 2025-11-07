@@ -2,6 +2,7 @@
   <Loader v-if="loading" />
   <CampaignsView :data="data"
                  @update:filter:dates="setDateFilter"
+                 @update:currency="setCurrency"
                  v-else-if="data">
     <template #list>
       <AccountsList :accounts="accounts" />
@@ -45,6 +46,16 @@ export default {
   },
 
   methods: {
+    setCurrency(currency) {
+      if (this.query.currency === currency) {
+        return
+      }
+
+      this.query.currency = currency
+      this.serializeQueryToRoute(this.query)
+      this.refresh()
+    },
+
     setDateFilter(dates) {
       if (dates?.start) {
         this.query.start_time = dates.start + 'T00:00:00'
