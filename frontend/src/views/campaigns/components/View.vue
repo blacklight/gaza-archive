@@ -2,43 +2,45 @@
   <div class="campaigns view">
     <div class="header container">
       <slot name="header" />
-      <div class="total item">
-        <div class="left side">
-          <span class="label">Total Raised</span>
-          <span class="value">{{ data?.amount?.string || 0 }}</span>
+      <div class="summary">
+        <div class="total item">
+          <div class="left side">
+            <span class="label">Total Raised</span>
+            <span class="value">{{ data?.amount?.string || 0 }}</span>
+          </div>
+          <div class="right side currencies">
+            <select v-model="currency">
+              <option v-for="curr in currencies"
+                      :key="curr"
+                      :value="curr"
+                      :selected="curr === currency">
+                {{ curr }}
+              </option>
+            </select>
+          </div>
         </div>
-        <div class="right side currencies">
-          <select v-model="currency">
-            <option v-for="curr in currencies"
-                    :key="curr"
-                    :value="curr"
-                    :selected="curr === currency">
-              {{ curr }}
-            </option>
-          </select>
+
+        <div class="first donation date item">
+          <span class="label">From</span>
+          <span class="value">
+            <button @click="showDateFilter = true"
+                    title="Filter by Date"
+                    class="date-filter-button">
+              {{ data?.first_donation_time ? formatDateTime(data.first_donation_time) : 'N/A' }}
+            </button>
+          </span>
         </div>
-      </div>
 
-      <div class="first donation date item">
-        <span class="label">From</span>
-        <span class="value">
-          <button @click="showDateFilter = true"
-                  title="Filter by Date"
-                  class="date-filter-button">
-            {{ data?.first_donation_time ? formatDateTime(data.first_donation_time) : 'N/A' }}
-          </button>
-        </span>
-      </div>
-
-      <div class="last donation date item">
-        <span class="label">Until</span>
-        <span class="value">
-          <button @click="showDateFilter = true"
-                  title="Filter by Date"
-                  class="date-filter-button">
-            {{ data?.last_donation_time ? formatDateTime(data.last_donation_time) : 'N/A' }}
-          </button>
-        </span>
+        <div class="last donation date item">
+          <span class="label">Until</span>
+          <span class="value">
+            <button @click="showDateFilter = true"
+                    title="Filter by Date"
+                    class="date-filter-button">
+              {{ data?.last_donation_time ? formatDateTime(data.last_donation_time) : 'N/A' }}
+            </button>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -163,6 +165,14 @@ $clear-btn-size: 1.5em;
     justify-content: center;
     border-bottom: 1px solid var(--color-border);
 
+    .summary {
+      width: 100%;
+      max-width: $desktop;
+      margin: 0 auto 1em auto;
+      display: flex;
+      flex-direction: column;
+    }
+
     .item {
       display: flex;
       align-items: center;
@@ -180,15 +190,46 @@ $clear-btn-size: 1.5em;
         font-size: 1rem;
       }
 
+      @include until($tablet) {
+        align-items: flex-start;
+        margin-bottom: 0.5em;
+
+        .label {
+          margin-left: 0;
+        }
+      }
+
       &.total {
         display: flex;
         align-items: center;
         font-size: 1.25em;
         margin-left: -0.3em;
+        margin-bottom: 0.75em;
+
+        @include until($tablet) {
+          align-items: flex-start;
+          margin-bottom: 1em;
+
+          .label {
+            margin-left: 0;
+          }
+
+          .value {
+            margin-left: 0;
+          }
+        }
 
         .side {
           display: flex;
           align-items: center;
+
+          &.left {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            align-items: flex-start;
+            margin-left: 0.5em;
+          }
 
           &.currencies {
             margin-left: 1em;
