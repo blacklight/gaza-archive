@@ -31,12 +31,18 @@
         <span>{{ fieldName }}</span>
       </div>
     </div>
+
+    <div class="spacer" style="flex-grow: 1;"></div>
+    <div class="buttons" style="text-align: right;">
+      <button @click="$emit('close')">Close</button>
+      <button class="primary" @click="applySortUpdate">Apply</button>
+    </div>
   </div>
 </template>
 
 <script>
 export default {
-  emits: ['update:sort'],
+  emits: ['close', 'update:sort'],
 
   props: {
     fields: {
@@ -50,9 +56,15 @@ export default {
     },
   },
 
+  data() {
+    return {
+      newSort: this.sort || [],
+    }
+  },
+
   computed: {
     computedSort() {
-      return (this.sort || []).map(sortField => {
+      return (this.newSort || []).map(sortField => {
         const tokens = sortField.split(':')
         let field = tokens[0]
         let order = 'asc'
@@ -84,8 +96,9 @@ export default {
 
     selectedFields() {
       const selected = {};
-      (this.sort || []).forEach(sortField => {
-        selected[sortField] = this.fields[sortField]
+      (this.newSort || []).forEach(sortField => {
+        const field = sortField.split(':')[0]
+        selected[field] = this.fields[field]
       })
       return selected
     },
@@ -102,7 +115,7 @@ export default {
 
   methods: {
     toggleFieldSort(fieldName) {
-      const sort = [...this.sort || []]
+      const sort = [...this.newSort || []]
       const existingIndex = sort.findIndex(sortField => sortField.startsWith(fieldName))
       if (existingIndex !== -1) {
         // Remove the field from sort
@@ -112,11 +125,11 @@ export default {
         sort.push(`${fieldName}:asc`)
       }
 
-      this.$emit('update:sort', sort)
+      this.newSort = sort
     },
 
     toggleFieldOrder(fieldName) {
-      const sort = [...this.sort || []]
+      const sort = [...this.newSort || []]
       const existingIndex = sort.findIndex(sortField => sortField.startsWith(fieldName))
       if (existingIndex !== -1) {
         const tokens = sort[existingIndex].split(':')
@@ -126,10 +139,20 @@ export default {
         }
 
         sort[existingIndex] = `${fieldName}:${order}`
-        this.$emit('update:sort', sort)
+        this.newSort = sort
       }
     },
-  }
+
+    applySortUpdate() {
+      this.$emit('update:sort', this.newSort)
+    },
+  },
+
+  watch: {
+    sort(newVal) {
+      this.newSort = newVal || []
+    },
+  },
 }
 </script>
 
@@ -196,6 +219,32 @@ $remove-btn-size: 1.25rem;
 
     .sorter-item {
       font-weight: bold;
+    }
+  }
+
+  .spacer {
+    flex-grow: 1;
+  }
+
+  .buttons {
+    margin-top: 1rem;
+
+    button {
+      padding: 0.5rem 1rem;
+      margin-left: 0.5rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+
+      &.primary {
+        background-color: var(--color-primary);
+        color: var(--color-text-inverse);
+
+        &:hover {
+          background-color: var(--color-hover-bg);
+          color: var(--color-hover-fg);
+        }
+      }
     }
   }
 }
