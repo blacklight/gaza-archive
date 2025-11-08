@@ -48,6 +48,9 @@ export default {
         feedUrl = '/api/v1/posts/rss'
       } else if (this.$route.path.startsWith("/media")) {
         feedUrl = `/api/v1/media/rss`
+      } else if (this.$route.path.startsWith("/campaigns/accounts/@")) {
+        const accountFqn = this.$route.path.split("/")[3].split("?")[0]
+        feedUrl = `/api/v1/campaigns/accounts/${accountFqn}/donations/rss?limit=100`
       }
 
       let link = document.querySelector("link[type='application/rss+xml']")
