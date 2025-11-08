@@ -168,3 +168,6 @@ cython_debug/
 data
 requests
 .vscode/
+
+# Internal files
+*.internal*
