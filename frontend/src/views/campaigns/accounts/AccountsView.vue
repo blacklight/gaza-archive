@@ -5,7 +5,10 @@
                  @update:currency="setCurrency"
                  v-else-if="data">
     <template #list>
-      <AccountsList :accounts="accounts" />
+      <AccountsList :accounts="accounts"
+                    :fields="fields"
+                    :query="query"
+                    @update:query="onQueryUpdate" />
     </template>
   </CampaignsView>
 </template>
@@ -32,11 +35,12 @@ export default {
   data() {
     const now = new Date()
     return {
-      loading: false,
-      data: null,
       accounts: [],
+      data: null,
+      fields: {},
+      loading: false,
       query: {
-        sort: ['amount'],
+        sort: ['amount:asc'],
         // Last week
         start_time: new Date(
           now.getFullYear(),
@@ -75,6 +79,15 @@ export default {
       this.refresh()
     },
 
+    onQueryUpdate(newQuery) {
+      this.query = {
+        ...this.query,
+        ...newQuery,
+      }
+      this.serializeQueryToRoute(this.query)
+      this.refresh()
+    },
+
     async refresh() {
       this.serializeQueryToRoute(this.query)
       this.loading = true
@@ -90,6 +103,8 @@ export default {
 
   async mounted() {
     const query = this.deserializeQueryFromRoute()
+
+    this.fields = await this.getDbFields()
     if (query) {
       this.query = {
         ...this.query,

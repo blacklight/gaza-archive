@@ -1,12 +1,21 @@
 <template>
   <div class="accounts-list">
-    <div class="filter-container">
-      <input
-        type="text"
-        v-model="filterText"
-        placeholder="Filter accounts..."
-        class="filter-input"
-      />
+    <div class="header">
+      <div class="filter-container">
+        <input
+          type="text"
+          v-model="filterText"
+          placeholder="Filter accounts..."
+          class="filter-input"
+        />
+
+        <div class="sort-container">
+          <button @click="sortModalVisible = true" title="Sort Accounts" class="sort-button">
+            <i class="fas fa-sort" aria-hidden="true"></i>
+            Sort
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="account" v-for="data in filteredAccounts" :key="data.account.fqn">
@@ -24,34 +33,78 @@
         </div>
       </RouterLink>
     </div>
+
+    <div class="sort-modal-container" v-if="sortModalVisible">
+      <Modal :show="sortModalVisible"
+             title="Sort Accounts"
+             @close="sortModalVisible = false">
+        <Sorter :sort="accountsQuery.sort || []"
+                :fields="sortFields"
+                @update:sort="onSortChange" />
+      </Modal>
+    </div>
   </div>
 </template>
 
 <script>
 import CampaignsApi from '@/mixins/api/Campaigns.vue'
+import Modal from '@/elements/Modal.vue'
+import Sorter from './Sorter.vue'
 
 export default {
   mixins: [
     CampaignsApi,
   ],
 
+  emits: ['update:query'],
+
+  components: {
+    Modal,
+    Sorter,
+  },
+
   props: {
     accounts: {
       type: Array,
+      required: true,
+    },
+
+    fields: {
+      type: Object,
+      required: false,
+      default: () => ({}),
+    },
+
+    query: {
+      type: Object,
       required: true,
     },
   },
 
   data() {
     return {
-      filterText: '',
       accountsQuery: {},
+      sortFields: {
+        'account.created_at': 'datetime',
+        'account.display_name': 'varchar',
+        'account.fqn': 'varchar',
+        'account.url': 'varchar',
+        'amount': 'float',
+        'first_donation_time': 'datetime',
+        'last_donation_time': 'datetime',
+      },
+      filterText: '',
+      sortModalVisible: false,
     }
   },
 
   computed: {
     accountsQueryString() {
-      return new URLSearchParams(this.accountsQuery).toString()
+      const query = { ...this.accountsQuery }
+      delete query.limit
+      delete query.offset
+      delete query.sort
+      return new URLSearchParams(query).toString()
     },
 
     filteredAccounts() {
@@ -70,23 +123,19 @@ export default {
   },
 
   methods: {
-    updateAccountsQuery(newQuery) {
-      const query = { ...newQuery }
-      // Discard sort parameter for accounts list
-      delete query.sort
-      this.accountsQuery = query
+    onSortChange(event) {
+      this.accountsQuery.sort = event
+      this.$emit('update:query', this.accountsQuery)
     },
   },
 
   mounted() {
-    const query = { ...this.deserializeQueryFromRoute() }
-    this.updateAccountsQuery(query)
+    this.accountsQuery = { ...this.deserializeQueryFromRoute() }
   },
 
   watch: {
     $route() {
-      const query = { ...this.deserializeQueryFromRoute() }
-      this.updateAccountsQuery(query)
+      this.accountsQuery = { ...this.query, ...this.deserializeQueryFromRoute() }
     },
   },
 }
@@ -95,6 +144,7 @@ export default {
 <style scoped lang="scss">
 $account-avatar-size: 3rem;
 $amount-width: 8.5rem;
+$sort-btn-size: 5rem;
 
 .accounts-list {
   display: flex;
@@ -159,16 +209,37 @@ $amount-width: 8.5rem;
 
   .filter-container {
     display: flex;
+    align-items: center;
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-bg);
 
     input[type="text"] {
-      max-width: 100%;
+      max-width: calc(100% - #{$sort-btn-size} - 1rem);
+      width: 100%;
       padding: 0.5rem;
       border: 1px solid var(--color-border);
       border-radius: 0.25rem;
       font-size: 1rem;
+    }
+
+    .sort-container {
+      margin-left: auto;
+
+      .sort-button {
+        width: $sort-btn-size;
+        background: none;
+        border: none;
+        font-size: 1.05em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        i {
+          margin-right: 0.2em;
+        }
+      }
     }
   }
 }

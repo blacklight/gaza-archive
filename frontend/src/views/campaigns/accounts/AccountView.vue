@@ -72,6 +72,7 @@ export default {
       },
       donorFilterText: '',
       donorFilterTimeout: null,
+      fields: {},
     }
   },
 
@@ -199,6 +200,7 @@ export default {
       this.donorFilterText = donorFilter.replace(/\*/g, '')
     }
 
+    this.fields = await this.getDbFields()
     await this.refresh()
     this.$root.registerInfiniteScrollCallback(this.onBottomScroll)
   },
