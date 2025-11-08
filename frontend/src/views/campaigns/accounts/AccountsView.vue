@@ -3,12 +3,13 @@
   <CampaignsView :data="data"
                  @update:filter:dates="setDateFilter"
                  @update:currency="setCurrency"
-                 v-else-if="data">
+                 v-if="data">
     <template #list>
       <AccountsList :accounts="accounts"
                     :fields="fields"
                     :query="query"
-                    @update:query="onQueryUpdate" />
+                    @update:query="onQueryUpdate"
+                    @update:query:donors="onQueryUpdate($event, {overwrite: ['donors']})" />
     </template>
   </CampaignsView>
 </template>
@@ -79,9 +80,13 @@ export default {
       this.refresh()
     },
 
-    onQueryUpdate(newQuery) {
+    onQueryUpdate(newQuery, options = { overwrite: [], }) {
       this.query = {
-        ...this.query,
+        ...Object.fromEntries(
+          Object.entries(this.query).filter(
+            ([key,]) => !options.overwrite.includes(key),
+          ),
+        ),
         ...newQuery,
       }
       this.serializeQueryToRoute(this.query)

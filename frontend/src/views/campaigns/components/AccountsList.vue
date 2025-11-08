@@ -4,7 +4,7 @@
       <div class="filter-container">
         <input
           type="text"
-          v-model="filterText"
+          v-model="filterAccountsText"
           placeholder="Filter accounts..."
           class="filter-input"
         />
@@ -15,6 +15,15 @@
             Sort
           </button>
         </div>
+      </div>
+
+      <div class="filter-container" v-if="!hideDonors">
+        <input
+          type="text"
+          v-model="filterDonorsText"
+          placeholder="Filter by donors..."
+          class="filter-input"
+        />
       </div>
     </div>
 
@@ -56,7 +65,7 @@ export default {
     CampaignsApi,
   ],
 
-  emits: ['update:query'],
+  emits: ['update:query', 'update:query:donors'],
 
   components: {
     Modal,
@@ -93,7 +102,10 @@ export default {
         'first_donation_time': 'datetime',
         'last_donation_time': 'datetime',
       },
-      filterText: '',
+      filterAccountsText: '',
+      filterDonorsText: '',
+      filterDonorsTimeout: null,
+      hideDonors: this.$root.config.hide_donors,
       sortModalVisible: false,
     }
   },
@@ -108,7 +120,7 @@ export default {
     },
 
     filteredAccounts() {
-      const filter = this.filterText.toLowerCase().trim()
+      const filter = this.filterAccountsText.toLowerCase().trim()
       if (!filter) {
         return this.accounts
       }
@@ -136,6 +148,23 @@ export default {
   watch: {
     $route() {
       this.accountsQuery = { ...this.query, ...this.deserializeQueryFromRoute() }
+    },
+
+    filterDonorsText(newVal) {
+      if (this.filterDonorsTimeout) {
+        clearTimeout(this.filterDonorsTimeout)
+      }
+
+      this.filterDonorsTimeout = setTimeout(() => {
+        const accountsQuery = { ...this.accountsQuery }
+        if (newVal && newVal.trim() !== '') {
+          accountsQuery.donors = '*' + newVal.trim() + '*'
+        } else {
+          delete accountsQuery.donors
+        }
+        this.accountsQuery = accountsQuery
+        this.$emit('update:query:donors', this.accountsQuery)
+      }, 300)
     },
   },
 }
