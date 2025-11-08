@@ -143,6 +143,9 @@ export default {
 
   mounted() {
     this.accountsQuery = { ...this.deserializeQueryFromRoute() }
+    if (this.accountsQuery.donors?.length) {
+      this.filterDonorsText = this.accountsQuery.donors[0].replace(/\*/g, '')
+    }
   },
 
   watch: {
@@ -160,7 +163,7 @@ export default {
         if (newVal && newVal.trim() !== '') {
           accountsQuery.donors = '*' + newVal.trim() + '*'
         } else {
-          delete accountsQuery.donors
+          accountsQuery.donors = ''
         }
         this.accountsQuery = accountsQuery
         this.$emit('update:query:donors', this.accountsQuery)

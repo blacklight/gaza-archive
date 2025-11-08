@@ -81,20 +81,23 @@ export default {
     },
 
     onQueryUpdate(newQuery, options = { overwrite: [], }) {
-      this.query = {
-        ...Object.fromEntries(
-          Object.entries(this.query).filter(
+      this.query = Object.fromEntries(
+        [
+          ...Object.entries(this.query).filter(
             ([key,]) => !options.overwrite.includes(key),
           ),
+          ...Object.entries(newQuery),
+        ].filter(
+          ([, value]) => value != null && value !== '',
         ),
-        ...newQuery,
-      }
-      this.serializeQueryToRoute(this.query)
+      )
+
+      this.serializeQueryToRoute(this.query, { overwrite: true })
       this.refresh()
     },
 
     async refresh() {
-      this.serializeQueryToRoute(this.query)
+      this.serializeQueryToRoute(this.query, { overwrite: true })
       this.loading = true
 
       try {

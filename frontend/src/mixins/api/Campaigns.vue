@@ -53,12 +53,20 @@ export default {
         params.accounts = Array.isArray(this.$route.query.accounts)
           ? this.$route.query.accounts
           : [this.$route.query.accounts]
+
+        if (!(params.accounts?.length || params.accounts?.size)) {
+          delete params.accounts
+        }
       }
 
       if (this.$route.query.donors) {
         params.donors = Array.isArray(this.$route.query.donors)
           ? this.$route.query.donors
           : [this.$route.query.donors]
+
+        if (!(params.donors?.length || params.donors?.size)) {
+          delete params.donors
+        }
       }
 
       if (this.$route.query.start_time) {
@@ -161,11 +169,28 @@ export default {
         return
       }
 
-      if (overwrite) {
-        this.$router.replace({ query })
-      } else {
-        this.$router.replace({ query: { ...this.$route.query, ...query } })
+      if (!overwrite) {
+        query = { ...this.$route.query, ...query }
       }
+
+      // Remove empty/null values
+      Object.keys(query).forEach((key) => {
+        const value = query[key]
+        let isEmpty = false
+        if (value == null) {
+          isEmpty = true
+        } else if (Array.isArray(value) && value.length === 0) {
+          isEmpty = true
+        } else if (typeof value === 'string' && value.trim() === '') {
+          isEmpty = true
+        }
+
+        if (isEmpty) {
+          delete query[key]
+        }
+      })
+
+      this.$router.replace({ query })
     },
   },
 }
