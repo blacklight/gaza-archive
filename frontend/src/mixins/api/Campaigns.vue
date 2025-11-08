@@ -43,6 +43,10 @@ export default {
       return (await fetch('/api/v1/internal/currencies')).json()
     },
 
+    async getDbFields() {
+      return (await fetch('/api/v1/internal/db_fields')).json()
+    },
+
     deserializeQueryFromRoute() {
       const params = {}
 
