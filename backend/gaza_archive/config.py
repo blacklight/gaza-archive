@@ -43,8 +43,10 @@ class Config:  # pylint: disable=too-few-public-methods
         """
         Create a Config instance from environment variables.
         """
+        base_url = os.getenv("BASE_URL", "http://localhost:8000")
+
         return cls(
-            base_url=os.getenv("BASE_URL", "http://localhost:8000"),
+            base_url=base_url,
             storage_path=os.getenv("STORAGE_PATH", "./data"),
             accounts_source_url=os.getenv(
                 "ACCOUNTS_SOURCE_URL", "https://gaza-verified.org/people.json"
@@ -54,7 +56,10 @@ class Config:  # pylint: disable=too-few-public-methods
             db_url=os.getenv("DB_URL", "sqlite:///./data.db"),
             api_host=os.getenv("API_HOST", "0.0.0.0"),
             api_port=int(os.getenv("API_PORT", "8000")),
-            user_agent=os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0"),
+            user_agent=(
+                os.getenv("USER_AGENT", "GazaVerifiedArchiveBot/1.0")
+                + f" (+{base_url})"
+            ),
             concurrent_requests=int(os.getenv("CONCURRENT_REQUESTS", "5")),
             download_media=(
                 os.getenv("DOWNLOAD_MEDIA", "true").lower() in ("true", "1", "yes")
