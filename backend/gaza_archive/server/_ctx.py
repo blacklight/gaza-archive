@@ -22,7 +22,7 @@ def get_ctx() -> Context:
     global _ctx  # pylint: disable=global-statement
 
     if _ctx is None:
-        config = config = Config.from_env()
+        config = Config.from_env()
         db = Db(config)
         _ctx = Context(config=config, db=db)
 
