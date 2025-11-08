@@ -42,4 +42,12 @@ def api_split_args(value: str | Collection[str]) -> list[str]:
     """
     if isinstance(value, str):
         return re.split(r"\s*,\s*", value.strip())
+
+    if isinstance(value, list):
+        split_args = []
+        for arg in value:
+            split_args += api_split_args(arg)
+
+        value = split_args
+
     return list(value)
