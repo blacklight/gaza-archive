@@ -8,10 +8,17 @@
         class="filter-input"
         @input="$emit('update:filter:donors', filterText)"
       />
+
+      <div class="sort-container">
+        <button @click="sortModalVisible = true" title="Sort Accounts" class="sort-button">
+          <i class="fas fa-sort" aria-hidden="true"></i>
+          Sort
+        </button>
+      </div>
     </div>
 
     <div class="donation" v-for="donation in donations" :key="donation.id">
-      <RouterLink :to="`/campaigns/donors/${donation.donor}`" class="donor-link">
+      <div class="donor-link">
         <div class="donor-avatar">
           <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
         </div>
@@ -22,20 +29,33 @@
         <div class="amount">
           {{ donation.amount.string }}
         </div>
-      </RouterLink>
+      </div>
+    </div>
+
+    <div class="sort-modal-container" v-if="sortModalVisible">
+      <Modal :show="sortModalVisible"
+             title="Sort Accounts"
+             @close="sortModalVisible = false">
+        <Sorter :sort="query.sort || []"
+                :fields="sortFields"
+                @update:sort="onSortChange" />
+      </Modal>
     </div>
   </div>
 </template>
 
 <script>
 import Dates from '@/mixins/Dates.vue'
+import Modal from '@/elements/Modal.vue'
+import Sorter from './Sorter.vue'
 
 export default {
-  mixins: [
-    Dates,
-  ],
-
-  emits: ['update:filter:donors'],
+  mixins: [Dates],
+  emits: ['update:filter:donors', 'update:query'],
+  components: {
+    Modal,
+    Sorter,
+  },
 
   props: {
     donations: {
@@ -47,12 +67,30 @@ export default {
       type: String,
       default: '',
     },
+
+    query: {
+      type: Object,
+      required: true,
+    },
   },
 
   data() {
     return {
       filterText: '',
+      sortModalVisible: false,
+      sortFields: {
+        'donation.amount': 'float',
+        'donation.created_at': 'datetime',
+      },
     }
+  },
+
+  methods: {
+    onSortChange(event) {
+      const query = { ...this.query }
+      query.sort = event
+      this.$emit('update:query', query)
+    },
   },
 
   mounted() {
@@ -64,6 +102,7 @@ export default {
 <style scoped lang="scss">
 $account-avatar-size: 3rem;
 $amount-width: 8.5rem;
+$sort-btn-size: 5rem;
 
 .donations-list {
   width: 100%;
@@ -138,16 +177,36 @@ $amount-width: 8.5rem;
 
   .filter-container {
     display: flex;
+    align-items: center;
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-bg);
 
     input[type="text"] {
-      max-width: 100%;
+      max-width: calc(100% - #{$sort-btn-size} - 1rem);
       padding: 0.5rem;
       border: 1px solid var(--color-border);
       border-radius: 0.25rem;
       font-size: 1rem;
+    }
+
+    .sort-container {
+      margin-left: auto;
+
+      .sort-button {
+        width: $sort-btn-size;
+        background: none;
+        border: none;
+        font-size: 1.05em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        i {
+          margin-right: 0.2em;
+        }
+      }
     }
   }
 }

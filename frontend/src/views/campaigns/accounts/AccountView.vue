@@ -28,6 +28,8 @@
       <DonationsList
           :donations="donations"
           :filter="donorFilterText"
+          :query="donationsQuery"
+          @update:query="onQueryUpdate"
           @update:filter:donors="onDonorFilterTextUpdate" />
     </template>
   </CampaignsView>
@@ -113,6 +115,15 @@ export default {
           this.donorFilterTimeout = null
         }
       }, 500)
+    },
+
+    onQueryUpdate(newQuery) {
+      this.donationsQuery = {
+        ...this.donationsQuery,
+        ...newQuery,
+      }
+      this.serializeQueryToRoute(this.donationsQuery)
+      this.refresh()
     },
 
     setDateFilter(dates) {
