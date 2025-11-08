@@ -87,7 +87,7 @@ def _get_donations(
     )
 
 
-@router.get("/accounts")
+@router.get("/accounts", response_model=CampaignStats)
 def get_accounts_campaigns(
     accounts: list[str] = Query(
         [],
@@ -133,7 +133,7 @@ def get_accounts_campaigns(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> CampaignStats:
+):
     """
     Get account campaigns stats.
     """
@@ -142,20 +142,23 @@ def get_accounts_campaigns(
     if "account.url" not in group_by:
         group_by = ["account.url"] + list(group_by or [])
 
-    return _get_campaigns(
-        accounts=accounts,
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        group_by=group_by,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+    try:
+        return _get_campaigns(
+            accounts=accounts,
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            group_by=group_by,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
-@router.get("/accounts/{account}")
+@router.get("/accounts/{account}", response_model=CampaignStats)
 def get_account_campaigns(
     account: str = Path(
         ...,
@@ -201,7 +204,7 @@ def get_account_campaigns(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> CampaignStats:
+):
     """
     Get campaign stats for a specific account.
     """
@@ -210,20 +213,23 @@ def get_account_campaigns(
     if "account.url" not in group_by:
         group_by = ["account.url"] + list(group_by or [])
 
-    return _get_campaigns(
-        accounts=[account],
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        group_by=group_by,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+    try:
+        return _get_campaigns(
+            accounts=[account],
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            group_by=group_by,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
-@router.get("/donations")
+@router.get("/donations", response_model=list[CampaignDonationInfo])
 def get_donations(
     accounts: list[str] = Query(
         [],
@@ -262,24 +268,27 @@ def get_donations(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> list[CampaignDonationInfo]:
+):
     """
     Get campaigns donations.
     """
 
-    return _get_donations(
-        accounts=accounts,
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+    try:
+        return _get_donations(
+            accounts=accounts,
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
-@router.get("/accounts/{account}/donations")
+@router.get("/accounts/{account}/donations", response_model=list[CampaignDonationInfo])
 def get_account_donations(
     account: str = Path(
         ...,
@@ -318,24 +327,27 @@ def get_account_donations(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> list[CampaignDonationInfo]:
+):
     """
     Get donations for a specific account.
     """
 
-    return _get_donations(
-        accounts=[account],
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+    try:
+        return _get_donations(
+            accounts=[account],
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
-@router.get("/donors")
+@router.get("/donors", response_model=CampaignStats)
 def get_accounts_donors(
     accounts: list[str] = Query(
         [],
@@ -382,7 +394,7 @@ def get_accounts_donors(
         None,
         description="Currency code for amounts (default: USD).",
     ),
-) -> CampaignStats:
+):
     """
     Get campaigns stats by donors.
     """
@@ -391,17 +403,20 @@ def get_accounts_donors(
     if "donation.donor" not in group_by:
         group_by = ["donation.donor"] + list(group_by or [])
 
-    return _get_campaigns(
-        accounts=accounts,
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        group_by=group_by,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+    try:
+        return _get_campaigns(
+            accounts=accounts,
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            group_by=group_by,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
 @router.get("/donations/rss", response_model=str)
@@ -458,10 +473,14 @@ def get_donations_feed(
         offset=offset,
         currency=currency,
     )
-    return Response(
-        content=FeedsGenerator(ctx.config).generate_donations_feed(donations),
-        media_type="application/rss+xml",
-    )
+
+    try:
+        return Response(
+            content=FeedsGenerator(ctx.config).generate_donations_feed(donations),
+            media_type="application/rss+xml",
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
 
 @router.get("/accounts/{account}/donations/rss", response_model=str)
@@ -508,16 +527,20 @@ def get_account_donations_feed(
     Get donations for a specific account (RSS feed).
     """
     ctx = get_ctx()
-    donations = _get_donations(
-        accounts=[account],
-        donors=donors,
-        start_time=start_time,
-        end_time=end_time,
-        sort=sort,
-        limit=limit,
-        offset=offset,
-        currency=currency,
-    )
+
+    try:
+        donations = _get_donations(
+            accounts=[account],
+            donors=donors,
+            start_time=start_time,
+            end_time=end_time,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+            currency=currency,
+        )
+    except PermissionError as e:
+        return Response(content=str(e), status_code=403)
 
     return Response(
         content=FeedsGenerator(ctx.config).generate_donations_feed(donations),

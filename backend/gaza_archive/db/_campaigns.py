@@ -9,6 +9,7 @@ from typing import Iterator, Any
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session
 
+from ..config import Config
 from ..model import (
     Account,
     ApiSortType,
@@ -32,6 +33,7 @@ class Campaigns(ABC):
     Database interface for campaigns.
     """
 
+    config: Config
     _write_lock: RLock
     _table_by_search_key: dict[str, type[DbCampaign]] = {
         "account": DbAccount,
@@ -222,7 +224,7 @@ class Campaigns(ABC):
                         )["converted_amount"],
                         currency=currency or "USD",
                     ),
-                    donor=donation.donor,
+                    donor=donation.donor if not self.config.hide_donors else None,
                     created_at=donation.created_at,
                 )
                 for account, campaign, donation in query.all()
@@ -354,8 +356,10 @@ class Campaigns(ABC):
         query = query.filter(or_(*conditions))
         return query
 
-    @staticmethod
-    def _donors_filter(query: Query, donors: list[str]) -> Query:
+    def _donors_filter(self, query: Query, donors: list[str]) -> Query:
+        if donors and self.config.hide_donors:
+            raise PermissionError("Donor filtering is disabled in the configuration.")
+
         normalized_donors = [
             donor.replace("*", "%") if "*" in donor else donor for donor in donors
         ]

@@ -10,12 +10,17 @@
 
 <script>
 import Footer from './components/Footer.vue'
+import InternalApi from '@/mixins/api/Internal.vue'
 import Nav from './components/Nav.vue'
 import Webpage from '@/mixins/Webpage.vue'
 import mitter from 'mitt'
 
 export default {
-  mixins: [Webpage],
+  mixins: [
+    InternalApi,
+    Webpage,
+  ],
+
   components: {
     Footer,
     Nav,
@@ -24,6 +29,7 @@ export default {
   data() {
     return {
       bus: mitter(),
+      config: {},
       currentView: null,
       infiniteScrollCallback: null,
       scrollTimeout: null,
@@ -78,7 +84,8 @@ export default {
     },
   },
 
-  mounted() {
+  async mounted() {
+    this.config = await this.getConfig() || {}
     this.currentView = this.$route.path
     this.refreshPageTitle()
     this.refreshPageMetadata()

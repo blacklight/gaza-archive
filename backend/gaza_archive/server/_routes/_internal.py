@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -50,3 +51,17 @@ def get_supported_currencies() -> list[str]:
     today = datetime.now(timezone.utc).date().isoformat()
     latest_rates = get_ctx().db.get_rates(date=today)
     return sorted(latest_rates.keys()) if latest_rates else []
+
+
+@router.get("/config")
+def get_config() -> dict[str, Any]:
+    """
+    Get current application configuration.
+
+    :return: Configuration as a dictionary.
+    """
+    config = get_ctx().config
+    return {
+        "debug": config.debug,
+        "hide_donors": config.hide_donors,
+    }

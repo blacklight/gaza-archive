@@ -7,6 +7,7 @@
         placeholder="Filter donors..."
         class="filter-input"
         @input="$emit('update:filter:donors', filterText)"
+        v-if="!hideDonors"
       />
 
       <div class="sort-container">
@@ -77,6 +78,7 @@ export default {
   data() {
     return {
       filterText: '',
+      hideDonors: this.$root.config.hide_donors,
       sortModalVisible: false,
       sortFields: {
         'donation.amount': 'float',

@@ -1,7 +1,10 @@
 <script>
+import Internal from './Internal.vue'
+
 const baseUrl = '/api/v1/campaigns'
 
 export default {
+  mixins: [Internal],
   methods: {
     async getCampaignsAccountsStats(params) {
       const url = `${baseUrl}/accounts`
@@ -37,14 +40,6 @@ export default {
       const url = `${baseUrl}/donors/${encodeURIComponent(donor)}`
       const query = new URLSearchParams(params).toString()
       return (await fetch(`${url}?${query}`)).json()
-    },
-
-    async getCurrencies() {
-      return (await fetch('/api/v1/internal/currencies')).json()
-    },
-
-    async getDbFields() {
-      return (await fetch('/api/v1/internal/db_fields')).json()
     },
 
     deserializeQueryFromRoute() {

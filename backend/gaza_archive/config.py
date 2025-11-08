@@ -28,6 +28,7 @@ class Config:  # pylint: disable=too-few-public-methods
     exchange_rates_api_key: str | None
     fixer_io_api_key: str | None
     exclude_profiles: list[str]
+    hide_donors: bool
     debug: bool
 
     def __post_init__(self):
@@ -75,11 +76,17 @@ class Config:  # pylint: disable=too-few-public-methods
             exchange_rates_api_key=os.getenv("EXCHANGE_RATES_API_KEY"),
             fixer_io_api_key=os.getenv("FIXER_IO_API_KEY"),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),
-            exclude_profiles=list({
-                profile for profile in re.split(
-                    r"\s*,\s*",
-                    os.getenv("EXCLUDE_PROFILES", "").strip(),
-                )
-                if profile
-            })
+            exclude_profiles=list(
+                {
+                    profile
+                    for profile in re.split(
+                        r"\s*,\s*",
+                        os.getenv("EXCLUDE_PROFILES", "").strip(),
+                    )
+                    if profile
+                }
+            ),
+            hide_donors=(
+                os.getenv("HIDE_DONORS", "false").lower() in ("true", "1", "yes")
+            ),
         )
