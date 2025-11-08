@@ -71,6 +71,9 @@ class Campaigns(ABC):
         columns = {}
         for param in params:
             param = param.lower().strip()
+            if not param:
+                continue  # Skip empty parameters
+
             field_tokens = param.split(".")
             table = cls._table_by_search_key.get(field_tokens[0])
             assert table, (
@@ -314,6 +317,9 @@ class Campaigns(ABC):
         table_sort_columns = cls._params_to_columns(table_sort_columns_str)
 
         for sort_field, sort_type in sort:
+            if not sort_field:
+                continue  # Skip empty sort fields
+
             sort_column = group_sort_columns.get(sort_field)
             if sort_column is None:
                 sort_column = table_sort_columns.get(sort_field)
