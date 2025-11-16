@@ -159,6 +159,7 @@ class Campaigns(ABC):
             if end_time:
                 query = query.filter(DbCampaignDonation.created_at <= end_time)
 
+            query = self._excluded_campaign_accounts_filter(query)
             query = query.group_by(*group_columns.values())
             query = self._apply_sort(query, sort or [("amount", ApiSortType.DESC)])
 
@@ -201,6 +202,7 @@ class Campaigns(ABC):
             if end_time:
                 query = query.filter(DbCampaignDonation.created_at <= end_time)
 
+            query = self._excluded_campaign_accounts_filter(query)
             query = self._apply_sort(
                 query, sort or [("donation.created_at", ApiSortType.DESC)]
             )
@@ -374,6 +376,16 @@ class Campaigns(ABC):
         ]
 
         query = query.filter(or_(*conditions))
+        return query
+
+    def _excluded_campaign_accounts_filter(self, query: Query) -> Query:
+        excluded_accounts = [
+            Account.to_url(account) for account in self.config.exclude_campaign_accounts
+        ]
+
+        if excluded_accounts:
+            query = query.filter(~DbAccount.url.in_(excluded_accounts))  # type: ignore
+
         return query
 
     def save_campaigns(self, campaigns: list[Campaign]):

@@ -28,6 +28,7 @@ class Config:  # pylint: disable=too-few-public-methods
     exchange_rates_api_key: str | None
     fixer_io_api_key: str | None
     exclude_profiles: list[str]
+    exclude_campaign_accounts: list[str]
     hide_donors: bool
     debug: bool
 
@@ -84,6 +85,16 @@ class Config:  # pylint: disable=too-few-public-methods
                         os.getenv("EXCLUDE_PROFILES", "").strip(),
                     )
                     if profile
+                }
+            ),
+            exclude_campaign_accounts=list(
+                {
+                    account
+                    for account in re.split(
+                        r"\s*,\s*",
+                        os.getenv("EXCLUDE_CAMPAIGN_ACCOUNTS", "").strip(),
+                    )
+                    if account
                 }
             ),
             hide_donors=(
