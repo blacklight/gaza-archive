@@ -138,8 +138,26 @@ class MastodonApi(ABC):
 
             account.disabled = True
             return account
+        except Exception as exc:
+            log.warning(
+                "Failed to get ID for account %s: %s",
+                account.url,
+                str(exc),
+                exc_info=True,
+            )
+            return account
 
-        account_info = self._http_get(account.api_url)
+        try:
+            account_info = self._http_get(account.api_url)
+        except Exception as exc:
+            log.warning(
+                "Failed to refresh account %s: %s",
+                account.url,
+                str(exc),
+                exc_info=True,
+            )
+            return account
+
         account.id = str(account_info["id"])
         account.display_name = account_info.get("display_name") or account.username
         account.avatar_url = account_info.get("avatar_static")
@@ -162,7 +180,11 @@ class MastodonApi(ABC):
         with ThreadPoolExecutor(
             max_workers=self.config.concurrent_requests
         ) as executor:
-            return list(executor.map(self.refresh_account, accounts))
+            return [
+                account
+                for account in executor.map(self.refresh_account, accounts)
+                if account and account.id
+            ]
 
     def refresh_account_posts(self, account: Account) -> list[Post]:
         last_fetched_id = account.last_status_id or 0
