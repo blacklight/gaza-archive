@@ -128,7 +128,7 @@ class CampaignParser(ABC):
                     str(a["href"])  # type: ignore
                     for a in soup.find_all("a")
                     for campaign_source in self.campaign_sources
-                    if campaign_source.url_pattern.match(a.get("href", ""))  # type: ignore
+                    if campaign_source.url_pattern.match(a.get("href", "").lower())  # type: ignore
                 ),
                 None,
             )
