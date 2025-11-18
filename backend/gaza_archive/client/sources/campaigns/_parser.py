@@ -1,4 +1,5 @@
 import logging
+import re
 import warnings
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
@@ -115,26 +116,37 @@ class CampaignParser(ABC):
         if not html:
             return None
 
-        soup = BeautifulSoup(html, "html.parser")
-        url = next(
-            iter(
-                str(a["href"])  # type: ignore
-                for a in soup.find_all("a")
-                for campaign_source in self.campaign_sources
-                if campaign_source.url_pattern.match(a.get("href", ""))  # type: ignore
-            ),
-            None,
-        )
+        if not re.match(r"^https?://\S+", html, re.IGNORECASE):
+            # Parse HTML content
+            soup = BeautifulSoup(html, "html.parser")
+            url = next(
+                iter(
+                    str(a["href"])  # type: ignore
+                    for a in soup.find_all("a")
+                    for campaign_source in self.campaign_sources
+                    if campaign_source.url_pattern.match(a.get("href", ""))  # type: ignore
+                ),
+                None,
+            )
 
-        if not url:
-            return None
+            if not url:
+                return None
+        else:
+            # Direct URL
+            url = html.split("?", 1)[0]
+
+        url = (
+            url
+            .strip()
+            .replace('Https://', 'https://')
+            .split("?", 1)[0]
+        )
 
         campaign_source = next(
             (cs for cs in self.campaign_sources if cs.accepts_url(url)),
             None,
         )
 
-        url = url.split("?", 1)[0]
         if campaign_source:
             url = campaign_source.parse_url(url)
 
