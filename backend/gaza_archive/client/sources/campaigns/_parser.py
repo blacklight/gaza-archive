@@ -34,9 +34,13 @@ class CampaignParser(ABC):
         return next(
             iter(
                 [
-                    self._parse_campaign_url(html)
-                    for html in [account.profile_note, *account.profile_fields.values()]
-                    if html
+                    url
+                    for url in [
+                        self._parse_campaign_url(html)
+                        for html in [account.profile_note, *account.profile_fields.values()]
+                        if html
+                    ]
+                    if url
                 ]
             ),
             None
@@ -147,10 +151,10 @@ class CampaignParser(ABC):
             None,
         )
 
-        if campaign_source:
-            url = campaign_source.parse_url(url)
+        if not campaign_source:
+            return None
 
-        return url
+        return campaign_source.parse_url(url)
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         campaign_source = self.get_campaign_source(campaign.url)
