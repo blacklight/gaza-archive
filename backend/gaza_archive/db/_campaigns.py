@@ -139,25 +139,31 @@ class Campaigns(ABC):
                     (DbAccount if group_column == DbAccount.url else group_column)
                     for group_column in group_columns.values()
                 ],
-                func.sum(DbCampaignDonation.amount).label("amount"),
+                func.coalesce(func.sum(DbCampaignDonation.amount), 0).label("amount"),
                 func.min(DbCampaignDonation.created_at).label("first_donation_time"),
                 func.max(DbCampaignDonation.created_at).label("last_donation_time"),
             ]
 
-            query = (
-                session.query(*output)
-                .join(DbCampaign.account)
-                .outerjoin(DbCampaign.donations)
-            )
+            # Build the join conditions for donations
+            join_conditions = []
+            if start_time:
+                join_conditions.append(DbCampaignDonation.created_at >= start_time)
+            if end_time:
+                join_conditions.append(DbCampaignDonation.created_at <= end_time)
 
+            query = session.query(*output).join(DbCampaign.account)
+
+            # Apply the LEFT JOIN with conditions
+            if join_conditions:
+                query = query.outerjoin(DbCampaign.donations.and_(*join_conditions))
+            else:
+                query = query.outerjoin(DbCampaign.donations)
+
+            # Apply non-donation filters
             if accounts:
                 query = self._accounts_filter(query, accounts)
             if donors:
                 query = self._donors_filter(query, donors)
-            if start_time:
-                query = query.filter(DbCampaignDonation.created_at >= start_time)
-            if end_time:
-                query = query.filter(DbCampaignDonation.created_at <= end_time)
 
             query = self._excluded_campaign_accounts_filter(query)
             query = query.group_by(*group_columns.values())
