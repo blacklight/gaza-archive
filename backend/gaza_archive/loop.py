@@ -58,6 +58,7 @@ class Loop(Thread):
         posts = self.client.refresh_posts(accounts)
         self.db.save_accounts(accounts)
         self.db.save_posts(posts)
+        self.client.boost_posts(posts)
 
         if self.config.download_media:
             self.client.download_account_images(accounts)
