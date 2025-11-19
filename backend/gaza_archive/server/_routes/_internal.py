@@ -9,6 +9,8 @@ from ...db._model import (
     CampaignDonation as DbCampaignDonation,
 )
 
+from ...loop import get_client
+from ...model import Account
 from .._ctx import get_ctx
 
 router = APIRouter(
@@ -64,4 +66,23 @@ def get_config() -> dict[str, Any]:
     return {
         "debug": config.debug,
         "hide_donors": config.hide_donors,
+    }
+
+
+@router.get("/bots/accounts")
+def get_bot_accounts_info() -> dict[str, Any] | None:
+    """
+    Get information about bot accounts.
+
+    :return: Bot accounts information.
+    """
+    client = get_client()
+    assert client, "Client is not initialized"
+    if not client.bot_account_info:
+        return None
+
+    account = Account(url=client.bot_account_info["url"])
+    return {
+        "url": client.bot_account_info["url"],
+        "fqn": account.fqn,
     }

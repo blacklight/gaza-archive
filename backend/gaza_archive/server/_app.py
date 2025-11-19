@@ -6,6 +6,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from ..loop import get_client
+from ..model import Account
 from ._ctx import get_ctx
 
 app = FastAPI(
@@ -27,9 +29,23 @@ app.mount("/assets", StaticFiles(directory=assets_dir), name="static")
 
 
 def render_index(request: Request):
+    client = get_client()
+    bot_account_info = None
+    if client:
+        bot_account_info = client.bot_account_info
+        if bot_account_info and bot_account_info.get("url"):
+            bot_account_info = {
+                "url": bot_account_info["url"],
+                "fqn": Account(url=bot_account_info["url"]).fqn,
+            }
+
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "accounts": list(get_ctx().db.get_accounts().values())},
+        {
+            "request": request,
+            "accounts": list(get_ctx().db.get_accounts().values()),
+            "bot_account_info": bot_account_info,
+        },
     )
 
 

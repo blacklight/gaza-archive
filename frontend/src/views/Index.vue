@@ -40,10 +40,18 @@
     who also runs the <a href="https://archive.gaza.onl" target="_blank">official copy</a> of the
     archive.</p>
 
+    <h3>Accessing the archive</h3>
+
     <p>The information is provided over several interfaces:</p>
 
     <ul>
-      <li>A web interface (this one), which allows browsing for accounts, posts and media.</li>
+      <li>
+        A web interface (this one), which allows browsing for
+        <RouterLink to="/accounts">accounts</RouterLink>, <RouterLink
+        to="/posts">posts</RouterLink>,
+        <RouterLink to="/attachments">media</RouterLink> and
+        <RouterLink to="/campaigns/accounts">fundraising campaigns</RouterLink>.
+      </li>
       <li>A REST API - a Swagger interface is available at
         <a href="/swagger" target="_blank"><code>/swagger</code></a>.</li>
       <li>A <a href="/media" target="_blank">static Web directory interface</a> to browse for the
@@ -51,8 +59,37 @@
       <li>You can also download the <a href="/app.db">full SQLite database</a> used to power the
         archive, containing all the accounts, posts and media metadata.</li>
     </ul>
+
+    <div class="bots-info" v-if="accountsBotInfo">
+      <h3>Bots</h3>
+      <p>
+        You can follow this bot account on the Fediverse if you want to get all the updates from
+        the verified accounts as they are scraped:
+      </p>
+      <p>
+        <a :href="accountsBotInfo.url" target="_blank">{{ accountsBotInfo.fqn }}</a>
+      </p>
+    </div>
   </div>
 </template>
+
+<script>
+import Internal from '@/mixins/api/Internal.vue'
+
+export default {
+  mixins: [Internal],
+
+  data() {
+    return {
+      accountsBotInfo: null,
+    }
+  },
+
+  async mounted() {
+    this.accountsBotInfo = await this.getAccountsBot()
+  },
+}
+</script>
 
 <style scoped lang="scss">
 .index {

@@ -31,6 +31,8 @@
         the page.
       </small>
 
+      <h2>Verified Accounts:</h2>
+
       <ul>
       {% for account in accounts %}
         <li>
@@ -38,6 +40,13 @@
         </li>
       {% endfor %}
       </ul>
+
+      {% if bot_account_info is not none %}
+        <p>
+          Mastodon bot that boosts posts from these accounts:<br />
+          <a rel="me" href="{{ bot_account_info['url'] }}">{{ bot_account_info['fqn'] }}</a>
+        </p>
+      {% endif %}
     </noscript>
   </body>
 </html>

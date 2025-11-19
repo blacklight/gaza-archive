@@ -14,6 +14,10 @@ export default {
     async getDbFields() {
       return (await fetch(`${baseUrl}/db_fields`)).json()
     },
+
+    async getAccountsBot() {
+      return (await fetch(`${baseUrl}/bots/accounts`)).json()
+    },
   },
 }
 </script>

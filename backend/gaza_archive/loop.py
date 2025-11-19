@@ -9,6 +9,11 @@ from .model import Account, Campaign
 from .storages import FileStorage
 
 log = logging.getLogger(__name__)
+_client: Client | None = None
+
+
+def get_client() -> Client | None:
+    return _client
 
 
 class Loop(Thread):
@@ -17,11 +22,13 @@ class Loop(Thread):
     """
 
     def __init__(self, config: Config, db: Db, *args, **kwargs):
+        global _client
+
         super().__init__(*args, **kwargs)
         self.db = db
         self.config = config
         self.storage = FileStorage(config)
-        self.client = Client(config=config, storage=self.storage, db=db)
+        self.client = _client = Client(config=config, storage=self.storage, db=db)
         self._stop_event = Event()
 
     def _main(self):

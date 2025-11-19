@@ -21,8 +21,8 @@ class MastodonAccountsBot(ABC):
     @property
     def __is_enabled(self):
         return (
-            self.config.mastodon_accounts_bot_instance_url and
-            self.config.mastodon_accounts_bot_access_token
+            self.config.mastodon_accounts_bot_instance_url
+            and self.config.mastodon_accounts_bot_access_token
         )
 
     @property
@@ -38,6 +38,12 @@ class MastodonAccountsBot(ABC):
             "timeout": self.config.http_timeout,
         }
 
+    @property
+    def bot_account_info(self) -> dict | None:
+        if not self._bot_account_info:
+            self._update_accounts_bot_info()
+        return self._bot_account_info
+
     def _update_accounts_bot_info(self) -> None:
         if not self.__is_enabled:
             return
@@ -49,11 +55,7 @@ class MastodonAccountsBot(ABC):
             )
             response.raise_for_status()
             self._bot_account_info = response.json()
-            log.info(
-                "Mastodon bot account verified: %s (@%s)",
-                self._bot_account_info.get("display_name"),
-                self._bot_account_info.get("acct"),
-            )
+            assert self._bot_account_info, "Bot account info is empty"
         except Exception as e:
             log.error("Failed to verify Mastodon bot account: %s", e)
             self._bot_account_info = None
@@ -88,13 +90,11 @@ class MastodonAccountsBot(ABC):
         return statuses[0]["id"]
 
     def _boost_posts(self, posts: list[Post]) -> None:
-        if not self._bot_account_info:
-            self._update_accounts_bot_info()
-            if not self._bot_account_info:
-                log.error("Cannot boost posts: bot account info is not available.")
-                return
+        if not self.bot_account_info:
+            log.error("Cannot boost posts: bot account info is not available.")
+            return
 
-        posts = sorted(posts, key=lambda p: p.created_at)
+        posts = sorted(posts, key=lambda p: p.created_at or 0)
         log.info("Boosting %d new posts...", len(posts))
 
         for post in posts:
