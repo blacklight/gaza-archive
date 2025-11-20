@@ -24,10 +24,10 @@ class MastodonCampaignsBot(ABC):
     _bot_campaign_thread: Thread | None = None
     _bot_campaign_stop_event = Event()
     __bot_name = "mastodon_campaigns_bot"
-    _post_header_template = (
-        "#GazaVerified campaigns that raised less than ${min_amount} in the past {time_window} days:\n\n"
-    )
-    _max_post_length: int = 500 - len("\n\n(10/10)") - 2  # Reserve space for (m/n) indicators
+    _post_header_template = "#GazaVerified campaigns that raised less than ${min_amount} in the past {time_window} days:\n\n"
+    _max_post_length: int = (
+        500 - len("\n\n(10/10)") - 2
+    )  # Reserve space for (m/n) indicators
 
     @property
     def __is_enabled(self) -> bool:
@@ -112,11 +112,9 @@ class MastodonCampaignsBot(ABC):
                 self._post_header_template.format(
                     min_amount=self.config.mastodon_campaigns_bot_min_raise_amount,
                     time_window=self.config.mastodon_campaigns_bot_time_window_days,
-                ) +
-                post.strip() +
-                (
-                    f"\n\n({i + 1}/{total_posts})" if total_posts > 1 else ""
                 )
+                + post.strip()
+                + (f"\n\n({i + 1}/{total_posts})" if total_posts > 1 else "")
             )
 
         return posts
@@ -144,21 +142,26 @@ class MastodonCampaignsBot(ABC):
             log.info(
                 "Successfully posted %d campaign updates. Last post ID: %s",
                 len(posts),
-                last_post_id
+                last_post_id,
             )
 
     def _campaigns_bot_main(self):
         poll_interval = self.config.mastodon_campaigns_bot_post_interval_hours
         bot_state = self.db.get_bot_state(self.__bot_name)
         latest_update = (
-            bot_state.last_updated_at
+            bot_state.last_updated_at.astimezone(timezone.utc)
             if bot_state and bot_state.last_updated_at
             else datetime.min.replace(tzinfo=timezone.utc)
         )
 
-        initial_wait = (latest_update + timedelta(hours=poll_interval) - datetime.now(timezone.utc)).total_seconds()
+        initial_wait = (
+            latest_update + timedelta(hours=poll_interval) - datetime.now(timezone.utc)
+        ).total_seconds()
         if initial_wait > 0:
-            log.info("Mastodon campaigns bot waiting for %.2f seconds before first run.", initial_wait)
+            log.info(
+                "Mastodon campaigns bot waiting for %.2f seconds before first run.",
+                initial_wait,
+            )
             self._bot_campaign_stop_event.wait(initial_wait)
 
         while not self._bot_campaign_stop_event.is_set():
