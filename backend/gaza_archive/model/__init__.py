@@ -1,5 +1,6 @@
 from ._api import ApiSortType, api_split_args
 from ._base import Item
+from .bot import BotState
 from .account import Account
 from .campaign import (
     Campaign,
@@ -19,6 +20,7 @@ Post.model_rebuild()
 __all__ = [
     "Account",
     "ApiSortType",
+    "BotState",
     "Campaign",
     "CampaignAccountStats",
     "CampaignDonation",

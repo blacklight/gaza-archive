@@ -17,6 +17,7 @@ from sqlalchemy.orm import relationship
 
 from ..model import (
     Account as ModelAccount,
+    BotState as ModelBotState,
     Campaign as ModelCampaign,
     CampaignDonation as ModelCampaignDonation,
     Media as ModelMedia,
@@ -301,4 +302,21 @@ class CampaignDonation(Base):
             donor=self.donor,  # type: ignore
             amount=self.amount,  # type: ignore
             created_at=self.created_at,  # type: ignore
+        )
+
+
+class BotState(Base):
+    """
+    SQLAlchemy model for storing the state of a bot.
+    """
+
+    __tablename__ = "bot_state"
+
+    bot_name = Column(String, primary_key=True)
+    last_updated_at = Column(DateTime, default=utcnow, index=True)
+
+    def to_model(self) -> ModelBotState:
+        return ModelBotState(
+            bot_name=self.bot_name,  # type: ignore
+            last_updated_at=self.last_updated_at,  # type: ignore
         )

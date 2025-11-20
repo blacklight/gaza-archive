@@ -3,7 +3,7 @@ from ..db import Db
 from ..model import Account
 from ..storages import Storage
 
-from .bots import MastodonAccountsBot
+from .bots import MastodonAccountsBot, MastodonCampaignsBot
 from .downloader import MediaDownloader
 from .mastodon import MastodonApi
 from .sources import sources
@@ -15,6 +15,7 @@ class Client(
     MastodonApi,
     MediaDownloader,
     MastodonAccountsBot,
+    MastodonCampaignsBot,
 ):
     """
     External client facade to interact with APIs and download media.

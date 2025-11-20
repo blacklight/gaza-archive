@@ -35,6 +35,8 @@ class Loop(Thread):
         """
         Main loop
         """
+        self.client.start_campaigns_bot()
+
         if not self.config.enable_crawlers:
             log.info("Crawlers are disabled. Exiting.")
             return
@@ -92,4 +94,5 @@ class Loop(Thread):
         """
         Stop the main loop.
         """
+        self.client.stop_campaigns_bot()
         self._stop_event.set()

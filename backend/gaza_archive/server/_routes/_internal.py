@@ -72,9 +72,7 @@ def get_config() -> dict[str, Any]:
 @router.get("/bots/accounts")
 def get_bot_accounts_info() -> dict[str, Any] | None:
     """
-    Get information about bot accounts.
-
-    :return: Bot accounts information.
+    Get information about the accounts bot.
     """
     client = get_client()
     assert client, "Client is not initialized"
@@ -84,5 +82,22 @@ def get_bot_accounts_info() -> dict[str, Any] | None:
     account = Account(url=client.bot_account_info["url"])
     return {
         "url": client.bot_account_info["url"],
+        "fqn": account.fqn,
+    }
+
+
+@router.get("/bots/campaigns")
+def get_bot_campaigns_info() -> dict[str, Any] | None:
+    """
+    Get information about the campaigns bot.
+    """
+    client = get_client()
+    assert client, "Client is not initialized"
+    if not client.bot_campaign_info:
+        return None
+
+    account = Account(url=client.bot_campaign_info["url"])
+    return {
+        "url": client.bot_campaign_info["url"],
         "fqn": account.fqn,
     }

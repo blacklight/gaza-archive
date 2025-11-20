@@ -18,6 +18,10 @@ export default {
     async getAccountsBot() {
       return (await fetch(`${baseUrl}/bots/accounts`)).json()
     },
+
+    async getCampaignsBot() {
+      return (await fetch(`${baseUrl}/bots/campaigns`)).json()
+    },
   },
 }
 </script>

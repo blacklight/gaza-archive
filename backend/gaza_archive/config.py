@@ -32,6 +32,11 @@ class Config:  # pylint: disable=too-few-public-methods
     hide_donors: bool
     mastodon_accounts_bot_instance_url: str
     mastodon_accounts_bot_access_token: str
+    mastodon_campaigns_bot_instance_url: str
+    mastodon_campaigns_bot_access_token: str
+    mastodon_campaigns_bot_time_window_days: int
+    mastodon_campaigns_bot_min_raise_amount: float
+    mastodon_campaigns_bot_post_interval_hours: float
     debug: bool
 
     def __post_init__(self):
@@ -104,6 +109,21 @@ class Config:  # pylint: disable=too-few-public-methods
             ),
             mastodon_accounts_bot_access_token=os.getenv(
                 "MASTODON_ACCOUNTS_BOT_ACCESS_TOKEN", ""
+            ),
+            mastodon_campaigns_bot_instance_url=os.getenv(
+                "MASTODON_CAMPAIGNS_BOT_INSTANCE_URL", ""
+            ),
+            mastodon_campaigns_bot_access_token=os.getenv(
+                "MASTODON_CAMPAIGNS_BOT_ACCESS_TOKEN", ""
+            ),
+            mastodon_campaigns_bot_time_window_days=int(
+                os.getenv("MASTODON_CAMPAIGNS_BOT_TIME_WINDOW_DAYS", "7")
+            ),
+            mastodon_campaigns_bot_min_raise_amount=float(
+                os.getenv("MASTODON_CAMPAIGNS_BOT_MIN_RAISE_AMOUNT", "200.0")
+            ),
+            mastodon_campaigns_bot_post_interval_hours=float(
+                os.getenv("MASTODON_CAMPAIGNS_BOT_POST_INTERVAL_HOURS", "6.0")
             ),
             hide_donors=(
                 os.getenv("HIDE_DONORS", "false").lower() in ("true", "1", "yes")

@@ -31,12 +31,22 @@ app.mount("/assets", StaticFiles(directory=assets_dir), name="static")
 def render_index(request: Request):
     client = get_client()
     bot_account_info = None
+    bot_campaign_info = None
+
     if client:
         bot_account_info = client.bot_account_info
+        bot_campaign_info = client.bot_campaign_info
+
         if bot_account_info and bot_account_info.get("url"):
             bot_account_info = {
                 "url": bot_account_info["url"],
                 "fqn": Account(url=bot_account_info["url"]).fqn,
+            }
+
+        if bot_campaign_info and bot_campaign_info.get("url"):
+            bot_campaign_info = {
+                "url": bot_campaign_info["url"],
+                "fqn": Account(url=bot_campaign_info["url"]).fqn,
             }
 
     return templates.TemplateResponse(
@@ -45,6 +55,7 @@ def render_index(request: Request):
             "request": request,
             "accounts": list(get_ctx().db.get_accounts().values()),
             "bot_account_info": bot_account_info,
+            "bot_campaign_info": bot_campaign_info,
         },
     )
 

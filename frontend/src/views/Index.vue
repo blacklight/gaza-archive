@@ -60,15 +60,30 @@
         archive, containing all the accounts, posts and media metadata.</li>
     </ul>
 
-    <div class="bots-info" v-if="accountsBotInfo">
+    <div class="bots-info" v-if="accountsBotInfo || campaignsBotInfo">
       <h3>Bots</h3>
-      <p>
-        You can follow this bot account on the Fediverse if you want to get all the updates from
-        the verified accounts as they are scraped:
-      </p>
-      <p>
-        <a :href="accountsBotInfo.url" target="_blank">{{ accountsBotInfo.fqn }}</a>
-      </p>
+
+      <div class="bot-info" v-if="accountsBotInfo">
+        <h4>Accounts Bot</h4>
+        <p>
+          You can follow this bot account on the Fediverse if you want to get all the updates from
+          the verified accounts as they are scraped:
+        </p>
+        <p>
+          <a :href="accountsBotInfo.url" target="_blank">{{ accountsBotInfo.fqn }}</a>
+        </p>
+      </div>
+
+      <div class="bot-info" v-if="campaignsBotInfo">
+        <h4>Campaigns Bot</h4>
+        <p>
+          You can follow this bot account on the Fediverse if you want to get periodic updates from
+          all the under-funded fundraiser campaigns:
+        </p>
+        <p>
+          <a :href="campaignsBotInfo.url" target="_blank">{{ campaignsBotInfo.fqn }}</a>
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -82,11 +97,13 @@ export default {
   data() {
     return {
       accountsBotInfo: null,
+      campaignsBotInfo: null,
     }
   },
 
   async mounted() {
     this.accountsBotInfo = await this.getAccountsBot()
+    this.campaignsBotInfo = await this.getCampaignsBot()
   },
 }
 </script>

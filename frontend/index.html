@@ -47,6 +47,14 @@
           <a rel="me" href="{{ bot_account_info['url'] }}">{{ bot_account_info['fqn'] }}</a>
         </p>
       {% endif %}
+
+      {% if bot_campaign_info is not none %}
+        <p>
+          Mastodon bot that periodically posts updates about under-funded
+          campaigns from verified accounts:<br />
+          <a rel="me" href="{{ bot_campaign_info['url'] }}">{{ bot_campaign_info['fqn'] }}</a>
+        </p>
+      {% endif %}
     </noscript>
   </body>
 </html>
