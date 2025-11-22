@@ -78,6 +78,7 @@ class MastodonCampaignsBot(ABC):
         time_window_days = self.config.mastodon_campaigns_bot_time_window_days
         max_amount = self.config.mastodon_campaigns_bot_min_raise_amount
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=time_window_days)
+        cutoff_date = cutoff_date.replace(hour=0, minute=0, second=0, microsecond=0)
         campaigns_stats = self.db.get_campaigns(
             start_time=cutoff_date,
             group_by=["account.url"],
@@ -94,8 +95,8 @@ class MastodonCampaignsBot(ABC):
     def _to_posts(self, campaigns: list[CampaignAccountStats]) -> list[str]:
         posts = []
         current_post = ""
-        for campaign_stats in campaigns:
-            line = f"- {campaign_stats.account.fqn} (${int(round(campaign_stats.amount.amount))})\n"
+        for i, campaign_stats in enumerate(campaigns):
+            line = f"{i + 1}. {campaign_stats.account.fqn} (${int(round(campaign_stats.amount.amount))})\n"
             if len(current_post) + len(line) > self._max_post_length:
                 posts.append(current_post.strip())
                 current_post = line
