@@ -46,7 +46,7 @@ export default {
         start_time: new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate() - 7,
+          now.getDate() - 6,
         ).toISOString().split('T')[0] + 'T00:00:00',
       },
     }
