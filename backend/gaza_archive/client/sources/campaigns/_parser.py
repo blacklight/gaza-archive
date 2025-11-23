@@ -13,6 +13,7 @@ from ....db import Db
 from ....model import Account, Campaign
 from ._source import CampaignSource
 from .chuffed import ChuffedCampaignSource
+from .steunactie import SteunactieCampaignSource
 from .gfm import GFMCampaignSource
 
 log = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ class CampaignParser(ABC):
         self.campaign_sources: set[CampaignSource] = {
             ChuffedCampaignSource(config=self.config, db=self.db),
             GFMCampaignSource(config=self.config, db=self.db),
+            SteunactieCampaignSource(config=self.config, db=self.db),
         }
 
     def get_campaign_url(self, account: Account) -> str | None:
