@@ -255,7 +255,7 @@ class Campaign(Base):
             donations_cursor=model.donations_cursor,
         )
 
-    def to_model(self) -> "Campaign":
+    def to_model(self) -> ModelCampaign:
         donations = [donation.to_model() for donation in self.donations]
         return ModelCampaign(
             url=self.url,  # type: ignore
