@@ -24,9 +24,7 @@
 
     <p>This archive fetches the list of verified accounts from the
     <a href="https://gaza-verified.org" target="_blank">Gaza Verified</a> website, an initiative
-    mainly driven by <a href="https://mastodon.ar.al/@aral" target="_blank">Aral Balkan</a> and
-    <a href="https://mastodon.social/@joynewacc" target="_blank">Farah "Joy"</a> to verify and help
-    people on the ground in Gaza.</p>
+    to verify and help people on the ground in Gaza.</p>
 
     <p>The project used to generate this archive and periodically scrape the verified accounts is
     <a href="https://git.platypush.tech/blacklight/gaza-archive" target="_blank">open source</a>,
@@ -39,6 +37,37 @@
     <a href="https://manganiello.eu/users/fabio" rel="me" target="_blank">Fabio Manganiello</a>,
     who also runs the <a href="https://archive.gaza.onl" target="_blank">official copy</a> of the
     archive.</p>
+
+    <h3>Purpose of the donations</h3>
+
+    <p>
+    The donations collected through the fundraising campaigns listed in this archive are intended
+    to provide direct support to families in Gaza who have been affected by a genocidal war waged
+    against them by the Israeli government and military since October 7, 2023. The funds aim to help
+    these families meet their basic needs, such as food, water, shelter, medical care, and other
+    essential supplies, that the rest of the world is clearly failing to provide them with.
+    </p>
+
+    <p>
+    While we firmly condemn the actions of the Israeli government and military, and we believe that
+    they should be called accountable for their war crimes and human rights violations, we want to
+    clarify that the donations are not intended to support or fund any military activities or
+    operations.
+    </p>
+
+    <p>
+    We <b>firmly</b> condemn Hamas' actions on October 7, 2023, we do not recognize them as a
+    legitimate government or authority, we do not support their military activities or
+    operations, and we believe that the population of Gaza should have a chance of fair and free
+    elections, for the first time since 2006, and that Hamas should not be allowed to participate in
+    such elections.
+    </p>
+
+    <p>
+    Finally, we believe that the population of Gaza should not be collectively held accountable for
+    the actions of Hamas, and that they should not be punished or deprived of their basic rights and
+    needs.
+    </p>
 
     <h3>Accessing the archive</h3>
 
