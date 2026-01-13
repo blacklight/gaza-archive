@@ -37,7 +37,7 @@ class Accounts(ABC):
         self, limit: int | None = None, offset: int | None = None
     ) -> dict[str, Account]:
         with self.get_session() as session:
-            latest_post_subquery = (
+            last_post_subquery = (
                 session.query(
                     DbPost.author_url, func.max(DbPost.id).label("last_status_id")
                 )
@@ -46,10 +46,10 @@ class Accounts(ABC):
             )
 
             db_accounts = (
-                session.query(DbAccount, latest_post_subquery.c.last_status_id)
+                session.query(DbAccount, last_post_subquery.c.last_status_id)
                 .outerjoin(
-                    latest_post_subquery,
-                    DbAccount.url == latest_post_subquery.c.author_url,
+                    last_post_subquery,
+                    DbAccount.url == last_post_subquery.c.author_url,
                 )
                 .order_by(DbAccount.url)
                 .limit(limit if limit is not None else None)
@@ -64,7 +64,7 @@ class Accounts(ABC):
 
     def get_account(self, account_url: str) -> Account | None:
         with self.get_session() as session:
-            latest_post_subquery = (
+            last_post_subquery = (
                 session.query(
                     DbPost.author_url, func.max(DbPost.id).label("last_status_id")
                 )
@@ -73,10 +73,10 @@ class Accounts(ABC):
             )
 
             result = (
-                session.query(DbAccount, latest_post_subquery.c.last_status_id)
+                session.query(DbAccount, last_post_subquery.c.last_status_id)
                 .outerjoin(
-                    latest_post_subquery,
-                    DbAccount.url == latest_post_subquery.c.author_url,
+                    last_post_subquery,
+                    DbAccount.url == last_post_subquery.c.author_url,
                 )
                 .filter(DbAccount.url == account_url)
                 .first()

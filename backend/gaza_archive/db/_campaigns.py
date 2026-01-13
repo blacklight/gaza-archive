@@ -23,6 +23,7 @@ from ._model import (
     Account as DbAccount,
     Campaign as DbCampaign,
     CampaignDonation as DbCampaignDonation,
+    Post as DbPost,
 )
 
 log = getLogger(__name__)
@@ -134,6 +135,15 @@ class Campaigns(ABC):
             if not group_columns:
                 group_columns = {"campaign.url": DbCampaign.url}
 
+            last_post_subquery = (
+                session.query(
+                    DbPost.author_url,
+                    func.max(DbPost.created_at).label("last_activity_time"),
+                )
+                .group_by(DbPost.author_url)
+                .subquery()
+            )
+
             output = [
                 *[
                     (DbAccount if group_column == DbAccount.url else group_column)
@@ -142,6 +152,9 @@ class Campaigns(ABC):
                 func.coalesce(func.sum(DbCampaignDonation.amount), 0).label("amount"),
                 func.min(DbCampaignDonation.created_at).label("first_donation_time"),
                 func.max(DbCampaignDonation.created_at).label("last_donation_time"),
+                func.max(last_post_subquery.c.last_activity_time).label(
+                    "last_activity_time"
+                ),
             ]
 
             # Build the join conditions for donations
@@ -152,6 +165,11 @@ class Campaigns(ABC):
                 join_conditions.append(DbCampaignDonation.created_at <= end_time)
 
             query = session.query(*output).join(DbCampaign.account)
+
+            query = query.outerjoin(
+                last_post_subquery,
+                last_post_subquery.c.author_url == DbAccount.url,
+            )
 
             # Apply the LEFT JOIN with conditions
             if join_conditions:
@@ -167,7 +185,15 @@ class Campaigns(ABC):
 
             query = self._excluded_campaign_accounts_filter(query)
             query = query.group_by(*group_columns.values())
-            query = self._apply_sort(query, sort or [("amount", ApiSortType.DESC)])
+            query = self._apply_sort(
+                query,
+                sort or [("amount", ApiSortType.DESC)],
+                extra_group_sort_columns={
+                    "last_activity_time": func.max(
+                        last_post_subquery.c.last_activity_time
+                    )
+                },
+            )
 
             if limit is not None:
                 query = query.limit(limit)
@@ -249,8 +275,8 @@ class Campaigns(ABC):
         group_columns = group_columns or {}
 
         for record in records:
-            amount, first_donation_time, last_donation_time = record[-3:]
-            columns = record[:-3]
+            amount, first_donation_time, last_donation_time, last_activity_time = record[-4:]
+            columns = record[:-4]
             group_key = []
             group_value = []
             data_node = data
@@ -285,7 +311,7 @@ class Campaigns(ABC):
                     )
                     data_node["first_donation_time"] = first_donation_time
                     data_node["last_donation_time"] = last_donation_time
-
+                    data_node["last_activity_time"] = last_activity_time
         return self._data_to_stats(data)
 
     @classmethod
@@ -304,6 +330,7 @@ class Campaigns(ABC):
                 "amount",
                 "first_donation_time",
                 "last_donation_time",
+                "last_activity_time",
             ):
                 args[key] = value
             else:
@@ -313,20 +340,37 @@ class Campaigns(ABC):
         return stats_cls(**args)
 
     @classmethod
-    def _apply_sort(cls, query: Query, sort: list[tuple[str, ApiSortType]]) -> Query:
+    def _apply_sort(
+        cls,
+        query: Query,
+        sort: list[tuple[str, ApiSortType]],
+        extra_group_sort_columns: dict[str, Any] | None = None,
+    ) -> Query:
         group_sort_columns = {
             "amount": func.sum(DbCampaignDonation.amount),
             "first_donation_time": func.min(DbCampaignDonation.created_at),
             "last_donation_time": func.max(DbCampaignDonation.created_at),
         }
 
-        table_sort_columns_str = [
-            column for column, _ in sort if column not in group_sort_columns
-        ]
+        if extra_group_sort_columns:
+            group_sort_columns |= {
+                str(key).lower().strip(): value
+                for key, value in extra_group_sort_columns.items()
+            }
+
+        table_sort_columns_str = []
+        for column, _ in sort:
+            column = str(column).lower().strip()
+            if not column:
+                continue
+            if column in group_sort_columns:
+                continue
+            table_sort_columns_str.append(column)
 
         table_sort_columns = cls._params_to_columns(table_sort_columns_str)
 
         for sort_field, sort_type in sort:
+            sort_field = str(sort_field).lower().strip()
             if not sort_field:
                 continue  # Skip empty sort fields
 

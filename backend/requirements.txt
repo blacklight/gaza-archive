@@ -1,6 +1,7 @@
 beautifulsoup4
 fastapi[standard]
 jinja2
+pydantic
 requests
 sqlalchemy
 uvicorn

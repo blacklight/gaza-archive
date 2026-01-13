@@ -233,12 +233,14 @@ class CampaignStats(BaseModel):
     _amount: CampaignStatsAmount | None = None
     _first_donation_time: datetime | None = None
     _last_donation_time: datetime | None = None
+    _last_activity_time: datetime | None = None
 
     def __init__(
         self,
         amount: CampaignStatsAmount | None = None,
         first_donation_time: datetime | None = None,
         last_donation_time: datetime | None = None,
+        last_activity_time: datetime | None = None,
         **data,
     ):
         super().__init__(**data)
@@ -248,6 +250,8 @@ class CampaignStats(BaseModel):
             self._first_donation_time = first_donation_time
         if last_donation_time is not None:
             self._last_donation_time = last_donation_time
+        if last_activity_time is not None:
+            self._last_activity_time = last_activity_time
 
     @computed_field
     @property
@@ -287,6 +291,18 @@ class CampaignStats(BaseModel):
             group.last_donation_time
             for group in self.data
             if group.last_donation_time is not None
+        ]
+        return max(times) if times else None
+
+    @computed_field
+    @property
+    def last_activity_time(self) -> datetime | None:
+        if self._last_activity_time:
+            return self._last_activity_time
+        times = [
+            group.last_activity_time
+            for group in self.data
+            if group.last_activity_time is not None
         ]
         return max(times) if times else None
 
