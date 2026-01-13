@@ -36,6 +36,16 @@
         <div class="account-info">
           <div class="account-display-name">{{ data.account.display_name }}</div>
           <div class="account-username">{{ data.account.fqn }}</div>
+          <div class="last-activity-time" v-if="data.last_activity_time">
+            Last Activity:
+            {{ new Date(data.last_activity_time).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }) }}
+          </div>
         </div>
         <div class="amount">
           {{ data.amount.string }}
@@ -101,6 +111,7 @@ export default {
         'amount': 'float',
         'first_donation_time': 'datetime',
         'last_donation_time': 'datetime',
+        'last_activity_time': 'datetime',
       },
       filterAccountsText: '',
       filterDonorsText: '',
@@ -225,6 +236,13 @@ $sort-btn-size: 5rem;
         .account-username {
           color: var(--color-text-secondary);
           font-size: 0.85rem;
+        }
+
+        .last-activity-time {
+          margin-top: 0.25rem;
+          font-size: 0.75rem;
+          font-variant: italic;
+          color: var(--color-text-secondary-2);
         }
       }
 
