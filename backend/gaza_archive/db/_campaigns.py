@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from threading import RLock
 from typing import Iterator, Any
@@ -440,6 +440,30 @@ class Campaigns(ABC):
 
     def save_campaigns(self, campaigns: list[Campaign]):
         with self._write_lock, self.get_session() as session:
+            campaigns_by_url: dict[str, Campaign] = {}
+            for campaign in campaigns:
+                existing = campaigns_by_url.get(campaign.url)
+                if not existing:
+                    campaigns_by_url[campaign.url] = campaign
+                    continue
+
+                if existing.donations_cursor is None and campaign.donations_cursor is not None:
+                    existing.donations_cursor = campaign.donations_cursor
+
+                donations_by_id = {donation.id: donation for donation in existing.donations}
+                for donation in campaign.donations:
+                    prev = donations_by_id.get(donation.id)
+                    if prev is None or donation.created_at > prev.created_at:
+                        donations_by_id[donation.id] = donation
+
+                existing.donations = list(donations_by_id.values())
+                existing.updated_at = max(
+                    existing.updated_at,
+                    campaign.updated_at,
+                    datetime.now(timezone.utc),
+                )
+
+            campaigns = list(campaigns_by_url.values())
             db_campaigns: dict[str, Campaign] = {  # type: ignore
                 str(db_campaign.url): db_campaign
                 for db_campaign in (
@@ -459,7 +483,7 @@ class Campaigns(ABC):
                         len(campaign.donations),
                         campaign.url,
                     )
-                    session.add(DbCampaign.from_model(campaign))
+                    session.merge(DbCampaign.from_model(campaign))
 
                     for donation in campaign.donations:
                         session.add(DbCampaignDonation.from_model(donation))
