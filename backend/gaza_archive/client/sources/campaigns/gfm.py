@@ -174,7 +174,7 @@ fragment FundraiserDonationFields on Donation {
             )
 
             response.raise_for_status()
-            data = response.json()["data"]["fundraiser"]["donations"]
+            data = response.json().get("data", {}).get("fundraiser", {}).get("donations", {})
             donations_data = data.get("edges", [])
             start_cursor = data.get("pageInfo", {}).get("startCursor")
             end_cursor = data.get("pageInfo", {}).get("endCursor")
