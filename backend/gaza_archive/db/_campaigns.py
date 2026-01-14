@@ -457,11 +457,6 @@ class Campaigns(ABC):
                         donations_by_id[donation.id] = donation
 
                 existing.donations = list(donations_by_id.values())
-                existing.updated_at = max(
-                    existing.updated_at,
-                    campaign.updated_at,
-                    datetime.now(timezone.utc),
-                )
 
             campaigns = list(campaigns_by_url.values())
             db_campaigns: dict[str, Campaign] = {  # type: ignore
