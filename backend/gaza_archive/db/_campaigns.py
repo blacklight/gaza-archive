@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime
 from logging import getLogger
 from threading import RLock
 from typing import Iterator, Any
@@ -15,6 +15,7 @@ from ..model import (
     ApiSortType,
     Campaign,
     CampaignAccountStats,
+    CampaignDonation,
     CampaignDonationInfo,
     CampaignStats,
     CampaignStatsAmount,
@@ -275,7 +276,9 @@ class Campaigns(ABC):
         group_columns = group_columns or {}
 
         for record in records:
-            amount, first_donation_time, last_donation_time, last_activity_time = record[-4:]
+            amount, first_donation_time, last_donation_time, last_activity_time = (
+                record[-4:]
+            )
             columns = record[:-4]
             group_key = []
             group_value = []
@@ -447,10 +450,15 @@ class Campaigns(ABC):
                     campaigns_by_url[campaign.url] = campaign
                     continue
 
-                if existing.donations_cursor is None and campaign.donations_cursor is not None:
+                if (
+                    existing.donations_cursor is None
+                    and campaign.donations_cursor is not None
+                ):
                     existing.donations_cursor = campaign.donations_cursor
 
-                donations_by_id = {donation.id: donation for donation in existing.donations}
+                donations_by_id = {
+                    donation.id: donation for donation in existing.donations
+                }
                 for donation in campaign.donations:
                     prev = donations_by_id.get(donation.id)
                     if prev is None or donation.created_at > prev.created_at:
@@ -506,3 +514,74 @@ class Campaigns(ABC):
                     session.add(db_campaign)
 
             session.commit()
+
+    def get_recent_campaign_donations(
+        self,
+        campaign_url: str,
+        limit: int = 20,
+    ) -> list[CampaignDonation]:
+        """Return the most recent campaign donations (newest first)."""
+        with self.get_session() as session:
+            rows = (
+                session.query(DbCampaignDonation)
+                .filter(DbCampaignDonation.campaign_url == campaign_url)
+                .order_by(DbCampaignDonation.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            return [row.to_model() for row in rows]
+
+    def get_campaign_donation_ids_since(
+        self,
+        campaign_url: str,
+        since: datetime,
+    ) -> set[str]:
+        """Return donation ids for a campaign with created_at >= `since`."""
+        with self.get_session() as session:
+            rows = (
+                session.query(DbCampaignDonation.id)
+                .filter(DbCampaignDonation.campaign_url == campaign_url)
+                .filter(DbCampaignDonation.created_at >= since)
+                .all()
+            )
+            return {str(row[0]) for row in rows}
+
+    def get_campaign_donation_ids_between(
+        self,
+        campaign_url: str,
+        start: datetime,
+        end: datetime,
+    ) -> set[str]:
+        """Return donation ids for a campaign with start <= created_at <= end."""
+        with self.get_session() as session:
+            rows = (
+                session.query(DbCampaignDonation.id)
+                .filter(DbCampaignDonation.campaign_url == campaign_url)
+                .filter(DbCampaignDonation.created_at > start)
+                .filter(DbCampaignDonation.created_at <= end)
+                .all()
+            )
+            return {str(row[0]) for row in rows}
+
+    def delete_campaign_donations_by_ids(
+        self,
+        campaign_url: str,
+        donation_ids: set[str],
+    ) -> int:
+        """
+        Delete donations for a campaign by id.
+
+        Returns the number of deleted rows.
+        """
+        if not donation_ids:
+            return 0
+
+        with self._write_lock, self.get_session() as session:
+            deleted = (
+                session.query(DbCampaignDonation)
+                .filter(DbCampaignDonation.campaign_url == campaign_url)
+                .filter(DbCampaignDonation.id.in_(donation_ids))
+                .delete(synchronize_session=False)
+            )
+            session.commit()
+            return int(deleted or 0)
