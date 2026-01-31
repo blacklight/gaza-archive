@@ -47,7 +47,7 @@ export default {
       }
 
       return this.accounts.filter(account =>
-        account.display_name.toLowerCase().includes(filter) ||
+        (account.display_name || '').toLowerCase().includes(filter) ||
         account.fqn.toLowerCase().includes(filter) ||
         account.url.toLowerCase().includes(filter)
       )
