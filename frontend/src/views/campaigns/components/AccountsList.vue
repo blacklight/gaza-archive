@@ -131,15 +131,15 @@ export default {
     },
 
     filteredAccounts() {
-      const filter = this.filterAccountsText.toLowerCase().trim()
+      const filter = (this.filterAccountsText || '').toLowerCase().trim()
       if (!filter) {
         return this.accounts
       }
 
       return this.accounts.filter(data => {
-        const displayName = data.account.display_name.toLowerCase()
-        const fqn = data.account.fqn.toLowerCase()
-        const url = data.account.url.toLowerCase()
+        const displayName = (data.account?.display_name || '').toLowerCase()
+        const fqn = (data.account?.fqn || '').toLowerCase()
+        const url = (data.account?.url || '').toLowerCase()
         return displayName.includes(filter) || fqn.includes(filter) || url.includes(filter)
       })
     },
