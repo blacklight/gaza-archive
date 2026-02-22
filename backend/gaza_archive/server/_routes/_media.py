@@ -29,8 +29,12 @@ def get_attachments(
     """
     List all media.
     """
+    ctx = get_ctx()
+    if ctx.config.hide_media:
+        raise HTTPException(status_code=403, detail="Media is hidden")
+
     return list(
-        get_ctx().db.get_attachments(
+        ctx.db.get_attachments(
             min_id=min_id,
             max_id=max_id,
             limit=limit,
@@ -62,6 +66,9 @@ def get_attachments_feed(
     Get media (RSS feed).
     """
     ctx = get_ctx()
+    if ctx.config.hide_media:
+        raise HTTPException(status_code=403, detail="Media is hidden")
+
     media = list(
         ctx.db.get_attachments(
             min_id=min_id,
@@ -83,7 +90,11 @@ def get_attachment(
     """
     Get a specific media by URL.
     """
-    db_media = get_ctx().db.get_attachment(media)
+    ctx = get_ctx()
+    if ctx.config.hide_media:
+        raise HTTPException(status_code=403, detail="Media is hidden")
+
+    db_media = ctx.db.get_attachment(media)
     if not db_media:
         raise HTTPException(status_code=404, detail="Media not found")
     return db_media

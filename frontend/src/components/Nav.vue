@@ -15,7 +15,7 @@
         <i class="fas fa-stream" />
       </RouterLink>
 
-      <RouterLink to="/attachments" title="Media"
+      <RouterLink to="/attachments" title="Media" v-if="!hideMedia"
         :class="{ active: currentView?.startsWith('/attachments') }">
         <i class="fas fa-photo-video" />
       </RouterLink>
@@ -58,6 +58,12 @@ export default {
     return {
       theme: '',
     }
+  },
+
+  computed: {
+    hideMedia() {
+      return this.$root.config.hide_media
+    },
   },
 
   methods: {

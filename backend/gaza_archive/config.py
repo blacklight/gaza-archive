@@ -30,6 +30,7 @@ class Config:  # pylint: disable=too-few-public-methods
     exclude_profiles: list[str]
     exclude_campaign_accounts: list[str]
     hide_donors: bool
+    hide_media: bool
     mastodon_accounts_bot_instance_url: str
     mastodon_accounts_bot_access_token: str
     mastodon_campaigns_bot_instance_url: str
@@ -127,5 +128,8 @@ class Config:  # pylint: disable=too-few-public-methods
             ),
             hide_donors=(
                 os.getenv("HIDE_DONORS", "false").lower() in ("true", "1", "yes")
+            ),
+            hide_media=(
+                os.getenv("HIDE_MEDIA", "false").lower() in ("true", "1", "yes")
             ),
         )

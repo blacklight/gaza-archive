@@ -1,5 +1,9 @@
 <template>
-  <div class="attachments">
+  <div class="no-media" v-if="(!loading && attachments.length === 0) || hideMedia">
+    No media found.
+  </div>
+
+  <div class="attachments" v-else>
     <Loader v-if="loading" />
     <div class="no-attachments" v-if="!loading && attachments.length === 0">
       No attachments found.
@@ -79,6 +83,10 @@ export default {
         ...this.filter,
       }
     },
+
+    hideMedia() {
+      return this.$root.config.hide_media
+    },
   },
 
   methods: {
@@ -109,6 +117,10 @@ export default {
     },
 
     async refresh() {
+      if (this.hideMedia) {
+        return
+      }
+
       this.attachments = await this.getAttachments(this.computedFilter)
       this.minId = this.attachments.length > 0 ? this.attachments[this.attachments.length - 1].id : null
       this.maxId = this.attachments.length > 0 ? this.attachments[0].id : null

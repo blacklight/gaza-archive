@@ -1,5 +1,9 @@
 <template>
-  <div class="attachment" :class="{ preview }">
+  <div class="no-media" v-if="hideMedia">
+    No media found.
+  </div>
+
+  <div class="attachment" :class="{ preview }" v-else>
     <div class="actions" @click.stop v-if="postUrl">
       <RouterLink :to="postUrl">
         <i class="fas fa-link" title="View Post" aria-hidden="true" />
@@ -96,6 +100,10 @@ export default {
   computed: {
     extension() {
       return this.mediaTarget?.split('.')?.pop()?.toLowerCase();
+    },
+
+    hideMedia() {
+      return this.$root.config.hide_media
     },
 
     postUrl() {
