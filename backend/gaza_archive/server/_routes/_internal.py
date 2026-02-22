@@ -66,6 +66,7 @@ def get_config() -> dict[str, Any]:
     return {
         "debug": config.debug,
         "hide_donors": config.hide_donors,
+        "hide_media": config.hide_media,
     }
 
 

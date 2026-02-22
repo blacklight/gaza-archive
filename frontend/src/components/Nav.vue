@@ -25,7 +25,10 @@
         <i class="fas fa-hand-holding-usd" />
       </RouterLink>
 
-      <a href="/media" title="Static media directory"><i class="fas fa-folder" /></a>
+      <a href="/media" title="Static media directory" v-if="!hideMedia">
+        <i class="fas fa-folder" />
+      </a>
+
       <a href="/swagger" title="API"><i class="fas fa-code" /></a>
     </section>
 
@@ -57,13 +60,8 @@ export default {
   data() {
     return {
       theme: '',
+      hideMedia: false,
     }
-  },
-
-  computed: {
-    hideMedia() {
-      return this.$root.config.hide_media
-    },
   },
 
   methods: {
@@ -93,6 +91,7 @@ export default {
 
   mounted() {
     this.theme = this.getTheme()
+    this.hideMedia = !!this.$root.config.hide_media
     document.documentElement.setAttribute('data-theme', this.theme)
   }
 }
