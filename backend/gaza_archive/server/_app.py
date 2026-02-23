@@ -82,6 +82,9 @@ async def favicon():
 
 @app.get("/media/{file_path:path}", include_in_schema=False)
 async def serve_media(_: Request, file_path: str = ""):
+    if config.hide_media:
+        raise HTTPException(status_code=403, detail="Media is hidden")
+
     media_root = Path(config.storage_path) / "media"
     requested_path = media_root / file_path
 
@@ -156,4 +159,7 @@ async def serve_media(_: Request, file_path: str = ""):
 
 @app.get("/media", include_in_schema=False)
 async def serve_media_root(request: Request):
+    if config.hide_media:
+        raise HTTPException(status_code=403, detail="Media is hidden")
+
     return await serve_media(request, "")

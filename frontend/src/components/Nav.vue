@@ -60,8 +60,13 @@ export default {
   data() {
     return {
       theme: '',
-      hideMedia: false,
     }
+  },
+
+  computed: {
+    hideMedia() {
+      return this.$root.config.hide_media || true
+    },
   },
 
   methods: {
@@ -91,7 +96,6 @@ export default {
 
   mounted() {
     this.theme = this.getTheme()
-    this.hideMedia = !!this.$root.config.hide_media
     document.documentElement.setAttribute('data-theme', this.theme)
   }
 }
