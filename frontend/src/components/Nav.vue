@@ -65,7 +65,7 @@ export default {
 
   computed: {
     hideMedia() {
-      return this.$root.config.hide_media || true
+      return this.$root.config.hide_media
     },
   },
 
