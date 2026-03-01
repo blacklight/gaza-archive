@@ -30,10 +30,7 @@ class GazaVerifiedApi(AccountsSource):  # pylint: disable=too-few-public-methods
                 headers={"User-Agent": self.config.user_agent},
             )
             response.raise_for_status()
-            accounts = [
-                Account(url=account)
-                for account in response.json()
-            ]
+            accounts = [Account(url=account) for account in response.json()]
 
             log.info("Fetched %d verified accounts", len(accounts))
             return accounts
