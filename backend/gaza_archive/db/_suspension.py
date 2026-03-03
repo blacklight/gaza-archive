@@ -7,7 +7,11 @@ from typing import Iterator
 
 from sqlalchemy.orm import Session
 
-from ..model.suspension import SuspensionState
+from ..model.suspension import (
+    AccountSuspensionState,
+    AccountSuspensionStateAudit,
+    SuspensionState,
+)
 from ._model import (
     AccountSuspensionState as DbAccountSuspensionState,
     AccountSuspensionStateAudit as DbAccountSuspensionStateAudit,
@@ -74,8 +78,7 @@ class SuspensionStates(ABC):
                     .all()
                 )
                 existing_states = {
-                    str(s.server_url): SuspensionState(s.state)
-                    for s in existing_db_states
+                    str(s.server_url): s.state for s in existing_db_states
                 }
 
             # Delete existing states for this account
@@ -97,7 +100,7 @@ class SuspensionStates(ABC):
                 # Create audit record if state changed
                 if create_audit:
                     old_state = existing_states.get(server_url)
-                    if old_state != state:
+                    if old_state != state:  # type: ignore
                         audit = DbAccountSuspensionStateAudit(
                             account_url=account_url,
                             server_url=server_url,
@@ -115,3 +118,83 @@ class SuspensionStates(ABC):
         # https://gaza-verified.org/people.json
         # For now, return empty list - implementation in Phase 6
         return []
+
+    def get_account_suspension_states(
+        self,
+        account_url: str,
+        states: list[SuspensionState] | None = None,
+        servers: list[str] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[AccountSuspensionState]:
+        """Get suspension states for an account with filtering support for API."""
+        with self.get_session() as session:
+            query = session.query(DbAccountSuspensionState).filter(
+                DbAccountSuspensionState.account_url == account_url
+            )
+
+            if states:
+                query = query.filter(DbAccountSuspensionState.state.in_(states))
+
+            if servers:
+                query = query.filter(DbAccountSuspensionState.server_url.in_(servers))
+
+            # Order by server_url for consistent pagination (before limit/offset)
+            query = query.order_by(DbAccountSuspensionState.server_url)
+
+            if offset:
+                query = query.offset(offset)
+
+            if limit:
+                query = query.limit(limit)
+
+            return [state.to_model() for state in query.all()]
+
+    def get_account_suspension_audit(
+        self,
+        account_url: str,
+        states: list[SuspensionState] | None = None,
+        servers: list[str] | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[AccountSuspensionStateAudit]:
+        """Get suspension state audit trail for an account with filtering support for API."""
+        with self.get_session() as session:
+            query = session.query(DbAccountSuspensionStateAudit).filter(
+                DbAccountSuspensionStateAudit.account_url == account_url
+            )
+
+            if states:
+                # Filter by either old_state or new_state matching any of the requested states
+                query = query.filter(
+                    (DbAccountSuspensionStateAudit.old_state.in_(states))
+                    | (DbAccountSuspensionStateAudit.new_state.in_(states))
+                )
+
+            if servers:
+                query = query.filter(
+                    DbAccountSuspensionStateAudit.server_url.in_(servers)
+                )
+
+            if start_time:
+                query = query.filter(
+                    DbAccountSuspensionStateAudit.changed_at >= start_time
+                )
+
+            if end_time:
+                query = query.filter(
+                    DbAccountSuspensionStateAudit.changed_at <= end_time
+                )
+
+            # Order by changed_at descending (most recent first) for audit trail (before limit/offset)
+            query = query.order_by(DbAccountSuspensionStateAudit.changed_at.desc())
+
+            if offset:
+                query = query.offset(offset)
+
+            if limit:
+                query = query.limit(limit)
+
+            return [audit.to_model() for audit in query.all()]

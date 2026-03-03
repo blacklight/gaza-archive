@@ -1,6 +1,14 @@
+from datetime import datetime
+from typing import List
+
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from ...model import Account, Media, Post
+from ...model.suspension import (
+    AccountSuspensionState,
+    AccountSuspensionStateAudit,
+    SuspensionState,
+)
 from .. import get_ctx
 from ..feeds import FeedsGenerator
 
@@ -272,4 +280,107 @@ def get_account_media_feed(
             media, account=ctx.db.get_account(Account.to_url(account))
         ),
         media_type="application/rss+xml",
+    )
+
+
+@router.get("/{account}/suspensions", response_model=List[AccountSuspensionState])
+def get_account_suspensions(
+    account: str = Path(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    state: List[SuspensionState] = Query(
+        None,
+        description="Filter by suspension state(s). Can be specified multiple times.",
+    ),
+    server: List[str] = Query(
+        None, description="Filter by server URL(s). Can be specified multiple times."
+    ),
+    limit: int | None = Query(
+        None, description="Maximum number of suspension states to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of suspension states to skip before starting to collect the result set.",
+    ),
+) -> List[AccountSuspensionState]:
+    """
+    Get suspension states for a specific account across different servers.
+    """
+    try:
+        account_url = Account.to_url(account)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid account format: {e}"
+        ) from e
+
+    ctx = get_ctx()
+    db_account = ctx.db.get_account(account_url)
+    if not db_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return ctx.db.get_account_suspension_states(
+        account_url=account_url,
+        states=state,
+        servers=server,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/{account}/suspensions/audit", response_model=List[AccountSuspensionStateAudit]
+)
+def get_account_suspensions_audit(
+    account: str = Path(
+        ...,
+        description="Account FQN, in the format `@username@instance`, or full URL.",
+    ),
+    state: List[SuspensionState] = Query(
+        None,
+        description="Filter by suspension state(s) (old or new). Can be specified multiple times.",
+    ),
+    server: List[str] = Query(
+        None, description="Filter by server URL(s). Can be specified multiple times."
+    ),
+    start_time: datetime | None = Query(
+        None, description="Filter audit records from this timestamp (ISO format)."
+    ),
+    end_time: datetime | None = Query(
+        None, description="Filter audit records until this timestamp (ISO format)."
+    ),
+    limit: int | None = Query(
+        None, description="Maximum number of audit records to return."
+    ),
+    offset: int | None = Query(
+        None,
+        description="Number of audit records to skip before starting to collect the result set.",
+    ),
+) -> List[AccountSuspensionStateAudit]:
+    """
+    Get suspension state change audit trail for a specific account.
+
+    Returns a chronological log of all suspension state changes for the account
+    across different servers, with optional filtering by state, server, and time range.
+    """
+    try:
+        account_url = Account.to_url(account)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid account format: {e}"
+        ) from e
+
+    ctx = get_ctx()
+    db_account = ctx.db.get_account(account_url)
+    if not db_account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return ctx.db.get_account_suspension_audit(
+        account_url=account_url,
+        states=state,
+        servers=server,
+        start_time=start_time,
+        end_time=end_time,
+        limit=limit,
+        offset=offset,
     )

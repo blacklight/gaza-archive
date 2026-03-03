@@ -107,6 +107,7 @@ class Account(Item):
 
         return self
 
+    @computed_field
     @property
     def state(self) -> str | None:
         """
@@ -123,7 +124,8 @@ class Account(Item):
             return None
 
         # Get state on this account's own instance
-        return client.db.get_account_state_on_instance(self.url, self.instance_url)
+        state = client.db.get_account_state_on_instance(self.url, self.instance_url)
+        return state.value if state else None
 
     @staticmethod
     def to_url(fqn: str) -> str:

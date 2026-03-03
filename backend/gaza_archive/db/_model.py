@@ -362,7 +362,7 @@ class AccountSuspensionState(Base):
             url=f"{self.account_url}#{self.server_url}",  # Composite URL
             account_url=str(self.account_url),
             server_url=str(self.server_url),
-            state=AccountSuspensionState(self.state),
+            state=self.state,  # type: ignore
             created_at=self.created_at,  # type: ignore
             updated_at=self.updated_at,  # type: ignore
         )
@@ -397,12 +397,10 @@ class AccountSuspensionStateAudit(Base):
     def to_model(self) -> ModelAccountSuspensionStateAudit:
         return ModelAccountSuspensionStateAudit(
             url=f"{self.account_url}#{self.server_url}#{self.id}",  # Composite URL
-            id=int(self.id),
+            id=self.id,  # type: ignore
             account_url=str(self.account_url),
             server_url=str(self.server_url),
-            old_state=(
-                AccountSuspensionState(self.old_state) if bool(self.old_state) else None
-            ),
-            new_state=AccountSuspensionState(self.new_state),
+            old_state=self.old_state,  # type: ignore
+            new_state=self.new_state,  # type: ignore
             changed_at=self.changed_at,  # type: ignore
         )
