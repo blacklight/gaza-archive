@@ -38,6 +38,11 @@ class Config:  # pylint: disable=too-few-public-methods
     mastodon_campaigns_bot_time_window_days: int
     mastodon_campaigns_bot_min_raise_amount: float
     mastodon_campaigns_bot_post_interval_hours: float
+    account_state_check_enabled: bool
+    account_state_check_interval: int
+    account_state_check_workers: int
+    account_state_servers_limit: int
+    account_state_custom_servers: list[str]
     debug: bool
 
     def __post_init__(self):
@@ -132,4 +137,18 @@ class Config:  # pylint: disable=too-few-public-methods
             hide_media=(
                 os.getenv("HIDE_MEDIA", "false").lower() in ("true", "1", "yes")
             ),
+            account_state_check_enabled=(
+                os.getenv("ACCOUNT_STATE_CHECK_ENABLED", "false").lower() in ("true", "1", "yes")
+            ),
+            account_state_check_interval=int(os.getenv("ACCOUNT_STATE_CHECK_INTERVAL", "3600")),
+            account_state_check_workers=int(os.getenv("ACCOUNT_STATE_CHECK_WORKERS", "10")),
+            account_state_servers_limit=int(os.getenv("ACCOUNT_STATE_SERVERS_LIMIT", "50")),
+            account_state_custom_servers=list({
+                server
+                for server in re.split(
+                    r"\s*,\s*",
+                    os.getenv("ACCOUNT_STATE_CUSTOM_SERVERS", "").strip(),
+                )
+                if server
+            }),
         )

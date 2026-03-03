@@ -12,6 +12,11 @@ from .campaign import (
 )
 from .media import Media
 from .post import Post
+from .suspension import (
+    SuspensionState,
+    AccountSuspensionState,
+    AccountSuspensionStateAudit,
+)
 
 # Rebuild models after all are imported to resolve forward references
 Media.model_rebuild()
@@ -19,6 +24,8 @@ Post.model_rebuild()
 
 __all__ = [
     "Account",
+    "AccountSuspensionState",
+    "AccountSuspensionStateAudit",
     "ApiSortType",
     "BotState",
     "Campaign",
@@ -30,5 +37,6 @@ __all__ = [
     "Item",
     "Media",
     "Post",
+    "SuspensionState",
     "api_split_args",
 ]

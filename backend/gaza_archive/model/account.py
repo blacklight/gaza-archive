@@ -107,6 +107,24 @@ class Account(Item):
 
         return self
 
+    @property
+    def state(self) -> str | None:
+        """
+        Get suspension state for this account on its home instance.
+
+        This is lazy-loaded from the database and represents the authoritative
+        state of this account on its own Mastodon instance.
+        """
+        # Import here to avoid circular imports
+        from ..loop import get_client
+
+        client = get_client()
+        if not client or not hasattr(client, "db"):
+            return None
+
+        # Get state on this account's own instance
+        return client.db.get_account_state_on_instance(self.url, self.instance_url)
+
     @staticmethod
     def to_url(fqn: str) -> str:
         """

@@ -30,6 +30,7 @@ class Loop(Thread):
         self.storage = FileStorage(config)
         self.client = _client = Client(config=config, storage=self.storage, db=db)
         self._stop_event = Event()
+        self._last_suspension_check = 0
 
     def _main(self):
         """
@@ -45,11 +46,42 @@ class Loop(Thread):
             try:
                 accounts = self.refresh_accounts()
                 self.refresh_campaigns(accounts)
+                self.refresh_suspensions(accounts)
             except Exception as e:
                 log.error("Error in main loop: %s", e)
                 log.exception(e)
             finally:
                 self._stop_event.wait(self.config.poll_interval)
+
+    def refresh_suspensions(self, accounts: list[Account]):
+        # Check if it's time for suspension state refresh
+        now = time()
+        if not (
+            self.config.account_state_check_enabled
+            and now - self._last_suspension_check
+            >= float(self.config.account_state_check_interval)
+        ):
+            return
+
+        log.info("Refreshing suspension states...")
+        t_start = time()
+
+        # Get suspension states from API
+        states_by_account = self.client.refresh_suspension_states(accounts)
+
+        # Save to database with audit trail
+        for account_url, server_states in states_by_account.items():
+            self.db.save_suspension_states(
+                account_url, server_states, create_audit=True
+            )
+
+        log.info(
+            "Refreshed suspension states for %d accounts in %.2f seconds",
+            len(states_by_account),
+            time() - t_start,
+        )
+
+        self._last_suspension_check = now
 
     def refresh_accounts(self) -> list[Account]:
         log.info("Refreshing accounts...")

@@ -8,6 +8,7 @@ from .downloader import MediaDownloader
 from .mastodon import MastodonApi
 from .sources import sources
 from .sources.campaigns import CampaignParser
+from .suspension_checker import SuspensionStateChecker
 
 
 class Client(
@@ -16,6 +17,7 @@ class Client(
     MediaDownloader,
     MastodonAccountsBot,
     MastodonCampaignsBot,
+    SuspensionStateChecker,
 ):
     """
     External client facade to interact with APIs and download media.

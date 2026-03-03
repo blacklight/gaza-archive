@@ -13,11 +13,12 @@ from ._accounts import Accounts
 from ._media import Media
 from ._model import Base
 from ._posts import Posts
+from ._suspension import SuspensionStates
 
 log = getLogger(__name__)
 
 
-class Db(CurrencyConverter, Accounts, Campaigns, Media, Posts, Bots):
+class Db(CurrencyConverter, Accounts, Campaigns, Media, Posts, Bots, SuspensionStates):
     """
     Database class for managing the database connection and sessions.
     """

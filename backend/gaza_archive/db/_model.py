@@ -5,8 +5,10 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum as SqlEnum,
     Float,
     ForeignKey,
+    Integer,
     JSON,
     String,
     Table,
@@ -22,6 +24,11 @@ from ..model import (
     CampaignDonation as ModelCampaignDonation,
     Media as ModelMedia,
     Post as ModelPost,
+)
+from ..model.suspension import (
+    AccountSuspensionState as ModelAccountSuspensionState,
+    AccountSuspensionStateAudit as ModelAccountSuspensionStateAudit,
+    SuspensionState,
 )
 
 Base = declarative_base()
@@ -73,6 +80,8 @@ class Account(Base):
         secondaryjoin=url == follower_association.c.account_url,
         back_populates="following",
     )
+
+    suspension_states = relationship("AccountSuspensionState", back_populates="account")
 
     @classmethod
     def from_model(cls, model: ModelAccount) -> "Account":
@@ -162,7 +171,7 @@ class Post(Base):
             in_reply_to_account_id=self.in_reply_to_account_id,  # type: ignore
             quote=self.quote,  # type: ignore
             created_at=self.created_at,  # type: ignore
-            updated_at=self.updated_at,   # type: ignore
+            updated_at=self.updated_at,  # type: ignore
             attachments=[],
         )
 
@@ -319,4 +328,81 @@ class BotState(Base):
         return ModelBotState(
             bot_name=self.bot_name,  # type: ignore
             last_updated_at=self.last_updated_at,  # type: ignore
+        )
+
+
+class AccountSuspensionState(Base):
+    """SQLAlchemy model for account suspension states."""
+
+    __tablename__ = "account_suspension_states"
+
+    account_url = Column(
+        String, ForeignKey("accounts.url", ondelete="CASCADE"), primary_key=True
+    )
+    server_url = Column(String, primary_key=True)
+    state = Column(SqlEnum(SuspensionState), nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    # Relationships
+    account = relationship("Account", back_populates="suspension_states")
+
+    @classmethod
+    def from_model(cls, model: ModelAccountSuspensionState) -> "AccountSuspensionState":
+        return cls(
+            account_url=model.account_url,
+            server_url=model.server_url,
+            state=model.state,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+    def to_model(self) -> ModelAccountSuspensionState:
+        return ModelAccountSuspensionState(
+            url=f"{self.account_url}#{self.server_url}",  # Composite URL
+            account_url=str(self.account_url),
+            server_url=str(self.server_url),
+            state=AccountSuspensionState(self.state),
+            created_at=self.created_at,  # type: ignore
+            updated_at=self.updated_at,  # type: ignore
+        )
+
+
+class AccountSuspensionStateAudit(Base):
+    """SQLAlchemy model for account suspension state audit trail."""
+
+    __tablename__ = "account_suspension_states_audit"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_url = Column(
+        String, ForeignKey("accounts.url", ondelete="CASCADE"), nullable=False
+    )
+    server_url = Column(String, nullable=False)
+    old_state = Column(SqlEnum(SuspensionState), nullable=True)
+    new_state = Column(SqlEnum(SuspensionState), nullable=False)
+    changed_at = Column(DateTime, default=utcnow)
+
+    @classmethod
+    def from_model(
+        cls, model: ModelAccountSuspensionStateAudit
+    ) -> "AccountSuspensionStateAudit":
+        return cls(
+            account_url=model.account_url,
+            server_url=model.server_url,
+            old_state=model.old_state,
+            new_state=model.new_state,
+            changed_at=model.changed_at,
+        )
+
+    def to_model(self) -> ModelAccountSuspensionStateAudit:
+        return ModelAccountSuspensionStateAudit(
+            url=f"{self.account_url}#{self.server_url}#{self.id}",  # Composite URL
+            id=int(self.id),
+            account_url=str(self.account_url),
+            server_url=str(self.server_url),
+            old_state=(
+                AccountSuspensionState(self.old_state) if bool(self.old_state) else None
+            ),
+            new_state=AccountSuspensionState(self.new_state),
+            changed_at=self.changed_at,  # type: ignore
         )
