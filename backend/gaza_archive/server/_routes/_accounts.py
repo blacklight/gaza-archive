@@ -290,11 +290,11 @@ def get_account_suspensions(
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
     state: List[SuspensionState] = Query(
-        None,
+        default=[],
         description="Filter by suspension state(s). Can be specified multiple times.",
     ),
     server: List[str] = Query(
-        None, description="Filter by server URL(s). Can be specified multiple times."
+        default=[], description="Filter by server URL(s). Can be specified multiple times."
     ),
     limit: int | None = Query(
         None, description="Maximum number of suspension states to return."
@@ -337,11 +337,11 @@ def get_account_suspensions_audit(
         description="Account FQN, in the format `@username@instance`, or full URL.",
     ),
     state: List[SuspensionState] = Query(
-        None,
+        default=[],
         description="Filter by suspension state(s) (old or new). Can be specified multiple times.",
     ),
     server: List[str] = Query(
-        None, description="Filter by server URL(s). Can be specified multiple times."
+        default=[], description="Filter by server URL(s). Can be specified multiple times."
     ),
     start_time: datetime | None = Query(
         None, description="Filter audit records from this timestamp (ISO format)."

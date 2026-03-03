@@ -34,7 +34,10 @@
           <img :src="data.account.avatar_path" :alt="`${data.account.display_name}'s avatar`" />
         </div>
         <div class="account-info">
-          <div class="account-display-name">{{ data.account.display_name }}</div>
+          <div class="account-display-name">
+            <SuspensionIcon :state="data.account.state" />
+            {{ data.account.display_name }}
+          </div>
           <div class="account-username">{{ data.account.fqn }}</div>
           <div class="last-activity-time" v-if="data.last_activity_time">
             Last Activity:
@@ -69,6 +72,7 @@
 import CampaignsApi from '@/mixins/api/Campaigns.vue'
 import Modal from '@/elements/Modal.vue'
 import Sorter from './Sorter.vue'
+import SuspensionIcon from '@/components/SuspensionIcon.vue'
 
 export default {
   mixins: [
@@ -80,6 +84,7 @@ export default {
   components: {
     Modal,
     Sorter,
+    SuspensionIcon,
   },
 
   props: {

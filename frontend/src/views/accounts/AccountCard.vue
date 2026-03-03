@@ -8,14 +8,23 @@
            width="100%" height="100%" />
     </div>
     <div class="details">
-      <h3>{{ account.display_name }}</h3>
+      <h3>
+        <SuspensionIcon :state="account.state" />
+        {{ account.display_name }}
+      </h3>
       <p class="fqn">{{ account.fqn }}</p>
     </div>
   </RouterLink>
 </template>
 
 <script>
+import SuspensionIcon from '@/components/SuspensionIcon.vue'
+
 export default {
+  components: {
+    SuspensionIcon,
+  },
+
   props: {
     account: {
       type: Object,

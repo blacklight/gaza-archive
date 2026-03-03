@@ -23,12 +23,19 @@
           </a>
         </div>
         <div class="details">
-          <h2>{{ account.display_name }}</h2>
+          <h2>
+            {{ account.display_name }}
+            <SuspensionIcon :state="account.state" />
+          </h2>
           <p class="fqn">
             <a :href="account.url" target="_blank" rel="noopener">
               {{ account.fqn }}
             </a>
           </p>
+          <button class="suspensions-button" @click="openSuspensionsModal">
+            <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+            See Suspensions
+          </button>
         </div>
       </div>
 
@@ -44,12 +51,12 @@
       </RouterLink>
     </p>
 
-    <p class="profile-fields" v-if="profileFields?.length">
+    <div class="profile-fields" v-if="profileFields?.length">
       <div class="field" v-for="field in profileFields" :key="field.key">
         <span class="field-key">{{ field.key }}</span>
         <span class="field-value" v-html="field.value"></span>
       </div>
-    </p>
+    </div>
 
     <div class="tabs">
       <button class="tab" :class="{ active: view === 'posts' }" @click="view = 'posts'">
@@ -74,6 +81,40 @@
            @error="$refs.avatarModal.src = account.avatar_url" />
     </div>
   </Modal>
+
+  <Modal :show="showSuspensionsModal"
+         title="Account Suspension Status"
+         @close="showSuspensionsModal = false">
+    <div class="suspensions-container">
+      <div v-if="suspensionsLoading" class="loading-message">
+        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+        Loading suspension information...
+      </div>
+      <div v-else-if="!suspensions.length" class="no-suspensions">
+        No suspension information available.
+      </div>
+      <div v-else class="suspensions-list">
+        <div class="suspension-item"
+             v-for="suspension in suspensions"
+             :key="suspension.server_url">
+          <div class="suspension-header">
+            <div class="server-info">
+              <span class="suspension-state" :class="`state-${suspension.state.toLowerCase()}`">
+                <i :class="getStateIcon(suspension.state)" aria-hidden="true"></i>
+                {{ suspension.state }}
+              </span>
+              <span class="server-name">
+                <strong>{{ suspension.server_url.replace('https://', '') }}</strong>
+              </span>
+            </div>
+            <div class="suspension-date">
+              Last checked: {{ formatDate(suspension.updated_at) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Modal>
 </template>
 
 <script>
@@ -83,6 +124,7 @@ import Loader from '@/elements/Loader.vue'
 import Modal from '@/elements/Modal.vue'
 import PostsList from '@/views/posts/PostsList.vue'
 import PostsApi from '@/mixins/api/Posts.vue'
+import SuspensionIcon from '@/components/SuspensionIcon.vue'
 
 export default {
   mixins: [AccountsApi, PostsApi],
@@ -91,12 +133,16 @@ export default {
     Loader,
     Modal,
     PostsList,
+    SuspensionIcon,
   },
 
   data() {
     return {
       account: null,
       showProfilePicModal: false,
+      showSuspensionsModal: false,
+      suspensions: [],
+      suspensionsLoading: false,
       loading: true,
       view: null,
     }
@@ -119,6 +165,48 @@ export default {
   methods: {
     async refresh() {
       this.account = await this.getAccount(this.$route.params.fqn)
+    },
+
+    async loadSuspensions() {
+      if (this.suspensionsLoading) return
+
+      this.suspensionsLoading = true
+      try {
+        this.suspensions = await this.getAccountSuspensions(this.$route.params.fqn, {
+          state: ['LIMITED', 'SUSPENDED', 'DELETED']
+        })
+      } catch (error) {
+        console.error('Failed to load suspensions:', error)
+        this.suspensions = []
+      } finally {
+        this.suspensionsLoading = false
+      }
+    },
+
+    async openSuspensionsModal() {
+      this.showSuspensionsModal = true
+      await this.loadSuspensions()
+    },
+
+    getStateIcon(state) {
+      const iconMap = {
+        'LIMITED': 'fas fa-exclamation-triangle',
+        'SUSPENDED': 'fas fa-ban',
+        'DELETED': 'fas fa-trash'
+      }
+      return iconMap[state] || ''
+    },
+
+    formatDate(dateString) {
+      if (!dateString) return 'Unknown'
+      return new Date(dateString).toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      })
     },
   },
 
@@ -226,6 +314,24 @@ $banner-height: 200px;
         color: var(--color-text-secondary);
         word-break: break-all;
       }
+
+      .suspensions-button {
+        margin-top: 0.5em;
+        padding: 0.5em 1em;
+        background-color: var(--color-primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+
+        &:hover {
+          background-color: var(--color-primary-dark, #3498db);
+        }
+      }
     }
 
     .note {
@@ -279,6 +385,81 @@ $banner-height: 200px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+    }
+  }
+}
+
+.suspensions-container {
+  .loading-message {
+    text-align: center;
+    padding: 2em;
+    color: var(--color-text-secondary);
+
+    i {
+      margin-right: 0.5em;
+    }
+  }
+
+  .no-suspensions {
+    text-align: center;
+    padding: 2em;
+    color: var(--color-text-secondary);
+  }
+
+  .suspensions-list {
+    .suspension-item {
+      padding: 1em 0;
+      border-bottom: 1px solid var(--color-border);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .suspension-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5em;
+
+        .server-info {
+          display: flex;
+          align-items: center;
+          gap: 1em;
+
+          .suspension-state {
+            width: 8em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3em;
+            padding: 0.25em 0.5em;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+
+            &.state-limited {
+              background-color: #fff3cd;
+              color: #856404;
+            }
+
+            &.state-suspended {
+              background-color: #f8d7da;
+              color: #721c24;
+            }
+
+            &.state-deleted {
+              background-color: #f1f3f4;
+              color: #5f6368;
+            }
+          }
+        }
+
+        .suspension-date {
+          font-size: 0.75em;
+          color: var(--color-text-secondary);
+        }
       }
     }
   }

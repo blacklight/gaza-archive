@@ -11,7 +11,10 @@
         </div>
         <div class="account-info">
           <RouterLink :to="`/accounts/${account.fqn}`">
-            <div class="account-display-name">{{ account.display_name }}</div>
+            <div class="account-display-name">
+              <SuspensionIcon :state="account.state" />
+              {{ account.display_name }}
+            </div>
             <div class="account-username">{{ account.fqn }}</div>
           </RouterLink>
           <div class="campaign-link">
@@ -41,6 +44,7 @@ import CampaignsApi from '@/mixins/api/Campaigns.vue'
 import CampaignsView from '../components/View.vue'
 import DonationsList from '../components/DonationsList.vue'
 import Loader from "@/elements/Loader.vue"
+import SuspensionIcon from '@/components/SuspensionIcon.vue'
 
 export default {
   mixins: [
@@ -52,6 +56,7 @@ export default {
     CampaignsView,
     DonationsList,
     Loader,
+    SuspensionIcon,
   },
 
   computed: {
