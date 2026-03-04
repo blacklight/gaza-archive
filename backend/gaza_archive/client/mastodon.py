@@ -127,13 +127,6 @@ class MastodonApi(ABC):
     @abstractmethod
     def get_campaign_url(self, account: Account) -> str | None: ...
 
-    def _get_db_account(self, account: Account) -> Account | None:
-        """
-        Try to get the account from the database if available.
-        Returns None if db is not available or account not found.
-        """
-        return self.db.get_account(account.url)
-
     def refresh_account(self, account: Account) -> Account:
         """
         Get the Mastodon ID of an account.
@@ -172,7 +165,7 @@ class MastodonApi(ABC):
                 fetch_failed = True
 
         if fetch_failed:
-            db_account = self._get_db_account(account)
+            db_account = self.db.get_account(account.url)
             if db_account:
                 log.info(
                     "Using cached account data for %s due to fetch failure",
@@ -217,16 +210,30 @@ class MastodonApi(ABC):
         def paginate():
             nonlocal last_fetched_id
 
+            response = []
+
             while True:
-                response = self._http_get(
-                    f"{account.api_url}/statuses",
-                    params={
-                        "exclude_replies": int(False),
-                        "exclude_reblogs": int(True),
-                        "limit": 40,
-                        "min_id": last_fetched_id,
-                    },
-                )
+                try:
+                    response = self._http_get(
+                        f"{account.api_url}/statuses",
+                        params={
+                            "exclude_replies": int(False),
+                            "exclude_reblogs": int(True),
+                            "limit": 40,
+                            "min_id": last_fetched_id,
+                        },
+                    )
+                except Exception as e:
+                    log.warning(
+                        "Failed to fetch posts for account %s: %s",
+                        account.url,
+                        str(e),
+                        exc_info=True,
+                    )
+                    break
+                except HttpError as exc:
+                    if exc.status_code == 404:
+                        break
 
                 posts_by_url = {
                     str(status["url"]): Post(
