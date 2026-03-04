@@ -60,7 +60,9 @@ class MastodonApi(ABC):
                     else:
                         reset_timestamp = datetime.now().timestamp() + 10
 
-                    sleep_seconds = int(max(20., reset_timestamp - datetime.now().timestamp()) + 1)
+                    sleep_seconds = int(
+                        max(20.0, reset_timestamp - datetime.now().timestamp()) + 1
+                    )
                     log.warning(
                         "Rate limit exceeded for %s, sleeping for %d seconds...",
                         url,
@@ -180,7 +182,9 @@ class MastodonApi(ABC):
             account.avatar_url = account_info.get("avatar_static")
             account.header_url = account_info.get("header_static")
             account.profile_note = account_info.get("note")
-            account.profile_fields = self._parse_profile_fields(account_info.get("fields", []))
+            account.profile_fields = self._parse_profile_fields(
+                account_info.get("fields", [])
+            )
             account.disabled = bool(account_info["locked"])
             account.created_at = self._convert_datetime(account_info["created_at"])
 
@@ -231,9 +235,6 @@ class MastodonApi(ABC):
                         exc_info=True,
                     )
                     break
-                except HttpError as exc:
-                    if exc.status_code == 404:
-                        break
 
                 posts_by_url = {
                     str(status["url"]): Post(
@@ -257,7 +258,11 @@ class MastodonApi(ABC):
                             if status.get("edited_at")
                             else None
                         ),
-                        quote=json.dumps(status.get("quote")) if status.get("quote") else None,
+                        quote=(
+                            json.dumps(status.get("quote"))
+                            if status.get("quote")
+                            else None
+                        ),
                         attachments=[],
                     )
                     for status in response
