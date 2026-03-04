@@ -10,6 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from ..config import Config
+from ..db import Db
 from ..errors import AccountNotFoundError, HttpError
 from ..model import Account, Media, Post
 
@@ -22,6 +23,7 @@ class MastodonApi(ABC):
     """
 
     config: Config
+    db: Db
 
     def _http_get(self, url: str, *args, **kwargs) -> dict:
         """
@@ -125,10 +127,20 @@ class MastodonApi(ABC):
     @abstractmethod
     def get_campaign_url(self, account: Account) -> str | None: ...
 
+    def _get_db_account(self, account: Account) -> Account | None:
+        """
+        Try to get the account from the database if available.
+        Returns None if db is not available or account not found.
+        """
+        return self.db.get_account(account.url)
+
     def refresh_account(self, account: Account) -> Account:
         """
         Get the Mastodon ID of an account.
         """
+        fetch_failed = False
+        account_info = {}
+
         try:
             if not account.id:
                 account.id = self._get_account_id(account)
@@ -145,27 +157,40 @@ class MastodonApi(ABC):
                 str(exc),
                 exc_info=True,
             )
-            return account
+            fetch_failed = True
 
-        try:
-            account_info = self._http_get(account.api_url)
-        except Exception as exc:
-            log.warning(
-                "Failed to refresh account %s: %s",
-                account.url,
-                str(exc),
-                exc_info=True,
-            )
-            return account
+        if not fetch_failed:
+            try:
+                account_info = self._http_get(account.api_url)
+            except Exception as exc:
+                log.warning(
+                    "Failed to refresh account %s: %s",
+                    account.url,
+                    str(exc),
+                    exc_info=True,
+                )
+                fetch_failed = True
 
-        account.id = str(account_info["id"])
-        account.display_name = account_info.get("display_name") or account.username
-        account.avatar_url = account_info.get("avatar_static")
-        account.header_url = account_info.get("header_static")
-        account.profile_note = account_info.get("note")
-        account.profile_fields = self._parse_profile_fields(account_info.get("fields", []))
-        account.disabled = bool(account_info["locked"])
-        account.created_at = self._convert_datetime(account_info["created_at"])
+        if fetch_failed:
+            db_account = self._get_db_account(account)
+            if db_account:
+                log.info(
+                    "Using cached account data for %s due to fetch failure",
+                    account.url,
+                )
+                account = db_account
+            else:
+                return account
+        else:
+            account.id = str(account_info["id"])
+            account.display_name = account_info.get("display_name") or account.username
+            account.avatar_url = account_info.get("avatar_static")
+            account.header_url = account_info.get("header_static")
+            account.profile_note = account_info.get("note")
+            account.profile_fields = self._parse_profile_fields(account_info.get("fields", []))
+            account.disabled = bool(account_info["locked"])
+            account.created_at = self._convert_datetime(account_info["created_at"])
+
         campaign_url = self.get_campaign_url(account)
         if campaign_url:
             account.campaign_url = campaign_url
