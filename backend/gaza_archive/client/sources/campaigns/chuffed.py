@@ -192,12 +192,14 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
 
     @property
     def url_pattern(self) -> re.Pattern:
-        return re.compile(r"^https://(www\.)?chuffed\.org/project/([a-zA-Z0-9\-]+)")
+        return re.compile(
+            r"^https://(www\.)?chuffed\.org/(project|pay/campaign)/([a-zA-Z0-9\-]+)"
+        )
 
     def parse_url(self, url: str) -> str | None:
         match = self.url_pattern.match(url)
         if match:
-            return f"https://www.chuffed.org/project/{match.group(2)}"
+            return f"https://www.chuffed.org/project/{match.group(3)}"
 
         return None
 
