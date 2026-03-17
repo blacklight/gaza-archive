@@ -111,7 +111,15 @@ class Loop(Thread):
         return accounts
 
     def refresh_campaigns(self, accounts: list[Account]) -> list[Campaign]:
-        campaigns = self.client.refresh_campaigns(accounts)
+        # Merge refreshed accounts with DB accounts that have campaign URLs.
+        # This ensures campaigns are still scraped for suspended/unretrievable
+        # accounts using their cached campaign URLs.
+        accounts_by_url = {account.url: account for account in accounts}
+        for db_account in self.db.get_accounts().values():
+            if db_account.campaign_url and db_account.url not in accounts_by_url:
+                accounts_by_url[db_account.url] = db_account
+
+        campaigns = self.client.refresh_campaigns(list(accounts_by_url.values()))
         self.db.save_campaigns(campaigns)
         return campaigns
 
