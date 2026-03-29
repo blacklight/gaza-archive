@@ -284,7 +284,9 @@ class MastodonApi(ABC):
                 if not posts_by_url:
                     break
 
-                posts = sorted(posts_by_url.values(), key=lambda p: p.created_at)
+                posts = sorted(
+                    posts_by_url.values(), key=lambda p: p.created_at or datetime.min
+                )
                 last_fetched_id = posts[-1].id
                 log.info(
                     "Fetched %d new posts for account %s, last_id=%s",
