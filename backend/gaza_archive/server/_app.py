@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 
 from ..loop import get_client
 from ..model import Account
@@ -23,10 +23,13 @@ dist_dir = os.path.abspath(
 )
 assets_dir = os.path.join(dist_dir, "assets")
 templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
-templates = Jinja2Templates(directory=templates_dir)
 
-# Pre-load template to avoid potential cache race conditions on first request
-_ = templates.get_template("index.html")
+# Use direct Jinja2 Environment with cache disabled to avoid LRUCache issues with Python 3.13
+jinja_env = Environment(
+    loader=FileSystemLoader(templates_dir),
+    autoescape=True,
+    cache_size=0,  # Disable template caching to avoid race conditions
+)
 
 app.mount("/assets", StaticFiles(directory=assets_dir), name="static")
 
@@ -52,15 +55,14 @@ def render_index(request: Request):
                 "fqn": Account(url=bot_campaign_info["url"]).fqn,
             }
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "accounts": list(get_ctx().db.get_accounts().values()),
-            "bot_account_info": bot_account_info,
-            "bot_campaign_info": bot_campaign_info,
-        },
+    template = jinja_env.get_template("index.html")
+    html_content = template.render(
+        request=request,
+        accounts=list(get_ctx().db.get_accounts().values()),
+        bot_account_info=bot_account_info,
+        bot_campaign_info=bot_campaign_info,
     )
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/", include_in_schema=False)
