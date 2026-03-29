@@ -1,4 +1,5 @@
 from abc import ABC
+from datetime import datetime
 from logging import getLogger
 from threading import Thread
 
@@ -154,7 +155,7 @@ class MastodonAccountsBot(ABC):
             log.info("No eligible posts to boost after filtering.")
             return
 
-        posts = sorted(eligible_posts, key=lambda p: p.created_at or 0)
+        posts = sorted(eligible_posts, key=lambda p: p.created_at or datetime.min)
         log.info("Boosting %d new posts...", len(posts))
 
         for post in posts:

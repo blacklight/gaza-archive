@@ -25,6 +25,9 @@ assets_dir = os.path.join(dist_dir, "assets")
 templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "templates"))
 templates = Jinja2Templates(directory=templates_dir)
 
+# Pre-load template to avoid potential cache race conditions on first request
+_ = templates.get_template("index.html")
+
 app.mount("/assets", StaticFiles(directory=assets_dir), name="static")
 
 
