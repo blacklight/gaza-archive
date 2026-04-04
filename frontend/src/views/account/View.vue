@@ -173,7 +173,7 @@ export default {
       this.suspensionsLoading = true
       try {
         this.suspensions = await this.getAccountSuspensions(this.$route.params.fqn, {
-          state: ['LIMITED', 'SUSPENDED', 'DELETED']
+          state: ['LIMITED', 'SUSPENDED']
         })
       } catch (error) {
         console.error('Failed to load suspensions:', error)
