@@ -97,6 +97,24 @@ class Posts(ABC):
                 )
             }
 
+            # Collect all media URLs from new posts
+            all_media_urls = [
+                media.url
+                for post in posts
+                if post.url not in db_posts
+                for media in post.attachments
+            ]
+
+            # Get existing media URLs to avoid duplicates
+            existing_media_urls: set[str] = set()
+            if all_media_urls:
+                existing_media_urls = {
+                    str(row[0])
+                    for row in session.query(DbMedia.url)
+                    .filter(DbMedia.url.in_(all_media_urls))
+                    .all()
+                }
+
             for post in posts:
                 if post.url not in db_posts:
                     log.info(
@@ -107,6 +125,8 @@ class Posts(ABC):
                     session.add(DbPost.from_model(post))
 
                     for media in post.attachments:
-                        session.add(DbMedia.from_model(media))
+                        if media.url not in existing_media_urls:
+                            session.add(DbMedia.from_model(media))
+                            existing_media_urls.add(media.url)
 
             session.commit()
