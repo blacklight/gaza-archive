@@ -44,7 +44,7 @@ class Media(ABC):
             if max_id is not None:
                 query = query.filter(DbMedia.id < max_id)
 
-            query = query.order_by(DbMedia.id.desc())
+            query = query.order_by(DbPost.created_at.desc())
             if limit is not None:
                 query = query.limit(limit)
             if offset is not None:
