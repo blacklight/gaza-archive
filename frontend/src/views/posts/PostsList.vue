@@ -3,7 +3,7 @@
     <Loader v-if="loading" />
     <div class="filters">
       <input type="text" v-model="textFilter" placeholder="Filter posts" />
-      <div class="exclude-replies">
+      <div class="exclude-replies" v-if="!hideReplies">
         <input type="checkbox" id="exclude-replies" v-model="excludeReplies" />
         <label for="exclude-replies">Exclude replies</label>
       </div>
@@ -56,6 +56,10 @@ export default {
         ...this.filter,
         exclude_replies: this.excludeReplies,
       }
+    },
+
+    hideReplies() {
+      return this.$root.config.hide_replies
     },
 
     filteredPosts() {
@@ -137,7 +141,7 @@ export default {
   },
 
   async mounted() {
-    this.excludeReplies = this.$route.query.exclude_replies === '1'
+    this.excludeReplies = this.hideReplies || this.$route.query.exclude_replies === '1'
     if (!this.excludeReplies && this.$route.query.exclude_replies === '0') {
       const query = { ...this.$route.query }
       delete query.exclude_replies
