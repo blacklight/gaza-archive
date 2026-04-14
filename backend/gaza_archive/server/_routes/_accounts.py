@@ -35,6 +35,9 @@ def _get_account_posts(
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
 
+    if ctx.config.hide_replies:
+        exclude_replies = True
+
     return list(
         ctx.db.get_posts(
             exclude_replies=exclude_replies,
@@ -294,7 +297,8 @@ def get_account_suspensions(
         description="Filter by suspension state(s). Can be specified multiple times.",
     ),
     server: List[str] = Query(
-        default=[], description="Filter by server URL(s). Can be specified multiple times."
+        default=[],
+        description="Filter by server URL(s). Can be specified multiple times.",
     ),
     limit: int | None = Query(
         None, description="Maximum number of suspension states to return."
@@ -341,7 +345,8 @@ def get_account_suspensions_audit(
         description="Filter by suspension state(s) (old or new). Can be specified multiple times.",
     ),
     server: List[str] = Query(
-        default=[], description="Filter by server URL(s). Can be specified multiple times."
+        default=[],
+        description="Filter by server URL(s). Can be specified multiple times.",
     ),
     start_time: datetime | None = Query(
         None, description="Filter audit records from this timestamp (ISO format)."
