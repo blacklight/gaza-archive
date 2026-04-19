@@ -29,6 +29,7 @@ class Config:  # pylint: disable=too-few-public-methods
     fixer_io_api_key: str | None
     exclude_profiles: list[str]
     exclude_campaign_accounts: list[str]
+    hide_all_user_content: bool
     hide_donors: bool
     hide_media: bool
     hide_replies: bool
@@ -131,6 +132,10 @@ class Config:  # pylint: disable=too-few-public-methods
             ),
             mastodon_campaigns_bot_post_interval_hours=float(
                 os.getenv("MASTODON_CAMPAIGNS_BOT_POST_INTERVAL_HOURS", "6.0")
+            ),
+            hide_all_user_content=(
+                os.getenv("HIDE_ALL_USER_CONTENT", "false").lower()
+                in ("true", "1", "yes")
             ),
             hide_donors=(
                 os.getenv("HIDE_DONORS", "false").lower() in ("true", "1", "yes")

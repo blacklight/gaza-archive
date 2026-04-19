@@ -35,6 +35,9 @@ def get_posts(
     List all posts.
     """
     ctx = get_ctx()
+    if ctx.config.hide_all_user_content:
+        return []
+
     if ctx.config.hide_replies:
         exclude_replies = True
 
@@ -75,6 +78,12 @@ def get_posts_feed(
     Get posts (RSS feed).
     """
     ctx = get_ctx()
+    if ctx.config.hide_all_user_content:
+        return Response(
+            content=FeedsGenerator(ctx.config).generate_posts_feed([]),
+            media_type="application/rss+xml",
+        )
+
     if ctx.config.hide_replies:
         exclude_replies = True
 
@@ -104,6 +113,9 @@ def get_post(
     Get a specific post by URL or ID.
     """
     ctx = get_ctx()
+    if ctx.config.hide_all_user_content:
+        raise HTTPException(status_code=404, detail="Post not found")
+
     db_post = ctx.db.get_post(unquote(post))
     if not db_post:
         raise HTTPException(status_code=404, detail="Post not found")

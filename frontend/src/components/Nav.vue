@@ -10,12 +10,12 @@
         <i class="fas fa-users" />
       </RouterLink>
 
-      <RouterLink to="/posts" title="Posts"
+      <RouterLink to="/posts" title="Posts" v-if="!hideAllUserContent"
         :class="{ active: currentView?.startsWith('/posts') }">
         <i class="fas fa-stream" />
       </RouterLink>
 
-      <RouterLink to="/attachments" title="Media" v-if="!hideMedia"
+      <RouterLink to="/attachments" title="Media" v-if="!hideMedia && !hideAllUserContent"
         :class="{ active: currentView?.startsWith('/attachments') }">
         <i class="fas fa-photo-video" />
       </RouterLink>
@@ -25,7 +25,7 @@
         <i class="fas fa-hand-holding-usd" />
       </RouterLink>
 
-      <a href="/media" title="Static media directory" v-if="!hideMedia">
+      <a href="/media" title="Static media directory" v-if="!hideMedia && !hideAllUserContent">
         <i class="fas fa-folder" />
       </a>
 
@@ -64,6 +64,10 @@ export default {
   },
 
   computed: {
+    hideAllUserContent() {
+      return this.$root.config.hide_all_user_content
+    },
+
     hideMedia() {
       return this.$root.config.hide_media
     },

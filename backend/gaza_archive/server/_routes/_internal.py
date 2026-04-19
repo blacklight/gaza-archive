@@ -65,6 +65,7 @@ def get_config() -> dict[str, Any]:
     config = get_ctx().config
     return {
         "debug": config.debug,
+        "hide_all_user_content": config.hide_all_user_content,
         "hide_donors": config.hide_donors,
         "hide_media": config.hide_media,
         "hide_replies": config.hide_replies,

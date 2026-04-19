@@ -30,7 +30,7 @@ def get_attachments(
     List all media.
     """
     ctx = get_ctx()
-    if ctx.config.hide_media:
+    if ctx.config.hide_all_user_content or ctx.config.hide_media:
         raise HTTPException(status_code=403, detail="Media is hidden")
 
     return list(
@@ -66,7 +66,7 @@ def get_attachments_feed(
     Get media (RSS feed).
     """
     ctx = get_ctx()
-    if ctx.config.hide_media:
+    if ctx.config.hide_all_user_content or ctx.config.hide_media:
         raise HTTPException(status_code=403, detail="Media is hidden")
 
     media = list(
@@ -91,7 +91,7 @@ def get_attachment(
     Get a specific media by URL.
     """
     ctx = get_ctx()
-    if ctx.config.hide_media:
+    if ctx.config.hide_media or ctx.config.hide_all_user_content:
         raise HTTPException(status_code=403, detail="Media is hidden")
 
     db_media = ctx.db.get_attachment(media)

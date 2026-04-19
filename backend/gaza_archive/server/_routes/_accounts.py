@@ -35,6 +35,9 @@ def _get_account_posts(
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
 
+    if ctx.config.hide_all_user_content:
+        return []
+
     if ctx.config.hide_replies:
         exclude_replies = True
 
@@ -68,6 +71,9 @@ def _get_account_media(
     db_account = ctx.db.get_account(account_url)
     if not db_account:
         raise HTTPException(status_code=404, detail="Account not found")
+
+    if ctx.config.hide_all_user_content:
+        return []
 
     return ctx.db.get_attachments(
         account=account_url,

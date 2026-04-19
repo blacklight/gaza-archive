@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <div class="tabs">
+    <div class="tabs" v-if="!hideAllUserContent">
       <button class="tab" :class="{ active: view === 'posts' }" @click="view = 'posts'">
         <i class="fas fa-file-text" aria-hidden="true" /> Posts
       </button>
@@ -67,8 +67,8 @@
       </button>
     </div>
 
-    <PostsList :filter="{ account: account.fqn }" v-if="view === 'posts'" />
-    <AttachmentsList :filter="{ account: account.fqn, excludeReplies: true }" v-else-if="view === 'attachments'" />
+    <PostsList :filter="{ account: account.fqn }" v-if="!hideAllUserContent && view === 'posts'" />
+    <AttachmentsList :filter="{ account: account.fqn, excludeReplies: true }" v-else-if="!hideAllUserContent && view === 'attachments'" />
   </div>
 
   <Modal :show="showProfilePicModal"
@@ -149,6 +149,10 @@ export default {
   },
 
   computed: {
+    hideAllUserContent() {
+      return this.$root.config.hide_all_user_content
+    },
+
     profileFields() {
       return Object.entries(this.account?.profile_fields || {})?.map(
         ([key, value]) => {
