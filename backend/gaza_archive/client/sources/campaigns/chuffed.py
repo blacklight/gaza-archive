@@ -223,7 +223,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
             )
             return None
 
-        match = re.search(r"campaignId:\s*(\d+)", response.text, re.DOTALL)
+        match = re.search(r"campaignId: '([\w-]+)'", response.text, re.DOTALL)
         if not match:
             log.warning("Could not parse ID for campaign %s", campaign_url)
             return None
