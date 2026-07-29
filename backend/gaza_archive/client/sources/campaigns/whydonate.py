@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from time import sleep
-from typing import Any
+from typing import Any, cast
 
 import requests
 
@@ -156,6 +156,34 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
         )
         return "USD"
 
+    @staticmethod
+    def _id_sort_key(id_value: str) -> tuple[bool, int | str]:
+        """Return a sortable key for a donation id (numeric or string/UUID)."""
+        if id_value.isdigit():
+            return True, int(id_value)
+        return False, id_value
+
+    @staticmethod
+    def _newer_cursor(
+        current: tuple[bool, int | str] | None,
+        candidate: tuple[bool, int | str],
+    ) -> tuple[bool, int | str]:
+        """Return the more recent of two id keys."""
+        if current is None:
+            return candidate
+        if current[0] == candidate[0]:
+            return max(current, candidate)
+        # Mixed id types (e.g. old numeric cursor, new UUID ids). The current
+        # batch of ids wins because it reflects the actual API data.
+        return candidate
+
+    @staticmethod
+    def _cursor_to_str(cursor_key: tuple[bool, int | str] | None) -> str:
+        """Convert an id key back to a string for the donations' cursor."""
+        if not cursor_key:
+            return ""
+        return str(cursor_key[1])
+
     def _build_donation(
         self,
         donation: dict[str, Any],
@@ -222,10 +250,11 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
         slug = match.group(4)
         fundraiser_info = self._get_fundraiser_info(slug)
 
-        last_id = int(campaign.donations_cursor or "0")
+        last_cursor = campaign.donations_cursor or ""
+        cursor_key = self._id_sort_key(last_cursor) if last_cursor else None
         page = 1
         donations: list[CampaignDonation] = []
-        new_max_id = last_id
+        new_cursor_key = cursor_key
         scrape_time = datetime.now(timezone.utc)
 
         while True:
@@ -234,7 +263,7 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
                 campaign.url,
                 page,
                 self._page_limit,
-                last_id,
+                last_cursor,
             )
 
             response = self._fetch_page(slug, page)
@@ -269,13 +298,23 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
             passed_cursor = False
 
             for donation in donations_data:
-                donation_id = int(donation.get("id", 0))
+                raw_id = donation.get("id")
+                if not raw_id:
+                    continue
 
-                if donation_id <= last_id:
+                donation_id = str(raw_id)
+                id_key = self._id_sort_key(donation_id)
+
+                if (
+                    cursor_key is not None
+                    and id_key[0] == cursor_key[0]
+                    and cast(tuple[object, ...], id_key)
+                    <= cast(tuple[object, ...], cursor_key)
+                ):
                     passed_cursor = True
                     break
 
-                new_max_id = max(new_max_id, donation_id)
+                new_cursor_key = self._newer_cursor(new_cursor_key, id_key)
 
                 campaign_donation = self._build_donation(
                     donation,
@@ -293,8 +332,8 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
 
         # The public API already returns donations ordered by id descending, but
         # we make the ordering explicit and robust.
-        donations.sort(key=lambda d: int(d.id), reverse=True)
+        donations.sort(key=lambda d: self._id_sort_key(d.id), reverse=True)
 
         campaign.donations = donations
-        campaign.donations_cursor = str(new_max_id)
+        campaign.donations_cursor = self._cursor_to_str(new_cursor_key) or None
         return campaign
