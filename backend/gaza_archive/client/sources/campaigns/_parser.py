@@ -15,6 +15,7 @@ from ._source import CampaignSource
 from .chuffed import ChuffedCampaignSource
 from .steunactie import SteunactieCampaignSource
 from .gfm import GFMCampaignSource
+from .whydonate import WhydonateCampaignSource
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class CampaignParser(ABC):
             ChuffedCampaignSource(config=self.config, db=self.db),
             GFMCampaignSource(config=self.config, db=self.db),
             SteunactieCampaignSource(config=self.config, db=self.db),
+            WhydonateCampaignSource(config=self.config, db=self.db),
         }
 
     def get_campaign_url(self, account: Account) -> str | None:

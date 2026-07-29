@@ -14,6 +14,7 @@ class CampaignType(Enum):
 
     GFM = "gfm"
     CHUFFED = "chuffed"
+    WHYDONATE = "whydonate"
 
 
 class CampaignDonation(Item):
@@ -44,6 +45,8 @@ class Campaign(Item):
             return CampaignType.GFM
         if "chuffed.org" in self.url:
             return CampaignType.CHUFFED
+        if "whydonate." in self.url:
+            return CampaignType.WHYDONATE
         raise ValueError(f"Unsupported campaign URL: {self.url}")
 
 
