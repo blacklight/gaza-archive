@@ -62,8 +62,18 @@ class Accounts(ABC):
                 .all()
             )
 
+            account_urls = [str(db_account.url) for db_account, _ in db_accounts]
+            home_states = self.get_home_instance_states(account_urls)
+
             return {
-                str(db_account.url): db_account.to_model(last_status_id=last_status_id)
+                str(db_account.url): db_account.to_model(
+                    last_status_id=last_status_id,
+                    state=(
+                        home_states.get(str(db_account.url)).value
+                        if home_states.get(str(db_account.url))
+                        else None
+                    ),
+                )
                 for db_account, last_status_id in db_accounts
             }
 
@@ -89,7 +99,12 @@ class Accounts(ABC):
 
             if result:
                 db_account, last_status_id = result
-                return db_account.to_model(last_status_id=last_status_id)
+                home_states = self.get_home_instance_states([str(db_account.url)])
+                state = home_states.get(str(db_account.url))
+                return db_account.to_model(
+                    last_status_id=last_status_id,
+                    state=state.value if state else None,
+                )
             return None
 
     def save_accounts(self, accounts: list[Account]):
@@ -109,7 +124,11 @@ class Accounts(ABC):
                 db_account = db_accounts.get(account.url)
                 if db_account and account != db_account.to_model():
                     log.info("Updating account: %s", account.url)
-                    old_campaign_url = str(db_account.campaign_url) if db_account.campaign_url else None
+                    old_campaign_url = (
+                        str(db_account.campaign_url)
+                        if db_account.campaign_url
+                        else None
+                    )
                     new_campaign_url = account.campaign_url
                     if (
                         old_campaign_url
@@ -139,7 +158,9 @@ class Accounts(ABC):
                                 not new_campaign.donations_cursor
                                 and old_campaign.donations_cursor
                             ):
-                                new_campaign.donations_cursor = old_campaign.donations_cursor
+                                new_campaign.donations_cursor = (
+                                    old_campaign.donations_cursor
+                                )
                                 session.add(new_campaign)
 
                             session.query(DbCampaignDonation).filter(

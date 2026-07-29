@@ -1,8 +1,26 @@
 <script>
 export default {
   methods: {
-    async getAccounts() {
-      return (await fetch('/api/v1/accounts')).json()
+    async getAccounts(params = {}) {
+      const query = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          query.append(key, value)
+        }
+      })
+      const url = `/api/v1/accounts${query.toString() ? '?' + query.toString() : ''}`
+      const response = await fetch(url)
+      const total = response.headers.get('X-Total-Count')
+      const inactive = response.headers.get('X-Inactive-Count')
+      return {
+        accounts: await response.json(),
+        total: total !== null ? parseInt(total, 10) : null,
+        inactive: inactive !== null ? parseInt(inactive, 10) : null,
+      }
+    },
+
+    async getAccountsStats() {
+      return (await fetch('/api/v1/accounts/stats')).json()
     },
 
     async getAccount(fqn) {

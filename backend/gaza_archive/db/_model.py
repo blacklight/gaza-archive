@@ -50,7 +50,7 @@ class Account(Base):
     __tablename__ = "accounts"
 
     url = Column(String, primary_key=True)
-    id = Column(String, nullable=False, index=True)
+    id = Column(String, nullable=True, index=True)
     display_name = Column(String)
     avatar_url = Column(String)
     header_url = Column(String)
@@ -59,6 +59,8 @@ class Account(Base):
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utcnow)
     campaign_url = Column(String, ForeignKey("campaigns.url"), unique=True)
+    instance_down_since = Column(DateTime, nullable=True)
+    source_removed_since = Column(DateTime, nullable=True)
 
     # Relationships
     posts = relationship("Post", back_populates="author")
@@ -95,9 +97,15 @@ class Account(Base):
             profile_note=model.profile_note,
             profile_fields=model.profile_fields,
             created_at=model.created_at,
+            instance_down_since=model.instance_down_since,
+            source_removed_since=model.source_removed_since,
         )
 
-    def to_model(self, last_status_id: str | None = None) -> ModelAccount:
+    def to_model(
+        self,
+        last_status_id: str | None = None,
+        state: str | None = None,
+    ) -> ModelAccount:
         return ModelAccount(
             url=self.url,  # type: ignore
             id=self.id,  # type: ignore
@@ -110,9 +118,14 @@ class Account(Base):
             created_at=self.created_at,  # type: ignore
             last_status_id=last_status_id,
             disabled=False,
+            instance_down_since=self.instance_down_since,
+            source_removed_since=self.source_removed_since,
+            state=state,
         )
 
     def update_from_model(self, model: ModelAccount):
+        if model.id:
+            self.id = model.id
         self.display_name = model.display_name
         self.avatar_url = model.avatar_url
         self.header_url = model.header_url
@@ -123,6 +136,8 @@ class Account(Base):
         self.profile_fields = model.profile_fields
         self.disabled = model.disabled
         self.created_at = model.created_at
+        self.instance_down_since = model.instance_down_since
+        self.source_removed_since = model.source_removed_since
 
 
 class Post(Base):

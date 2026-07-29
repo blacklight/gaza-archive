@@ -38,6 +38,12 @@ class AccountNotFoundError(AccountError, LookupError):
     """
 
 
+class AccountDeletedError(AccountNotFoundError):
+    """
+    Raised when an account is permanently deleted (HTTP 404/410 or other 4xx).
+    """
+
+
 class DownloadError(Error, RuntimeError):
     """
     Raised when a download operation fails.

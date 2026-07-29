@@ -1,5 +1,5 @@
 <template>
-  <RouterLink :to="`/accounts/${account.fqn}`" class="account">
+  <RouterLink :to="`/accounts/${account.fqn}`" class="account" :class="{ inactive: isInactive }">
     <div class="avatar">
       <img :src="account.avatar_path"
            :alt="account.name"
@@ -31,6 +31,12 @@ export default {
       required: true
     },
   },
+
+  computed: {
+    isInactive() {
+      return ['DELETED', 'SUSPENDED'].includes(this.account?.state)
+    },
+  },
 }
 </script>
 
@@ -38,6 +44,11 @@ export default {
 .account {
   width: 100%;
   display: flex;
+
+  &.inactive {
+    opacity: 0.5;
+  }
+
   align-items: center;
   flex-direction: column;
   color: var(--color-text-secondary);

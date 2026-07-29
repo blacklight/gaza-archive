@@ -4,12 +4,20 @@
     <div class="accounts-list-container" v-else>
       <h2>
         <b v-if="filter?.trim()?.length">{{ filteredAccounts.length }} / </b>
-        <b>{{ accounts.length }}</b>&nbsp;
+        <b>{{ totalCount }}</b>&nbsp;
         <a href="https://gaza-verified.org" target="_blank" rel="noopener">verified accounts</a>
+        <span v-if="inactiveCount !== null" class="inactive-count">&nbsp;&middot;&nbsp;{{ inactiveCount }} inactive</span>
       </h2>
 
       <div class="filter">
         <input id="filter-input" type="text" v-model="filter" placeholder="Type to filter accounts..." />
+      </div>
+
+      <div class="hide-inactive">
+        <label>
+          <input type="checkbox" :checked="hideInactive" @change="onHideInactiveChange" />
+          Hide inactive
+        </label>
       </div>
 
       <div class="accounts-list">
@@ -24,6 +32,8 @@ import AccountCard from './AccountCard.vue'
 import AccountsApi from '@/mixins/api/Accounts.vue'
 import Loader from '@/elements/Loader.vue'
 
+const HIDE_INACTIVE_KEY = 'gaza-archive:accounts:hide-inactive'
+
 export default {
   mixins: [AccountsApi],
   components: {
@@ -36,17 +46,26 @@ export default {
       accounts: [],
       filter: '',
       loading: true,
+      hideInactive: true,
+      totalCount: 0,
+      inactiveCount: 0,
     }
   },
 
   computed: {
     filteredAccounts() {
-      const filter = this.filter?.toLowerCase()?.trim()
-      if (!filter?.length) {
-        return this.accounts
+      let accounts = this.accounts
+
+      if (this.hideInactive) {
+        accounts = accounts.filter(account => !['DELETED', 'SUSPENDED'].includes(account?.state))
       }
 
-      return this.accounts.filter(account =>
+      const filter = this.filter?.toLowerCase()?.trim()
+      if (!filter?.length) {
+        return accounts
+      }
+
+      return accounts.filter(account =>
         (account?.display_name || '').toLowerCase().includes(filter) ||
         (account?.fqn || '').toLowerCase().includes(filter) ||
         (account?.url || '').toLowerCase().includes(filter)
@@ -56,13 +75,75 @@ export default {
 
   methods: {
     async refresh() {
-      const accounts = await this.getAccounts()
+      const params = { hide_inactive: this.hideInactive }
+      let accounts, total = null, inactive = null
+
+      try {
+        const result = await this.getAccounts(params)
+        accounts = result.accounts
+        total = result.total
+        inactive = result.inactive
+      } catch (e) {
+        console.error('Failed to fetch accounts:', e)
+        return
+      }
+
+      // Fallback if headers were stripped
+      if (total === null || inactive === null) {
+        try {
+          const stats = await this.getAccountsStats()
+          if (stats.total !== undefined) {
+            total = stats.total
+          }
+          if (stats.inactive !== undefined) {
+            inactive = stats.inactive
+          }
+        } catch (e) {
+          console.warn('Failed to fetch account stats:', e)
+        }
+      }
+
+      // Last-resort client-side count: fetch an unfiltered list so hidden
+      // inactive accounts can still be counted.
+      if (inactive === null || total === null) {
+        let countAccounts = accounts
+        if (this.hideInactive) {
+          try {
+            countAccounts = (await this.getAccounts({ hide_inactive: false })).accounts
+          } catch (e) {
+            console.warn('Failed to fetch unfiltered accounts for counts:', e)
+          }
+        }
+        if (inactive === null) {
+          inactive = countAccounts.filter(account => ['DELETED', 'SUSPENDED'].includes(account?.state)).length
+        }
+        if (total === null) {
+          total = countAccounts.length
+        }
+      }
+
+      this.totalCount = total
+      this.inactiveCount = inactive
       // Shuffle accounts
       this.accounts = accounts.sort(() => Math.random() - 0.5)
+    },
+
+    persistAndRefresh() {
+      localStorage.setItem(HIDE_INACTIVE_KEY, this.hideInactive ? 'true' : 'false')
+      this.refresh()
+    },
+
+    onHideInactiveChange(event) {
+      this.hideInactive = event.target.checked
+      this.persistAndRefresh()
     }
   },
 
   async mounted() {
+    const saved = localStorage.getItem(HIDE_INACTIVE_KEY)
+    if (saved !== null) {
+      this.hideInactive = saved === 'true'
+    }
     try {
       await this.refresh()
     } finally {
@@ -85,6 +166,20 @@ export default {
   .filter {
     text-align: center;
     margin-bottom: 1em;
+  }
+
+  .hide-inactive {
+    text-align: center;
+    margin-bottom: 1em;
+
+    label {
+      cursor: pointer;
+      user-select: none;
+
+      input {
+        margin-right: 0.5em;
+      }
+    }
   }
 
   .accounts-list {

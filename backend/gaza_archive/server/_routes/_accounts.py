@@ -84,8 +84,13 @@ def _get_account_media(
     )
 
 
+def _is_inactive_state(state: str | None) -> bool:
+    return state in ("DELETED", "SUSPENDED")
+
+
 @router.get("", response_model=list[Account])
 def get_accounts(
+    response: Response,
     limit: int | None = Query(
         None, description="Maximum number of accounts to return."
     ),
@@ -93,11 +98,47 @@ def get_accounts(
         None,
         description="Number of accounts to skip before starting to collect the result set.",
     ),
+    hide_inactive: bool = Query(
+        False, description="Hide inactive accounts (DELETED and SUSPENDED)."
+    ),
+    state: SuspensionState | None = Query(
+        None, description="Filter by home instance suspension state."
+    ),
 ) -> list[Account]:
     """
     Get all accounts.
     """
-    return list(get_ctx().db.get_accounts(limit=limit, offset=offset).values())
+    ctx = get_ctx()
+    all_accounts = list(ctx.db.get_accounts().values())
+
+    if state:
+        filtered_by_state = [
+            account for account in all_accounts if account.state == state.value
+        ]
+    else:
+        filtered_by_state = all_accounts
+
+    total_count = len(filtered_by_state)
+    inactive_count = sum(
+        1 for account in filtered_by_state if _is_inactive_state(account.state)
+    )
+
+    if hide_inactive:
+        filtered = [
+            account
+            for account in filtered_by_state
+            if not _is_inactive_state(account.state)
+        ]
+    else:
+        filtered = filtered_by_state
+
+    start = offset or 0
+    end = start + limit if limit is not None else None
+    paginated = filtered[start:end]
+
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Inactive-Count"] = str(inactive_count)
+    return paginated
 
 
 @router.get("/rss", response_model=str)
@@ -119,6 +160,42 @@ def get_accounts_feed(
         content=FeedsGenerator(ctx.config).generate_accounts_feed(accounts),
         media_type="application/rss+xml",
     )
+
+
+@router.get("/stats")
+def get_accounts_stats() -> dict:
+    """
+    Get account statistics by suspension state.
+    """
+    ctx = get_ctx()
+    all_accounts = list(ctx.db.get_accounts().values())
+
+    total = len(all_accounts)
+    by_state: dict[str, int] = {}
+    for state in SuspensionState:
+        by_state[state.value] = 0
+    unknown = 0
+    for account in all_accounts:
+        account_state = account.state
+        if account_state is None:
+            unknown += 1
+        elif account_state in by_state:
+            by_state[account_state] += 1
+        else:
+            unknown += 1
+
+    if unknown:
+        by_state["UNKNOWN"] = unknown
+
+    inactive = by_state.get("DELETED", 0) + by_state.get("SUSPENDED", 0)
+    active = total - inactive
+
+    return {
+        "total": total,
+        "active": active,
+        "inactive": inactive,
+        "by_state": by_state,
+    }
 
 
 @router.get("/{account}", response_model=Account)

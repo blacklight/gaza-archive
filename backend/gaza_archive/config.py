@@ -45,6 +45,7 @@ class Config:  # pylint: disable=too-few-public-methods
     account_state_check_workers: int
     account_state_servers_limit: int
     account_state_custom_servers: list[str]
+    deleted_after_down_hours: float
     debug: bool
 
     def __post_init__(self):
@@ -168,5 +169,8 @@ class Config:  # pylint: disable=too-few-public-methods
                     )
                     if server
                 }
+            ),
+            deleted_after_down_hours=float(
+                os.getenv("DELETED_AFTER_DOWN_HOURS", "72.0")
             ),
         )

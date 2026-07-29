@@ -60,6 +60,32 @@ class SuspensionStates(ABC):
 
             return SuspensionState(state.state) if state else None
 
+    def get_home_instance_states(
+        self, account_urls: list[str]
+    ) -> dict[str, SuspensionState | None]:
+        """Get the home-instance suspension state for each account in one query."""
+        if not account_urls:
+            return {}
+
+        with self.get_session() as session:
+            states = (
+                session.query(DbAccountSuspensionState)
+                .filter(DbAccountSuspensionState.account_url.in_(account_urls))
+                .all()
+            )
+
+            by_account: dict[str, dict[str, SuspensionState]] = {}
+            for db_state in states:
+                by_account.setdefault(str(db_state.account_url), {})[
+                    str(db_state.server_url)
+                ] = SuspensionState(db_state.state)
+
+            result: dict[str, SuspensionState | None] = {}
+            for url in account_urls:
+                instance = f"https://{url.split('/')[2]}"
+                result[url] = by_account.get(url, {}).get(instance)
+            return result
+
     def save_suspension_states(
         self,
         account_url: str,

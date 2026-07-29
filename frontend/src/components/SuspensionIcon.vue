@@ -27,7 +27,7 @@ export default {
       const iconMap = {
         'LIMITED': 'fas fa-exclamation-triangle',
         'SUSPENDED': 'fas fa-ban',
-        'DELETED': 'fas fa-trash'
+        'DELETED': 'fas fa-user-slash'
       }
       return iconMap[this.state] || ''
     },

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 from ..config import Config
 from ..db import Db
-from ..errors import AccountNotFoundError, HttpError
+from ..errors import AccountDeletedError, HttpError
 from ..model import Account, Media, Post
 
 log = getLogger(__name__)
@@ -24,6 +24,8 @@ class MastodonApi(ABC):
 
     config: Config
     db: Db
+
+    _account_deleted_http_codes = {400, 401, 403, 404, 410}
 
     def _http_get(self, url: str, *args, **kwargs) -> dict:
         """
@@ -104,9 +106,9 @@ class MastodonApi(ABC):
                     params={"acct": account.username},
                 )
             except HttpError as exc:
-                if exc.status_code == 404:
-                    raise AccountNotFoundError(
-                        f"Account {account.username} not found on {account.instance}",
+                if exc.status_code in self._account_deleted_http_codes:
+                    raise AccountDeletedError(
+                        f"Account {account.username} appears to be deleted on {account.instance}",
                         account=account.username,
                     ) from exc
 
@@ -131,62 +133,73 @@ class MastodonApi(ABC):
 
     def refresh_account(self, account: Account) -> Account:
         """
-        Get the Mastodon ID of an account.
+        Refresh account information from the Mastodon API.
+
+        Raises AccountDeletedError for permanent deletion (4xx).
+        Raises HttpError or the original exception for temporary failures
+        (5xx / connection errors) so the caller can decide how to handle them.
         """
-        fetch_failed = False
-        account_info = {}
-
-        try:
-            if not account.id:
-                account.id = self._get_account_id(account)
-        except AccountNotFoundError as exc:
-            if not account.disabled:
-                log.warning(str(exc))
-
-            account.disabled = True
-            return account
-        except Exception as exc:
-            log.warning(
-                "Failed to get ID for account %s: %s",
-                account.url,
-                str(exc),
-                exc_info=True,
-            )
-            fetch_failed = True
-
-        if not fetch_failed:
+        if not account.id:
             try:
-                account_info = self._http_get(account.api_url)
-            except Exception as exc:
+                account.id = self._get_account_id(account)
+            except AccountDeletedError:
+                raise
+            except HttpError as exc:
+                if exc.status_code in self._account_deleted_http_codes:
+                    raise AccountDeletedError(
+                        f"Account {account.username} appears to be deleted on {account.instance}",
+                        account=account.username,
+                    ) from exc
                 log.warning(
-                    "Failed to refresh account %s: %s",
+                    "Failed to get ID for account %s: %s",
                     account.url,
                     str(exc),
                     exc_info=True,
                 )
-                fetch_failed = True
-
-        if fetch_failed:
-            db_account = self.db.get_account(account.url)
-            if db_account:
-                log.info(
-                    "Using cached account data for %s due to fetch failure",
+                raise
+            except Exception as exc:
+                log.warning(
+                    "Failed to get ID for account %s: %s",
                     account.url,
+                    str(exc),
+                    exc_info=True,
                 )
-                account = db_account
-            else:
-                return account
-        else:
-            account.id = str(account_info["id"])
-            account.display_name = account_info.get("display_name") or account.username
-            account.avatar_url = account_info.get("avatar_static")
-            account.header_url = account_info.get("header_static")
-            account.profile_note = account_info.get("note")
-            account.profile_fields = self._parse_profile_fields(
-                account_info.get("fields", [])
+                raise
+
+        try:
+            account_info = self._http_get(account.api_url)
+        except HttpError as exc:
+            if exc.status_code in self._account_deleted_http_codes:
+                raise AccountDeletedError(
+                    f"Account {account.username} appears to be deleted on {account.instance}",
+                    account=account.username,
+                ) from exc
+            log.warning(
+                "Failed to refresh account %s: %s",
+                account.url,
+                str(exc),
+                exc_info=True,
             )
-            account.disabled = bool(account_info["locked"])
-            account.created_at = self._convert_datetime(account_info["created_at"])
+            raise
+        except Exception as exc:
+            log.warning(
+                "Failed to refresh account %s: %s",
+                account.url,
+                str(exc),
+                exc_info=True,
+            )
+            raise
+
+        account.id = str(account_info["id"])
+        account.display_name = account_info.get("display_name") or account.username
+        account.avatar_url = account_info.get("avatar_static")
+        account.header_url = account_info.get("header_static")
+        account.profile_note = account_info.get("note")
+        account.profile_fields = self._parse_profile_fields(
+            account_info.get("fields", [])
+        )
+        account.disabled = bool(account_info["locked"])
+        account.created_at = self._convert_datetime(account_info["created_at"])
 
         campaign_url = self.get_campaign_url(account)
         if campaign_url:
@@ -194,19 +207,6 @@ class MastodonApi(ABC):
 
         log.debug("Refreshed account: %s", account.url)
         return account
-
-    def refresh_accounts(self, accounts: list[Account]) -> list[Account]:
-        """
-        Refresh multiple accounts concurrently.
-        """
-        with ThreadPoolExecutor(
-            max_workers=self.config.concurrent_requests
-        ) as executor:
-            return [
-                account
-                for account in executor.map(self.refresh_account, accounts)
-                if account and account.id
-            ]
 
     def refresh_account_posts(self, account: Account) -> list[Post]:
         last_fetched_id = account.last_status_id or 0
@@ -308,7 +308,11 @@ class MastodonApi(ABC):
         ) as executor:
             results = executor.map(
                 self.refresh_account_posts,
-                [account for account in accounts if not account.disabled],
+                [
+                    account
+                    for account in accounts
+                    if account.id and not account.disabled
+                ],
             )
 
             return list(

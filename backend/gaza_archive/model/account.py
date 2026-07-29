@@ -20,6 +20,9 @@ class Account(Item):
     campaign_url: str | None = None
     last_status_id: str | None = None
     created_at: datetime | None = None
+    instance_down_since: datetime | None = None
+    source_removed_since: datetime | None = None
+    state: str | None = None
 
     @computed_field
     @property
@@ -87,6 +90,8 @@ class Account(Item):
             and self.profile_fields == other.profile_fields
             and self.campaign_url == other.campaign_url
             and self.disabled == other.disabled
+            and self.instance_down_since == other.instance_down_since
+            and self.source_removed_since == other.source_removed_since
         )
 
     def merge(self, other: "Account") -> "Account":
@@ -104,28 +109,11 @@ class Account(Item):
         self.disabled = other.disabled
         if other.created_at:
             self.created_at = other.created_at
+        self.instance_down_since = other.instance_down_since
+        self.source_removed_since = other.source_removed_since
+        self.state = other.state
 
         return self
-
-    @computed_field
-    @property
-    def state(self) -> str | None:
-        """
-        Get suspension state for this account on its home instance.
-
-        This is lazy-loaded from the database and represents the authoritative
-        state of this account on its own Mastodon instance.
-        """
-        # Import here to avoid circular imports
-        from ..loop import get_client
-
-        client = get_client()
-        if not client or not hasattr(client, "db"):
-            return None
-
-        # Get state on this account's own instance
-        state = client.db.get_account_state_on_instance(self.url, self.instance_url)
-        return state.value if state else None
 
     @staticmethod
     def to_url(fqn: str) -> str:
