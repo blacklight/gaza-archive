@@ -32,29 +32,25 @@ class MastodonApi(ABC):
         Perform a GET request to the Mastodon API.
         """
         while True:
-            response = requests.get(
-                url,
-                *args,
-                timeout=kwargs.pop("timeout", self.config.http_timeout),
-                headers={
-                    "User-Agent": self.config.user_agent,
-                    "Accept": "application/json",
-                    **kwargs.pop("headers", {}),
-                },
-                **kwargs,
-            )
-
             try:
+                response = requests.get(
+                    url,
+                    *args,
+                    timeout=kwargs.pop("timeout", self.config.http_timeout),
+                    headers={
+                        "User-Agent": self.config.user_agent,
+                        "Accept": "application/json",
+                        **kwargs.pop("headers", {}),
+                    },
+                    **kwargs,
+                )
                 response.raise_for_status()
                 return response.json()
-            except requests.ConnectionError as exc:
-                raise HttpError(
-                    f"Connection error for {url}",
-                    exception=exc,
-                ) from exc
             except requests.HTTPError as exc:
-                if response.status_code == 429:
-                    rate_limit_reset_date = response.headers.get("X-RateLimit-Reset")
+                if exc.response is not None and exc.response.status_code == 429:
+                    rate_limit_reset_date = exc.response.headers.get(
+                        "X-RateLimit-Reset"
+                    )
                     if rate_limit_reset_date:
                         reset_timestamp = datetime.fromisoformat(
                             re.sub(r"Z$", "+00:00", rate_limit_reset_date)
@@ -71,12 +67,28 @@ class MastodonApi(ABC):
                         sleep_seconds,
                     )
                     time.sleep(sleep_seconds)
-                else:
-                    raise HttpError(
-                        f"HTTP error {response.status_code} for {url}",
-                        status_code=response.status_code,
-                        exception=exc,
-                    ) from exc
+                    continue
+
+                status_code = exc.response.status_code if exc.response else 0
+                raise HttpError(
+                    f"HTTP error {status_code} for {url}",
+                    status_code=status_code,
+                    exception=exc,
+                ) from exc
+            except requests.ConnectionError as exc:
+                raise HttpError(
+                    f"Connection error for {url}",
+                    exception=exc,
+                ) from exc
+            except requests.RequestException as exc:
+                status_code = 0
+                if exc.response is not None:
+                    status_code = exc.response.status_code
+                raise HttpError(
+                    f"Request error for {url}: {exc}",
+                    status_code=status_code,
+                    exception=exc,
+                ) from exc
 
     @staticmethod
     def _parse_profile_fields(fields: list[dict]) -> dict[str, str]:
@@ -140,31 +152,7 @@ class MastodonApi(ABC):
         (5xx / connection errors) so the caller can decide how to handle them.
         """
         if not account.id:
-            try:
-                account.id = self._get_account_id(account)
-            except AccountDeletedError:
-                raise
-            except HttpError as exc:
-                if exc.status_code in self._account_deleted_http_codes:
-                    raise AccountDeletedError(
-                        f"Account {account.username} appears to be deleted on {account.instance}",
-                        account=account.username,
-                    ) from exc
-                log.warning(
-                    "Failed to get ID for account %s: %s",
-                    account.url,
-                    str(exc),
-                    exc_info=True,
-                )
-                raise
-            except Exception as exc:
-                log.warning(
-                    "Failed to get ID for account %s: %s",
-                    account.url,
-                    str(exc),
-                    exc_info=True,
-                )
-                raise
+            account.id = self._get_account_id(account)
 
         try:
             account_info = self._http_get(account.api_url)
@@ -174,20 +162,6 @@ class MastodonApi(ABC):
                     f"Account {account.username} appears to be deleted on {account.instance}",
                     account=account.username,
                 ) from exc
-            log.warning(
-                "Failed to refresh account %s: %s",
-                account.url,
-                str(exc),
-                exc_info=True,
-            )
-            raise
-        except Exception as exc:
-            log.warning(
-                "Failed to refresh account %s: %s",
-                account.url,
-                str(exc),
-                exc_info=True,
-            )
             raise
 
         account.id = str(account_info["id"])

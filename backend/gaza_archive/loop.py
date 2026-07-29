@@ -1,4 +1,5 @@
 import logging
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from threading import Event, Thread
@@ -265,18 +266,20 @@ class Loop(Thread):
                     self._mark_deleted(
                         account, deleted_urls, clear_instance_down_since=True
                     )
+                except HttpError as exc:
+                    log.warning("Temporary error refreshing %s: %s", account.url, exc)
+                    refreshed_accounts.append(account)
+                    self._handle_temporary_failure(account, deleted_urls)
                 except Exception as exc:
-                    if isinstance(exc, HttpError):
-                        log.warning(
-                            "Temporary error refreshing %s: %s", account.url, exc
-                        )
-                    else:
-                        log.warning(
-                            "Error refreshing %s: %s",
-                            account.url,
-                            exc,
-                            exc_info=True,
-                        )
+                    log.warning("Error refreshing %s: %s", account.url, exc)
+                    log.warning(
+                        "Traceback:\n%s",
+                        "".join(
+                            traceback.format_exception(
+                                type(exc), exc, exc.__traceback__, chain=False
+                            )
+                        ),
+                    )
                     refreshed_accounts.append(account)
                     self._handle_temporary_failure(account, deleted_urls)
         return refreshed_accounts
