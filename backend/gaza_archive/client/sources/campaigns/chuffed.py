@@ -290,7 +290,22 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                 )
                 break
 
-            data = response.json()["data"]["campaign"]
+            resp_data = response.json()
+            errors = [
+                err.get("message")
+                for err in resp_data.get("errors")
+                if err.get("message")
+            ]
+
+            data = resp_data.get("data", {}).get("campaign")
+            if errors and not data:
+                log.error(
+                    "Error fetching donations from %s: %s",
+                    campaign.url,
+                    ", ".join(errors),
+                )
+                break
+
             donations_data = data["donations"]["edges"]
             page_info = data["donations"]["pageInfo"]
 
