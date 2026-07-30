@@ -5,9 +5,10 @@
       <h2>
         <b v-if="filter?.trim()?.length">{{ filteredAccounts.length }} / </b>
         <b>{{ totalCount }}</b>&nbsp;
-        <a href="https://gaza-verified.org" target="_blank" rel="noopener">verified accounts</a>
-        <span v-if="inactiveCount !== null" class="inactive-count">&nbsp;&middot;&nbsp;{{ inactiveCount }} inactive</span>
+        <a href="https://gaza-verified.org/people" target="_blank" rel="noopener">verified accounts</a>
       </h2>
+
+      <h3 v-if="inactiveCount !== null" class="inactive-count">{{ inactiveCount }} inactive</h3>
 
       <div class="filter">
         <input id="filter-input" type="text" v-model="filter" placeholder="Type to filter accounts..." />
@@ -157,10 +158,15 @@ export default {
 .accounts.view {
   padding: 0 1em;
 
-  h2 {
+  h2, h3 {
     font-weight: normal;
     text-align: center;
     margin-bottom: 0.5em;
+  }
+
+  .inactive-count {
+    margin-top: -0.5em;
+    opacity: 0.5;
   }
 
   .filter {
