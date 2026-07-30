@@ -106,9 +106,7 @@ class Loop(Thread):
         deleted_urls = self._collect_initial_deleted_urls(all_accounts_by_url)
 
         if not verified_fetch_failed:
-            self._apply_source_removal(
-                all_accounts_by_url, verified_urls, deleted_urls
-            )
+            self._apply_source_removal(all_accounts_by_url, verified_urls, deleted_urls)
 
         refreshed_accounts = self._refresh_accounts_concurrently(
             all_accounts_by_url, deleted_urls
@@ -156,9 +154,7 @@ class Loop(Thread):
         # Pre-populate deleted URLs with the current DB state so that previously
         # deleted accounts that are still unreachable are not treated as active.
         deleted_urls: set[str] = set()
-        home_states = self.db.get_home_instance_states(
-            list(all_accounts_by_url.keys())
-        )
+        home_states = self.db.get_home_instance_states(list(all_accounts_by_url.keys()))
         for url, state in home_states.items():
             if state == SuspensionState.DELETED:
                 deleted_urls.add(url)
@@ -206,9 +202,7 @@ class Loop(Thread):
         )
         deleted_urls.add(account.url)
 
-    def _handle_refresh_success(
-        self, account: Account, deleted_urls: set[str]
-    ) -> None:
+    def _handle_refresh_success(self, account: Account, deleted_urls: set[str]) -> None:
         # Instance is reachable; clear instance-down tracking.
         account.instance_down_since = None
         # Only reactivate accounts that are not currently removed from source.
@@ -216,10 +210,7 @@ class Loop(Thread):
             current_state = self.db.get_account_state_on_instance(
                 account.url, account.instance_url
             )
-            if (
-                current_state == SuspensionState.DELETED
-                or account.url in deleted_urls
-            ):
+            if current_state == SuspensionState.DELETED or account.url in deleted_urls:
                 self.db.save_suspension_states(
                     account.url, {account.instance_url: SuspensionState.ACTIVE}
                 )
@@ -231,7 +222,8 @@ class Loop(Thread):
         if account.instance_down_since is None:
             account.instance_down_since = _naive_utc(datetime.now(timezone.utc))
         down_hours = (
-            _naive_utc(datetime.now(timezone.utc)) - _naive_utc(account.instance_down_since)
+            _naive_utc(datetime.now(timezone.utc))
+            - _naive_utc(account.instance_down_since)
         ).total_seconds() / 3600
         if down_hours > self.config.deleted_after_down_hours:
             log.warning(
