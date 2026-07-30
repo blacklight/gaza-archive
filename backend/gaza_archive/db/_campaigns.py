@@ -10,6 +10,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Query, Session
 
 from ..config import Config
+from ..utils import naive_utc
 from ..model import (
     Account,
     ApiSortType,
@@ -497,7 +498,7 @@ class Campaigns(ABC):
                 }
                 for donation in campaign.donations:
                     prev = donations_by_id.get(donation.id)
-                    if prev is None or donation.created_at > prev.created_at:
+                    if prev is None or naive_utc(donation.created_at) > naive_utc(prev.created_at):
                         donations_by_id[donation.id] = donation
 
                 existing.donations = list(donations_by_id.values())
@@ -512,7 +513,7 @@ class Campaigns(ABC):
                 }
                 for donation in campaign.donations:
                     prev = donations_by_id.get(donation.id)
-                    if prev is None or donation.created_at > prev.created_at:
+                    if prev is None or naive_utc(donation.created_at) > naive_utc(prev.created_at):
                         donations_by_id[donation.id] = donation
                 campaign.donations = list(donations_by_id.values())
 
