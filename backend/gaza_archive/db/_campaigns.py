@@ -19,6 +19,7 @@ from ..model import (
     CampaignDonationInfo,
     CampaignStats,
     CampaignStatsAmount,
+    SuspensionState,
 )
 from ._model import (
     Account as DbAccount,
@@ -128,6 +129,7 @@ class Campaigns(ABC):
         limit: int | None = None,
         offset: int | None = None,
         currency: str | None = None,
+        show_deleted: bool = False,
     ) -> CampaignStats:
         with self.get_session() as session:
             group_columns = {}
@@ -156,6 +158,7 @@ class Campaigns(ABC):
                 func.max(last_post_subquery.c.last_activity_time).label(
                     "last_activity_time"
                 ),
+                func.max(DbCampaign.state).label("state"),
             ]
 
             # Build the join conditions for donations
@@ -185,6 +188,15 @@ class Campaigns(ABC):
                 query = self._donors_filter(query, donors)
 
             query = self._excluded_campaign_accounts_filter(query)
+
+            if not show_deleted:
+                query = query.filter(
+                    or_(
+                        DbCampaign.state.is_(None),
+                        DbCampaign.state != SuspensionState.DELETED,
+                    )
+                )
+
             query = query.group_by(*group_columns.values())
             query = self._apply_sort(
                 query,
@@ -218,6 +230,7 @@ class Campaigns(ABC):
         limit: int | None = None,
         offset: int | None = None,
         currency: str | None = None,
+        show_deleted: bool = False,
     ) -> list[CampaignDonationInfo]:
         with self.get_session() as session:
             query = (
@@ -236,6 +249,15 @@ class Campaigns(ABC):
                 query = query.filter(DbCampaignDonation.created_at <= end_time)
 
             query = self._excluded_campaign_accounts_filter(query)
+
+            if not show_deleted:
+                query = query.filter(
+                    or_(
+                        DbCampaign.state.is_(None),
+                        DbCampaign.state != SuspensionState.DELETED,
+                    )
+                )
+
             query = self._apply_sort(
                 query, sort or [("donation.created_at", ApiSortType.DESC)]
             )
@@ -271,15 +293,21 @@ class Campaigns(ABC):
         group_columns: dict[str, Any] | None = None,
         currency: str | None = None,
     ) -> CampaignStats:
-        nested_dict = lambda: defaultdict(nested_dict)
+        def nested_dict():
+            return defaultdict(nested_dict)
+
         data = defaultdict(nested_dict)
         group_columns = group_columns or {}
 
         for record in records:
-            amount, first_donation_time, last_donation_time, last_activity_time = (
-                record[-4:]
-            )
-            columns = record[:-4]
+            (
+                amount,
+                first_donation_time,
+                last_donation_time,
+                last_activity_time,
+                state,
+            ) = record[-5:]
+            columns = record[:-5]
             group_key = []
             group_value = []
             data_node = data
@@ -301,6 +329,13 @@ class Campaigns(ABC):
                 data_node["group_value"] = list(group_value)  # type: ignore
                 if account:
                     data_node["account"] = account.to_model()
+
+                if group_field in ("account.url", "campaign.url"):
+                    data_node["state"] = (
+                        state
+                        if state is None or isinstance(state, SuspensionState)
+                        else SuspensionState(state)
+                    )
 
                 if i == len(group_columns) - 1:
                     data_node["amount"] = CampaignStatsAmount(
@@ -334,6 +369,7 @@ class Campaigns(ABC):
                 "first_donation_time",
                 "last_donation_time",
                 "last_activity_time",
+                "state",
             ):
                 args[key] = value
             else:
@@ -494,9 +530,17 @@ class Campaigns(ABC):
             for campaign in campaigns:
                 db_campaign = db_campaigns.get(campaign.url)
                 if not db_campaign:
+                    if (
+                        not campaign.donations
+                        and campaign.state is None
+                        and campaign.down_since is None
+                    ):
+                        continue
+
                     log.info(
-                        "Adding new campaign with %d donations: %s",
+                        "Adding new campaign with %d donations (state=%s): %s",
                         len(campaign.donations),
+                        campaign.state,
                         campaign.url,
                     )
                     session.merge(DbCampaign.from_model(campaign))
@@ -513,7 +557,10 @@ class Campaigns(ABC):
                         for donation in campaign.donations:
                             existing_row = existing_rows.get(donation.id)
                             if existing_row:
-                                if str(existing_row.campaign_url) != donation.campaign_url:
+                                if (
+                                    str(existing_row.campaign_url)
+                                    != donation.campaign_url
+                                ):
                                     log.info(
                                         "Moving donation %s from %s to %s",
                                         donation.id,
@@ -527,51 +574,53 @@ class Campaigns(ABC):
                                 session.add(existing_row)
                             else:
                                 session.add(DbCampaignDonation.from_model(donation))
-                elif db_campaign.donations_cursor != campaign.donations_cursor:
-                    existing_donations = {
-                        donation.id for donation in db_campaign.donations
+                    continue
+
+                db_campaign.state = campaign.state
+                db_campaign.down_since = campaign.down_since
+                db_campaign.donations_cursor = campaign.donations_cursor
+
+                existing_donations = {donation.id for donation in db_campaign.donations}
+                new_donations = [
+                    donation
+                    for donation in campaign.donations
+                    if donation.id not in existing_donations
+                ]
+
+                if new_donations:
+                    log.info(
+                        "Added %d donations to campaign: %s",
+                        len(new_donations),
+                        campaign.url,
+                    )
+
+                    donation_ids = [donation.id for donation in new_donations]
+                    existing_rows = {
+                        str(row.id): row
+                        for row in session.query(DbCampaignDonation)
+                        .filter(DbCampaignDonation.id.in_(donation_ids))
+                        .all()
                     }
-                    new_donations = [
-                        donation
-                        for donation in campaign.donations
-                        if donation.id not in existing_donations
-                    ]
 
-                    db_campaign.donations_cursor = campaign.donations_cursor
-                    if new_donations:
-                        log.info(
-                            "Added %d donations to campaign: %s",
-                            len(new_donations),
-                            campaign.url,
-                        )
+                    for donation in new_donations:
+                        existing_row = existing_rows.get(donation.id)
+                        if existing_row:
+                            if str(existing_row.campaign_url) != donation.campaign_url:
+                                log.info(
+                                    "Moving donation %s from %s to %s",
+                                    donation.id,
+                                    existing_row.campaign_url,
+                                    donation.campaign_url,
+                                )
+                                existing_row.campaign_url = donation.campaign_url
+                            existing_row.donor = donation.donor
+                            existing_row.amount = donation.amount
+                            existing_row.created_at = donation.created_at
+                            session.add(existing_row)
+                        else:
+                            session.add(DbCampaignDonation.from_model(donation))
 
-                        donation_ids = [donation.id for donation in new_donations]
-                        existing_rows = {
-                            str(row.id): row
-                            for row in session.query(DbCampaignDonation)
-                            .filter(DbCampaignDonation.id.in_(donation_ids))
-                            .all()
-                        }
-
-                        for donation in new_donations:
-                            existing_row = existing_rows.get(donation.id)
-                            if existing_row:
-                                if str(existing_row.campaign_url) != donation.campaign_url:
-                                    log.info(
-                                        "Moving donation %s from %s to %s",
-                                        donation.id,
-                                        existing_row.campaign_url,
-                                        donation.campaign_url,
-                                    )
-                                    existing_row.campaign_url = donation.campaign_url
-                                existing_row.donor = donation.donor
-                                existing_row.amount = donation.amount
-                                existing_row.created_at = donation.created_at
-                                session.add(existing_row)
-                            else:
-                                session.add(DbCampaignDonation.from_model(donation))
-
-                    session.add(db_campaign)
+                session.add(db_campaign)
 
             session.commit()
 

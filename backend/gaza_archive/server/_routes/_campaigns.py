@@ -22,6 +22,7 @@ def _get_campaigns(
     limit: int | None = None,
     offset: int | None = None,
     currency: str | None = None,
+    show_deleted: bool = False,
 ) -> CampaignStats:
     accounts = api_split_args(accounts) if accounts else None
     donors = api_split_args(donors) if donors else None
@@ -48,6 +49,7 @@ def _get_campaigns(
         limit=limit,
         offset=offset,
         currency=currency,
+        show_deleted=show_deleted,
     )
 
 
@@ -61,6 +63,7 @@ def _get_donations(
     limit: int | None = None,
     offset: int | None = None,
     currency: str | None = None,
+    show_deleted: bool = False,
 ) -> list[CampaignDonationInfo]:
     """
     Get campaigns donations.
@@ -84,6 +87,7 @@ def _get_donations(
         limit=limit,
         offset=offset,
         currency=currency,
+        show_deleted=show_deleted,
     )
 
 
@@ -133,10 +137,24 @@ def get_accounts_campaigns(
         None,
         description="Currency code for amounts (default: USD).",
     ),
+    show_deleted: bool = Query(
+        False,
+        description="Include deleted campaigns in the response.",
+    ),
+    hide_inactive: bool | None = Query(
+        None,
+        description=(
+            "Convenience alias: when true, hide deleted campaigns; "
+            "when false, show them. Overrides show_deleted if provided."
+        ),
+    ),
 ):
     """
     Get account campaigns stats.
     """
+    if hide_inactive is not None:
+        show_deleted = not hide_inactive
+
     if not group_by:
         group_by = []
     if "account.url" not in group_by:
@@ -153,6 +171,7 @@ def get_accounts_campaigns(
             limit=limit,
             offset=offset,
             currency=currency,
+            show_deleted=show_deleted,
         )
     except PermissionError as e:
         return Response(content=str(e), status_code=403)
@@ -204,10 +223,24 @@ def get_account_campaigns(
         None,
         description="Currency code for amounts (default: USD).",
     ),
+    show_deleted: bool = Query(
+        False,
+        description="Include deleted campaigns in the response.",
+    ),
+    hide_inactive: bool | None = Query(
+        None,
+        description=(
+            "Convenience alias: when true, hide deleted campaigns; "
+            "when false, show them. Overrides show_deleted if provided."
+        ),
+    ),
 ):
     """
     Get campaign stats for a specific account.
     """
+    if hide_inactive is not None:
+        show_deleted = not hide_inactive
+
     if not group_by:
         group_by = []
     if "account.url" not in group_by:
@@ -224,6 +257,7 @@ def get_account_campaigns(
             limit=limit,
             offset=offset,
             currency=currency,
+            show_deleted=show_deleted,
         )
     except PermissionError as e:
         return Response(content=str(e), status_code=403)
@@ -268,6 +302,10 @@ def get_donations(
         None,
         description="Currency code for amounts (default: USD).",
     ),
+    show_deleted: bool = Query(
+        False,
+        description="Include donations from deleted campaigns in the response.",
+    ),
 ):
     """
     Get campaigns donations.
@@ -283,6 +321,7 @@ def get_donations(
             limit=limit,
             offset=offset,
             currency=currency,
+            show_deleted=show_deleted,
         )
     except PermissionError as e:
         return Response(content=str(e), status_code=403)
@@ -327,6 +366,10 @@ def get_account_donations(
         None,
         description="Currency code for amounts (default: USD).",
     ),
+    show_deleted: bool = Query(
+        False,
+        description="Include donations from deleted campaigns in the response.",
+    ),
 ):
     """
     Get donations for a specific account.
@@ -342,6 +385,7 @@ def get_account_donations(
             limit=limit,
             offset=offset,
             currency=currency,
+            show_deleted=show_deleted,
         )
     except PermissionError as e:
         return Response(content=str(e), status_code=403)
@@ -394,10 +438,24 @@ def get_accounts_donors(
         None,
         description="Currency code for amounts (default: USD).",
     ),
+    show_deleted: bool = Query(
+        False,
+        description="Include deleted campaigns in the response.",
+    ),
+    hide_inactive: bool | None = Query(
+        None,
+        description=(
+            "Convenience alias: when true, hide deleted campaigns; "
+            "when false, show them. Overrides show_deleted if provided."
+        ),
+    ),
 ):
     """
     Get campaigns stats by donors.
     """
+    if hide_inactive is not None:
+        show_deleted = not hide_inactive
+
     if not group_by:
         group_by = []
     if "donation.donor" not in group_by:
@@ -414,6 +472,7 @@ def get_accounts_donors(
             limit=limit,
             offset=offset,
             currency=currency,
+            show_deleted=show_deleted,
         )
     except PermissionError as e:
         return Response(content=str(e), status_code=403)

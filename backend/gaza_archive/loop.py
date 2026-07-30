@@ -12,16 +12,10 @@ from .errors import AccountDeletedError, HttpError
 from .model import Account, Campaign
 from .model.suspension import SuspensionState
 from .storages import FileStorage
+from .utils import naive_utc
 
 log = logging.getLogger(__name__)
 _client: Client | None = None
-
-
-def _naive_utc(dt: datetime) -> datetime:
-    """Return a naive UTC datetime, converting/removing tzinfo if present."""
-    if dt.tzinfo is not None:
-        return dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
 
 
 def get_client() -> Client | None:
@@ -166,7 +160,7 @@ class Loop(Thread):
         verified_urls: set[str],
         deleted_urls: set[str],
     ) -> None:
-        now = _naive_utc(datetime.now(timezone.utc))
+        now = naive_utc(datetime.now(timezone.utc))
         for account in list(all_accounts_by_url.values()):
             if account.url not in verified_urls:
                 if account.source_removed_since is None:
@@ -174,7 +168,7 @@ class Loop(Thread):
                     log.info("Account %s no longer in source", account.url)
                 else:
                     down_hours = (
-                        now - _naive_utc(account.source_removed_since)
+                        now - naive_utc(account.source_removed_since)
                     ).total_seconds() / 3600
                     if down_hours > self.config.deleted_after_down_hours:
                         log.warning(
@@ -220,10 +214,10 @@ class Loop(Thread):
         self, account: Account, deleted_urls: set[str]
     ) -> None:
         if account.instance_down_since is None:
-            account.instance_down_since = _naive_utc(datetime.now(timezone.utc))
+            account.instance_down_since = naive_utc(datetime.now(timezone.utc))
         down_hours = (
-            _naive_utc(datetime.now(timezone.utc))
-            - _naive_utc(account.instance_down_since)
+            naive_utc(datetime.now(timezone.utc))
+            - naive_utc(account.instance_down_since)
         ).total_seconds() / 3600
         if down_hours > self.config.deleted_after_down_hours:
             log.warning(

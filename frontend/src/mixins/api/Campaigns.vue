@@ -97,6 +97,18 @@ export default {
         params.offset = parseInt(this.$route.query.offset, 10)
       }
 
+      if (this.$route.query.show_deleted === 'true' || this.$route.query.show_deleted === true) {
+        params.show_deleted = true
+      }
+
+      if (this.$route.query.hide_inactive === 'false' || this.$route.query.hide_inactive === false) {
+        params.show_deleted = true
+      }
+
+      if (this.$route.query.hide_inactive === 'true' || this.$route.query.hide_inactive === true) {
+        params.show_deleted = false
+      }
+
       return Object.keys(params).length ? params : null
     },
 
@@ -149,6 +161,10 @@ export default {
         query.offset = params.offset
       } else {
         query.offset = null
+      }
+
+      if (params.show_deleted) {
+        query.show_deleted = 'true'
       }
 
       return query

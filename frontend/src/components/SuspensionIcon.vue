@@ -11,6 +11,11 @@ export default {
       type: String,
       required: false,
       default: null
+    },
+    context: {
+      type: String,
+      required: false,
+      default: 'account'
     }
   },
 
@@ -37,6 +42,9 @@ export default {
         'LIMITED': 'Account is limited on home instance',
         'SUSPENDED': 'Account is suspended on home instance',
         'DELETED': 'Account is deleted on home instance'
+      }
+      if (this.context === 'campaign') {
+        tooltipMap.DELETED = 'Campaign is deleted'
       }
       return tooltipMap[this.state] || ''
     }

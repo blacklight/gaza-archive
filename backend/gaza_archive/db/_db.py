@@ -42,30 +42,55 @@ class Db(CurrencyConverter, Accounts, Campaigns, Media, Posts, Bots, SuspensionS
         columns or alter constraints on existing tables. This method brings old
         databases in line with the current ORM definitions.
         """
-        inspector = inspect(self.engine)
+        with self.engine.begin() as conn:
+            self._migrate_accounts(conn)
+            self._migrate_campaigns(conn)
+
+    def _migrate_accounts(self, conn):
+        """Apply migrations for the accounts table."""
+        inspector = inspect(conn)
+        if not inspector.has_table("accounts"):
+            return
+
         columns = {c["name"] for c in inspector.get_columns("accounts")}
 
-        with self.engine.begin() as conn:
-            if "instance_down_since" not in columns:
-                conn.execute(
-                    text("ALTER TABLE accounts ADD COLUMN instance_down_since DATETIME")
-                )
-                log.info("Added instance_down_since column to accounts table")
-            if "source_removed_since" not in columns:
-                conn.execute(
-                    text(
-                        "ALTER TABLE accounts ADD COLUMN source_removed_since DATETIME"
-                    )
-                )
-                log.info("Added source_removed_since column to accounts table")
-
-            id_column = next(
-                (c for c in inspector.get_columns("accounts") if c["name"] == "id"),
-                None,
+        if "instance_down_since" not in columns:
+            conn.execute(
+                text("ALTER TABLE accounts ADD COLUMN instance_down_since DATETIME")
             )
-            if id_column and not id_column.get("nullable"):
-                conn.execute(text("ALTER TABLE accounts ALTER COLUMN id DROP NOT NULL"))
-                log.info("Made accounts.id nullable")
+            log.info("Added instance_down_since column to accounts table")
+        if "source_removed_since" not in columns:
+            conn.execute(
+                text("ALTER TABLE accounts ADD COLUMN source_removed_since DATETIME")
+            )
+            log.info("Added source_removed_since column to accounts table")
+
+        id_column = next(
+            (c for c in inspector.get_columns("accounts") if c["name"] == "id"),
+            None,
+        )
+        if id_column and not id_column.get("nullable"):
+            conn.execute(text("ALTER TABLE accounts ALTER COLUMN id DROP NOT NULL"))
+            log.info("Made accounts.id nullable")
+
+    def _migrate_campaigns(self, conn):
+        """Apply migrations for the campaigns table."""
+        inspector = inspect(conn)
+        if not inspector.has_table("campaigns"):
+            return
+
+        campaign_columns = {c["name"] for c in inspector.get_columns("campaigns")}
+
+        if "state" not in campaign_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE campaigns ADD COLUMN state VARCHAR(20) DEFAULT 'ACTIVE'"
+                )
+            )
+            log.info("Added state column to campaigns table")
+        if "down_since" not in campaign_columns:
+            conn.execute(text("ALTER TABLE campaigns ADD COLUMN down_since DATETIME"))
+            log.info("Added down_since column to campaigns table")
 
     @contextmanager
     def get_session(self):

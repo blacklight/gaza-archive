@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import requests
 
+from ....errors import CampaignDeletedError, HttpError
 from ....model.campaign import Campaign, CampaignDonation
 from ._source import CampaignSource
 
@@ -89,7 +90,7 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
 
         return None
 
-    def _get_fundraiser_info(self, slug: str) -> dict[str, Any] | None:
+    def _get_fundraiser_info(self, slug: str) -> dict[str, Any]:
         """Fetch public fundraiser metadata, including the campaign currency."""
         response = requests.get(
             self._fundraiser_api_url,
@@ -101,18 +102,33 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            log.warning(
-                "Cannot fetch fundraiser info for %s: %s: %s",
-                slug,
-                response.status_code,
-                e,
-            )
-            return None
+            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
+                raise CampaignDeletedError(
+                    f"WhyDonate fundraiser {slug} not found: {response.status_code}",
+                    campaign_url=f"https://whydonate.com/fundraising/{slug}",
+                    status_code=response.status_code,
+                ) from e
+            if response.status_code >= 500:
+                raise HttpError(
+                    f"Server error fetching fundraiser info for {slug}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            raise
+        except requests.RequestException as e:
+            raise HttpError(
+                f"Connection error fetching fundraiser info for {slug}",
+                status_code=503,
+                exception=e,
+            ) from e
 
         result = response.json().get("data", {}).get("result")
         if not result:
-            log.warning("Could not parse fundraiser info for %s", slug)
-            return None
+            raise CampaignDeletedError(
+                f"WhyDonate fundraiser {slug} has no data",
+                campaign_url=f"https://whydonate.com/fundraising/{slug}",
+                status_code=404,
+            )
 
         return result
 
@@ -281,13 +297,28 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
                     sleep(sleep_seconds)
                     continue
 
-                log.error(
-                    "HTTP error %d fetching donations from %s: %s",
-                    response.status_code,
-                    campaign.url,
-                    e,
-                )
-                break
+                if (
+                    response.status_code in (404, 410)
+                    or 400 <= response.status_code < 500
+                ):
+                    raise CampaignDeletedError(
+                        f"Campaign {campaign.url} not found: {response.status_code}",
+                        campaign_url=campaign.url,
+                        status_code=response.status_code,
+                    ) from e
+                if response.status_code >= 500:
+                    raise HttpError(
+                        f"Server error fetching donations from {campaign.url}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
+                raise
+            except requests.RequestException as e:
+                raise HttpError(
+                    f"Connection error fetching donations from {campaign.url}",
+                    status_code=503,
+                    exception=e,
+                ) from e
 
             data = response.json().get("data", {}).get("result", {})
             donations_data = data.get("result", [])

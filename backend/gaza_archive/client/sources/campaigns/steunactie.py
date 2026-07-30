@@ -7,6 +7,7 @@ from time import sleep
 import requests
 from bs4 import BeautifulSoup
 
+from ....errors import CampaignDeletedError, HttpError
 from ....model.campaign import Campaign, CampaignDonation
 from ._source import CampaignSource
 
@@ -47,13 +48,25 @@ class SteunactieCampaignSource(
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            log.warning(
-                "Cannot fetch ID for campaign %s: %s: %s",
-                campaign_url,
-                response.status_code,
-                e,
-            )
-            return None
+            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
+                raise CampaignDeletedError(
+                    f"Cannot fetch ID for campaign {campaign_url}: {response.status_code}",
+                    campaign_url=campaign_url,
+                    status_code=response.status_code,
+                ) from e
+            if response.status_code >= 500:
+                raise HttpError(
+                    f"Server error fetching campaign ID for {campaign_url}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            raise
+        except requests.RequestException as e:
+            raise HttpError(
+                f"Connection error fetching campaign ID for {campaign_url}",
+                status_code=503,
+                exception=e,
+            ) from e
 
         location = response.headers.get("Location", "")
         match = re.search(r".*/-([0-9]+)(\?.*)*", location)
@@ -84,7 +97,9 @@ class SteunactieCampaignSource(
             weeks = int(match.group("weeks") or 0)
             days = int(match.group("days") or 0)
             hours = int(match.group("hours") or 0)
-            return datetime.now(timezone.utc) - timedelta(weeks=weeks, days=days, hours=hours)
+            return datetime.now(timezone.utc) - timedelta(
+                weeks=weeks, days=days, hours=hours
+            )
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         campaign_id = self._get_campaign_id(campaign.url)
@@ -118,13 +133,28 @@ class SteunactieCampaignSource(
                     sleep(sleep_seconds)
                     continue
 
-                log.error(
-                    "HTTP error %d fetching donations from %s: %s",
-                    response.status_code,
-                    campaign.url,
-                    e,
-                )
-                break
+                if (
+                    response.status_code in (404, 410)
+                    or 400 <= response.status_code < 500
+                ):
+                    raise CampaignDeletedError(
+                        f"Campaign {campaign.url} not found: {response.status_code}",
+                        campaign_url=campaign.url,
+                        status_code=response.status_code,
+                    ) from e
+                if response.status_code >= 500:
+                    raise HttpError(
+                        f"Server error fetching donations from {campaign.url}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
+                raise
+            except requests.RequestException as e:
+                raise HttpError(
+                    f"Connection error fetching donations from {campaign.url}",
+                    status_code=503,
+                    exception=e,
+                ) from e
 
             # Example HTML item structure:
             #     <li class="list-group-item flex-column align-items-start">
@@ -183,8 +213,10 @@ class SteunactieCampaignSource(
 
                 # Generate a donation ID based on donation datetime and a random component,
                 # in lack of better identifiers.
-                donation_id = int(f"{donation_date.strftime('%Y%m%d%H')}{randint(1000, 9999)}")
-                donation_cursor = int(donation_date.strftime('%Y%m%d%H'))
+                donation_id = int(
+                    f"{donation_date.strftime('%Y%m%d%H')}{randint(1000, 9999)}"
+                )
+                donation_cursor = int(donation_date.strftime("%Y%m%d%H"))
                 if donation_cursor < int(current_cursor or 0):
                     all_new_donations_fetched = True
                     break  # We have reached already fetched donations
@@ -208,7 +240,10 @@ class SteunactieCampaignSource(
         campaign.donations = donations
         campaign.donations_cursor = str(
             max(
-                *[int(donation.created_at.strftime('%Y%m%d%H')) for donation in donations],
+                *[
+                    int(donation.created_at.strftime("%Y%m%d%H"))
+                    for donation in donations
+                ],
                 int(current_cursor or 0),
             )
         )

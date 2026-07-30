@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, computed_field, field_serializer
 
 from ._base import Item
 from .account import Account
+from .suspension import SuspensionState
 
 
 class CampaignType(Enum):
@@ -37,6 +38,8 @@ class Campaign(Item):
     account_url: str
     donations_cursor: str | None = None
     donations: list[CampaignDonation] = Field(default_factory=list)
+    state: SuspensionState | None = None
+    down_since: datetime | None = None
 
     @computed_field
     @property
@@ -233,6 +236,7 @@ class CampaignStats(BaseModel):
     data: list["CampaignStats"] | list["CampaignAccountStats"] = Field(
         default_factory=list
     )
+    state: SuspensionState | None = None
     _amount: CampaignStatsAmount | None = None
     _first_donation_time: datetime | None = None
     _last_donation_time: datetime | None = None

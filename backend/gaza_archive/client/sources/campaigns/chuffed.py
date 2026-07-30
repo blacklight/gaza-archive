@@ -7,6 +7,7 @@ from typing import Any
 
 import requests
 
+from ....errors import CampaignDeletedError, HttpError
 from ....model.campaign import Campaign, CampaignDonation
 from ._source import CampaignSource
 
@@ -125,13 +126,28 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                     sleep(sleep_seconds)
                     continue
 
-                log.error(
-                    "HTTP error %d fetching reconciliation donations from %s: %s",
-                    response.status_code,
-                    campaign.url,
-                    e,
-                )
-                return
+                if (
+                    response.status_code in (404, 410)
+                    or 400 <= response.status_code < 500
+                ):
+                    raise CampaignDeletedError(
+                        f"Campaign {campaign.url} not found during reconciliation: {response.status_code}",
+                        campaign_url=campaign.url,
+                        status_code=response.status_code,
+                    ) from e
+                if response.status_code >= 500:
+                    raise HttpError(
+                        f"Server error reconciling {campaign.url}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
+                raise
+            except requests.RequestException as e:
+                raise HttpError(
+                    f"Connection error reconciling {campaign.url}",
+                    status_code=503,
+                    exception=e,
+                ) from e
 
             data = response.json().get("data", {}).get("campaign")
             if not data:
@@ -216,13 +232,25 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            log.warning(
-                "Cannot fetch ID for campaign %s: %s: %s",
-                campaign_url,
-                response.status_code,
-                e,
-            )
-            return None
+            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
+                raise CampaignDeletedError(
+                    f"Cannot fetch ID for campaign {campaign_url}: {response.status_code}",
+                    campaign_url=campaign_url,
+                    status_code=response.status_code,
+                ) from e
+            if response.status_code >= 500:
+                raise HttpError(
+                    f"Server error fetching campaign ID for {campaign_url}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            raise
+        except requests.RequestException as e:
+            raise HttpError(
+                f"Connection error fetching campaign ID for {campaign_url}",
+                status_code=503,
+                exception=e,
+            ) from e
 
         match = re.search(r"campaignId: '([\w-]+)'", response.text, re.DOTALL)
         if not match:
@@ -235,7 +263,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
 
     def _fetch_api_donations(
         self, campaign: Campaign, campaign_id: str, limit: int, page_cursor: str | None
-    ) -> tuple[dict[str, Any] | None, bool, bool]:
+    ) -> tuple[dict[str, Any] | None, bool]:
         log.debug(
             "Fetching donations from %s (cursor=%s, limit=%s)",
             campaign.url,
@@ -268,17 +296,28 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                     sleep_seconds,
                 )
                 sleep(sleep_seconds)
-                # No data, should_break=False, should_continue=True
-                return None, False, True
+                # No data, should_continue=True
+                return None, True
 
-            log.error(
-                "HTTP error %d fetching donations from %s: %s",
-                response.status_code,
-                campaign.url,
-                e,
-            )
-            # No data, should_break=True, should_continue=False
-            return None, True, False
+            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
+                raise CampaignDeletedError(
+                    f"Campaign {campaign.url} not found: {response.status_code}",
+                    campaign_url=campaign.url,
+                    status_code=response.status_code,
+                ) from e
+            if response.status_code >= 500:
+                raise HttpError(
+                    f"Server error fetching donations from {campaign.url}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            raise
+        except requests.RequestException as e:
+            raise HttpError(
+                f"Connection error fetching donations from {campaign.url}",
+                status_code=503,
+                exception=e,
+            ) from e
 
         resp_data = response.json()
         errors = [
@@ -303,17 +342,22 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                     page_cursor=None,
                 )
 
-            # Otherwise, something else is wrong
-            log.error(
-                "Error fetching donations from %s: %s",
-                campaign.url,
-                ", ".join(errors),
+            # Otherwise, the campaign data is missing: treat as deleted.
+            raise CampaignDeletedError(
+                f"Campaign {campaign.url} has no data: {', '.join(errors)}",
+                campaign_url=campaign.url,
+                status_code=404,
             )
-            # No data, should_break=True, should_continue=False
-            return None, True, False
 
-        # Data, should_break=False, should_continue=False
-        return data, False, False
+        if not data:
+            raise CampaignDeletedError(
+                f"Campaign {campaign.url} has no data",
+                campaign_url=campaign.url,
+                status_code=404,
+            )
+
+        # Data, should_continue=False
+        return data, False
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         campaign_id = self._get_campaign_id(campaign.url)
@@ -331,15 +375,12 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         )
 
         while True:
-            data, should_break, should_continue = self._fetch_api_donations(
+            data, should_continue = self._fetch_api_donations(
                 campaign=campaign,
                 campaign_id=campaign_id,
                 limit=limit,
                 page_cursor=page_cursor,
             )
-
-            if should_break:
-                break
 
             if should_continue:
                 continue

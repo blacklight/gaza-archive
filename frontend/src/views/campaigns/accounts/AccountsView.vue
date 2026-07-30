@@ -1,5 +1,11 @@
 <template>
   <Loader v-if="loading" />
+  <div class="hide-inactive" v-if="data">
+    <label>
+      <input type="checkbox" v-model="hideInactive" @change="onHideInactiveChange" />
+      Hide inactive
+    </label>
+  </div>
   <CampaignsView :data="data"
                  @update:filter:dates="setDateFilter"
                  @update:currency="setCurrency"
@@ -40,6 +46,7 @@ export default {
       data: null,
       fields: {},
       loading: false,
+      hideInactive: true,
       query: {
         sort: ['amount:asc'],
         // Last week
@@ -92,11 +99,29 @@ export default {
         ),
       )
 
-      this.serializeQueryToRoute(this.query, { overwrite: true })
+      this.persistAndRefresh()
+    },
+
+    onHideInactiveChange(event) {
+      this.hideInactive = event.target.checked
+      this.persistAndRefresh()
+    },
+
+    persistAndRefresh() {
+      localStorage.setItem(
+        'gaza-archive:campaigns:hide-inactive',
+        this.hideInactive ? 'true' : 'false',
+      )
       this.refresh()
     },
 
     async refresh() {
+      if (this.hideInactive) {
+        delete this.query.show_deleted
+      } else {
+        this.query.show_deleted = true
+      }
+
       this.serializeQueryToRoute(this.query, { overwrite: true })
       this.loading = true
 
@@ -110,6 +135,11 @@ export default {
   },
 
   async mounted() {
+    const saved = localStorage.getItem('gaza-archive:campaigns:hide-inactive')
+    if (saved !== null) {
+      this.hideInactive = saved === 'true'
+    }
+
     const query = this.deserializeQueryFromRoute()
 
     this.fields = await this.getDbFields()
@@ -120,7 +150,27 @@ export default {
       }
     }
 
+    if (this.query.show_deleted !== undefined) {
+      this.hideInactive = !this.query.show_deleted
+    }
+
     await this.refresh()
   }
 }
 </script>
+
+<style scoped lang="scss">
+.hide-inactive {
+  text-align: center;
+  margin-bottom: 1em;
+
+  label {
+    cursor: pointer;
+    user-select: none;
+
+    input {
+      margin-right: 0.5em;
+    }
+  }
+}
+</style>

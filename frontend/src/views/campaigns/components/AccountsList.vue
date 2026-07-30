@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="account" v-for="data in filteredAccounts" :key="data.account.fqn">
+    <div class="account" :class="{ inactive: data.state === 'DELETED' }" v-for="data in filteredAccounts" :key="data.account.fqn">
       <RouterLink :to="`/campaigns/accounts/${data.account.fqn}?${accountsQueryString}`"
                   class="account-link">
         <div class="account-avatar">
@@ -35,7 +35,7 @@
         </div>
         <div class="account-info">
           <div class="account-display-name">
-            <SuspensionIcon :state="data.account.state" />
+            <SuspensionIcon :state="data.state" context="campaign" />
             {{ data.account.display_name }}
           </div>
           <div class="account-username">{{ data.account.fqn }}</div>
@@ -197,6 +197,10 @@ $sort-btn-size: 5rem;
 .accounts-list {
   display: flex;
   flex-direction: column;
+
+  .account.inactive {
+    opacity: 0.5;
+  }
 
   .account {
     padding: 1rem 0.75rem;

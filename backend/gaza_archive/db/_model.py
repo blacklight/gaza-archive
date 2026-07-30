@@ -265,6 +265,8 @@ class Campaign(Base):
 
     url = Column(String, primary_key=True)
     donations_cursor = Column(String)
+    state = Column(SqlEnum(SuspensionState), default=SuspensionState.ACTIVE)
+    down_since = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -277,6 +279,8 @@ class Campaign(Base):
         return cls(
             url=model.url,
             donations_cursor=model.donations_cursor,
+            state=model.state,
+            down_since=model.down_since,
         )
 
     def to_model(self) -> ModelCampaign:
@@ -286,6 +290,8 @@ class Campaign(Base):
             account_url=self.account[0].url,  # type: ignore
             donations_cursor=self.donations_cursor,  # type: ignore
             donations=donations,
+            state=self.state,  # type: ignore
+            down_since=self.down_since,  # type: ignore
         )
 
 

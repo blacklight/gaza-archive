@@ -5,6 +5,7 @@ from typing import Any
 
 import requests
 
+from ....errors import CampaignDeletedError, HttpError
 from ....model.campaign import Campaign, CampaignDonation
 from ._source import CampaignSource
 
@@ -173,8 +174,41 @@ fragment FundraiserDonationFields on Donation {
                 headers={"User-Agent": self.config.user_agent},
             )
 
-            response.raise_for_status()
-            data = response.json().get("data", {}).get("fundraiser", {}).get("donations", {})
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as e:
+                if (
+                    response.status_code in (404, 410)
+                    or 400 <= response.status_code < 500
+                ):
+                    raise CampaignDeletedError(
+                        f"Campaign {campaign.url} not found: {response.status_code}",
+                        campaign_url=campaign.url,
+                        status_code=response.status_code,
+                    ) from e
+                if response.status_code >= 500:
+                    raise HttpError(
+                        f"Server error fetching donations from {campaign.url}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
+                raise
+            except requests.RequestException as e:
+                raise HttpError(
+                    f"Connection error fetching donations from {campaign.url}",
+                    status_code=503,
+                    exception=e,
+                ) from e
+
+            fundraiser = response.json().get("data", {}).get("fundraiser")
+            if not fundraiser:
+                raise CampaignDeletedError(
+                    f"Campaign {campaign.url} has no fundraiser data",
+                    campaign_url=campaign.url,
+                    status_code=404,
+                )
+
+            data = fundraiser.get("donations", {}) or {}
             donations_data = data.get("edges", [])
             start_cursor = data.get("pageInfo", {}).get("startCursor")
             end_cursor = data.get("pageInfo", {}).get("endCursor")

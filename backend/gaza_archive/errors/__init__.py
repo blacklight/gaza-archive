@@ -44,6 +44,23 @@ class AccountDeletedError(AccountNotFoundError):
     """
 
 
+class CampaignDeletedError(Error):
+    """
+    Raised when a campaign is permanently deleted at the source.
+    """
+
+    def __init__(
+        self,
+        *args,
+        campaign_url: str = "",
+        status_code: int = 404,
+        **kwargs,
+    ):
+        self.campaign_url = campaign_url
+        self.status_code = status_code
+        super().__init__(*args, **kwargs)
+
+
 class DownloadError(Error, RuntimeError):
     """
     Raised when a download operation fails.
