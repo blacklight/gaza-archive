@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from textwrap import dedent
 from time import sleep
+from typing import Any
 
 import requests
 
@@ -232,6 +233,88 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         log.debug("Scraped campaign ID for %s: %s", campaign_url, campaign_id)
         return campaign_id
 
+    def _fetch_api_donations(
+        self, campaign: Campaign, campaign_id: str, limit: int, page_cursor: str | None
+    ) -> tuple[dict[str, Any] | None, bool, bool]:
+        log.debug(
+            "Fetching donations from %s (cursor=%s, limit=%s)",
+            campaign.url,
+            page_cursor,
+            limit,
+        )
+
+        response = requests.post(
+            self._graphql_url,
+            json={
+                "query": self._graphql_donation_query,
+                "variables": {
+                    "campaignId": campaign_id,
+                    "first": limit,
+                    "after": page_cursor,
+                },
+            },
+            timeout=self.config.http_timeout,
+            headers={"User-Agent": self.config.user_agent},
+        )
+
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if response.status_code == 429:
+                sleep_seconds = int(response.headers.get("Retry-After", "10")) + 1
+                log.warning(
+                    "Rate limit exceeded for %s, sleeping for %d seconds...",
+                    campaign.url,
+                    sleep_seconds,
+                )
+                sleep(sleep_seconds)
+                # No data, should_break=False, should_continue=True
+                return None, False, True
+
+            log.error(
+                "HTTP error %d fetching donations from %s: %s",
+                response.status_code,
+                campaign.url,
+                e,
+            )
+            # No data, should_break=True, should_continue=False
+            return None, True, False
+
+        resp_data = response.json()
+        errors = [
+            err.get("message") for err in resp_data.get("errors") if err.get("message")
+        ]
+
+        data = resp_data.get("data", {}).get("campaign")
+        if errors and not data:
+            # This is a bug with Chuffed, where if `after` points to a removed
+            # or invalid donation, the API returns a 200 OK with an "Invalid query"
+            # error without much context.
+            # In that case, reset the page_cursor and run the query again
+            if errors == ["Invalid query"] and page_cursor:
+                log.warning(
+                    "Invalid query error for %s, resetting cursor and trying again",
+                    campaign.url,
+                )
+                return self._fetch_api_donations(
+                    campaign=campaign,
+                    campaign_id=campaign_id,
+                    limit=limit,
+                    page_cursor=None,
+                )
+
+            # Otherwise, something else is wrong
+            log.error(
+                "Error fetching donations from %s: %s",
+                campaign.url,
+                ", ".join(errors),
+            )
+            # No data, should_break=True, should_continue=False
+            return None, True, False
+
+        # Data, should_break=False, should_continue=False
+        return data, False, False
+
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         campaign_id = self._get_campaign_id(campaign.url)
         if not campaign_id:
@@ -248,62 +331,21 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         )
 
         while True:
-            log.debug(
-                "Fetching donations from %s (cursor=%s, limit=%s)",
-                campaign.url,
-                page_cursor,
-                limit,
+            data, should_break, should_continue = self._fetch_api_donations(
+                campaign=campaign,
+                campaign_id=campaign_id,
+                limit=limit,
+                page_cursor=page_cursor,
             )
 
-            response = requests.post(
-                self._graphql_url,
-                json={
-                    "query": self._graphql_donation_query,
-                    "variables": {
-                        "campaignId": campaign_id,
-                        "first": limit,
-                        "after": page_cursor,
-                    },
-                },
-                timeout=self.config.http_timeout,
-                headers={"User-Agent": self.config.user_agent},
-            )
-
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if response.status_code == 429:
-                    sleep_seconds = int(response.headers.get("Retry-After", "10")) + 1
-                    log.warning(
-                        "Rate limit exceeded for %s, sleeping for %d seconds...",
-                        campaign.url,
-                        sleep_seconds,
-                    )
-                    sleep(sleep_seconds)
-                    continue
-
-                log.error(
-                    "HTTP error %d fetching donations from %s: %s",
-                    response.status_code,
-                    campaign.url,
-                    e,
-                )
+            if should_break:
                 break
 
-            resp_data = response.json()
-            errors = [
-                err.get("message")
-                for err in resp_data.get("errors")
-                if err.get("message")
-            ]
+            if should_continue:
+                continue
 
-            data = resp_data.get("data", {}).get("campaign")
-            if errors and not data:
-                log.error(
-                    "Error fetching donations from %s: %s",
-                    campaign.url,
-                    ", ".join(errors),
-                )
+            if not data:
+                log.warning("No data returned from %s", campaign.url)
                 break
 
             donations_data = data["donations"]["edges"]
