@@ -25,11 +25,29 @@
           class="filter-input"
         />
       </div>
+
+      <div class="hide-inactive">
+        <label>
+          <input
+            type="checkbox"
+            :checked="hideInactive"
+            @change="$emit('update:hide-inactive', $event.target.checked)"
+          />
+          Hide inactive
+        </label>
+      </div>
     </div>
 
-    <div class="account" :class="{ inactive: data.state === 'DELETED' }" v-for="data in filteredAccounts" :key="data.account.fqn">
-      <RouterLink :to="`/campaigns/accounts/${data.account.fqn}?${accountsQueryString}`"
-                  class="account-link">
+    <div
+      class="account"
+      :class="{ inactive: data.state === 'DELETED' }"
+      v-for="data in filteredAccounts"
+      :key="data.account.fqn"
+    >
+      <RouterLink
+        :to="`/campaigns/accounts/${data.account.fqn}?${accountsQueryString}`"
+        class="account-link"
+      >
         <div class="account-avatar">
           <img :src="data.account.avatar_path" :alt="`${data.account.display_name}'s avatar`" />
         </div>
@@ -41,13 +59,15 @@
           <div class="account-username">{{ data.account.fqn }}</div>
           <div class="last-activity-time" v-if="data.last_activity_time">
             Last Activity:
-            {{ new Date(data.last_activity_time).toLocaleString(undefined, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            }) }}
+            {{
+              new Date(data.last_activity_time).toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            }}
           </div>
         </div>
         <div class="amount">
@@ -57,12 +77,8 @@
     </div>
 
     <div class="sort-modal-container" v-if="sortModalVisible">
-      <Modal :show="sortModalVisible"
-             title="Sort Accounts"
-             @close="sortModalVisible = false">
-        <Sorter :sort="accountsQuery.sort || []"
-                :fields="sortFields"
-                @update:sort="onSortChange" />
+      <Modal :show="sortModalVisible" title="Sort Accounts" @close="sortModalVisible = false">
+        <Sorter :sort="accountsQuery.sort || []" :fields="sortFields" @update:sort="onSortChange" />
       </Modal>
     </div>
   </div>
@@ -75,11 +91,9 @@ import Sorter from './Sorter.vue'
 import SuspensionIcon from '@/components/SuspensionIcon.vue'
 
 export default {
-  mixins: [
-    CampaignsApi,
-  ],
+  mixins: [CampaignsApi],
 
-  emits: ['update:query', 'update:query:donors'],
+  emits: ['update:query', 'update:query:donors', 'update:hide-inactive'],
 
   components: {
     Modal,
@@ -103,6 +117,12 @@ export default {
       type: Object,
       required: true,
     },
+
+    hideInactive: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
   },
 
   data() {
@@ -113,10 +133,10 @@ export default {
         'account.display_name': 'varchar',
         'account.fqn': 'varchar',
         'account.url': 'varchar',
-        'amount': 'float',
-        'first_donation_time': 'datetime',
-        'last_donation_time': 'datetime',
-        'last_activity_time': 'datetime',
+        amount: 'float',
+        first_donation_time: 'datetime',
+        last_donation_time: 'datetime',
+        last_activity_time: 'datetime',
       },
       filterAccountsText: '',
       filterDonorsText: '',
@@ -141,7 +161,7 @@ export default {
         return this.accounts
       }
 
-      return this.accounts.filter(data => {
+      return this.accounts.filter((data) => {
         const displayName = (data.account?.display_name || '').toLowerCase()
         const fqn = (data.account?.fqn || '').toLowerCase()
         const url = (data.account?.url || '').toLowerCase()
@@ -273,7 +293,7 @@ $sort-btn-size: 5rem;
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-bg);
 
-    input[type="text"] {
+    input[type='text'] {
       max-width: calc(100% - #{$sort-btn-size} - 1rem);
       width: 100%;
       padding: 0.5rem;
@@ -298,6 +318,24 @@ $sort-btn-size: 5rem;
         i {
           margin-right: 0.2em;
         }
+      }
+    }
+  }
+
+  .hide-inactive {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+
+    label {
+      cursor: pointer;
+      user-select: none;
+      font-size: 1rem;
+
+      input {
+        margin-right: 0.5em;
       }
     }
   }

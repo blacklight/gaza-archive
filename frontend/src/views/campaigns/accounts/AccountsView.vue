@@ -1,21 +1,21 @@
 <template>
   <Loader v-if="loading" />
-  <div class="hide-inactive" v-if="data">
-    <label>
-      <input type="checkbox" v-model="hideInactive" @change="onHideInactiveChange" />
-      Hide inactive
-    </label>
-  </div>
-  <CampaignsView :data="data"
-                 @update:filter:dates="setDateFilter"
-                 @update:currency="setCurrency"
-                 v-if="data">
+  <CampaignsView
+    :data="data"
+    @update:filter:dates="setDateFilter"
+    @update:currency="setCurrency"
+    v-if="data"
+  >
     <template #list>
-      <AccountsList :accounts="accounts"
-                    :fields="fields"
-                    :query="query"
-                    @update:query="onQueryUpdate"
-                    @update:query:donors="onQueryUpdate($event, {overwrite: ['donors']})" />
+      <AccountsList
+        :accounts="accounts"
+        :fields="fields"
+        :query="query"
+        :hide-inactive="hideInactive"
+        @update:query="onQueryUpdate"
+        @update:query:donors="onQueryUpdate($event, { overwrite: ['donors'] })"
+        @update:hide-inactive="onHideInactiveChange"
+      />
     </template>
   </CampaignsView>
 </template>
@@ -25,13 +25,10 @@ import AccountsList from '../components/AccountsList.vue'
 import CampaignsApi from '@/mixins/api/Campaigns.vue'
 import CampaignsView from '../components/View.vue'
 import Dates from '@/mixins/Dates.vue'
-import Loader from "@/elements/Loader.vue"
+import Loader from '@/elements/Loader.vue'
 
 export default {
-  mixins: [
-    CampaignsApi,
-    Dates,
-  ],
+  mixins: [CampaignsApi, Dates],
 
   components: {
     AccountsList,
@@ -50,11 +47,10 @@ export default {
       query: {
         sort: ['amount:asc'],
         // Last week
-        start_time: new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - 6,
-        ).toISOString().split('T')[0] + 'T00:00:00',
+        start_time:
+          new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+            .toISOString()
+            .split('T')[0] + 'T00:00:00',
       },
     }
   },
@@ -87,23 +83,19 @@ export default {
       this.refresh()
     },
 
-    onQueryUpdate(newQuery, options = { overwrite: [], }) {
+    onQueryUpdate(newQuery, options = { overwrite: [] }) {
       this.query = Object.fromEntries(
         [
-          ...Object.entries(this.query).filter(
-            ([key,]) => !options.overwrite.includes(key),
-          ),
+          ...Object.entries(this.query).filter(([key]) => !options.overwrite.includes(key)),
           ...Object.entries(newQuery),
-        ].filter(
-          ([, value]) => value != null && value !== '',
-        ),
+        ].filter(([, value]) => value != null && value !== ''),
       )
 
       this.persistAndRefresh()
     },
 
-    onHideInactiveChange(event) {
-      this.hideInactive = event.target.checked
+    onHideInactiveChange(hide) {
+      this.hideInactive = hide
       this.persistAndRefresh()
     },
 
@@ -155,22 +147,6 @@ export default {
     }
 
     await this.refresh()
-  }
+  },
 }
 </script>
-
-<style scoped lang="scss">
-.hide-inactive {
-  text-align: center;
-  margin-bottom: 1em;
-
-  label {
-    cursor: pointer;
-    user-select: none;
-
-    input {
-      margin-right: 0.5em;
-    }
-  }
-}
-</style>
