@@ -321,7 +321,9 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
 
         resp_data = response.json()
         errors = [
-            err.get("message") for err in resp_data.get("errors") if err.get("message")
+            err.get("message")
+            for err in (resp_data.get("errors") or [])
+            if err.get("message")
         ]
 
         data = resp_data.get("data", {}).get("campaign")
