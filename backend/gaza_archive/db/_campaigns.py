@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from logging import getLogger
 from threading import RLock
-from typing import Iterator, Any
+from typing import Any, ClassVar
 
-from sqlalchemy import func, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Query, Session
 
 from ..config import Config
-from ..utils import naive_utc
 from ..model import (
     Account,
     ApiSortType,
@@ -22,10 +22,17 @@ from ..model import (
     CampaignStatsAmount,
     SuspensionState,
 )
+from ..utils import naive_utc
 from ._model import (
     Account as DbAccount,
+)
+from ._model import (
     Campaign as DbCampaign,
+)
+from ._model import (
     CampaignDonation as DbCampaignDonation,
+)
+from ._model import (
     Post as DbPost,
 )
 
@@ -39,7 +46,7 @@ class Campaigns(ABC):
 
     config: Config
     _write_lock: RLock
-    _table_by_search_key: dict[str, type[DbCampaign]] = {
+    _table_by_search_key: ClassVar[dict[str, type[DbCampaign]]] = {
         "account": DbAccount,
         "campaign": DbCampaign,
         "donation": DbCampaignDonation,
@@ -148,26 +155,58 @@ class Campaigns(ABC):
                 .subquery()
             )
 
+            time_filter_conditions = []
+            if start_time:
+                time_filter_conditions.append(
+                    DbCampaignDonation.created_at >= start_time
+                )
+            if end_time:
+                time_filter_conditions.append(
+                    DbCampaignDonation.created_at <= end_time
+                )
+            has_time_filter = bool(time_filter_conditions)
+            donation_time_filter = (
+                and_(*time_filter_conditions) if has_time_filter else None
+            )
+
+            if has_time_filter:
+                amount_column = func.coalesce(
+                    func.sum(
+                        case(
+                            (donation_time_filter, DbCampaignDonation.amount),
+                            else_=0.0,
+                        )
+                    ),
+                    0.0,
+                ).label("amount")
+                first_donation_time_column = func.min(
+                    case((donation_time_filter, DbCampaignDonation.created_at))
+                ).label("first_donation_time")
+            else:
+                amount_column = func.coalesce(
+                    func.sum(DbCampaignDonation.amount), 0
+                ).label("amount")
+                first_donation_time_column = func.min(
+                    DbCampaignDonation.created_at
+                ).label("first_donation_time")
+
+            last_donation_time_column = func.max(
+                DbCampaignDonation.created_at
+            ).label("last_donation_time")
+
             output = [
                 *[
                     (DbAccount if group_column == DbAccount.url else group_column)
                     for group_column in group_columns.values()
                 ],
-                func.coalesce(func.sum(DbCampaignDonation.amount), 0).label("amount"),
-                func.min(DbCampaignDonation.created_at).label("first_donation_time"),
-                func.max(DbCampaignDonation.created_at).label("last_donation_time"),
+                amount_column,
+                first_donation_time_column,
+                last_donation_time_column,
                 func.max(last_post_subquery.c.last_activity_time).label(
                     "last_activity_time"
                 ),
                 func.max(DbCampaign.state).label("state"),
             ]
-
-            # Build the join conditions for donations
-            join_conditions = []
-            if start_time:
-                join_conditions.append(DbCampaignDonation.created_at >= start_time)
-            if end_time:
-                join_conditions.append(DbCampaignDonation.created_at <= end_time)
 
             query = session.query(*output).join(DbCampaign.account)
 
@@ -176,11 +215,10 @@ class Campaigns(ABC):
                 last_post_subquery.c.author_url == DbAccount.url,
             )
 
-            # Apply the LEFT JOIN with conditions
-            if join_conditions:
-                query = query.outerjoin(DbCampaign.donations.and_(*join_conditions))
-            else:
-                query = query.outerjoin(DbCampaign.donations)
+            # Donations are joined without time filters so `last_donation_time`
+            # is always computed from all donations, while `amount` and
+            # `first_donation_time` respect the selected time frame.
+            query = query.outerjoin(DbCampaign.donations)
 
             # Apply non-donation filters
             if accounts:
@@ -203,9 +241,12 @@ class Campaigns(ABC):
                 query,
                 sort or [("amount", ApiSortType.DESC)],
                 extra_group_sort_columns={
+                    "amount": amount_column,
+                    "first_donation_time": first_donation_time_column,
+                    "last_donation_time": last_donation_time_column,
                     "last_activity_time": func.max(
                         last_post_subquery.c.last_activity_time
-                    )
+                    ),
                 },
             )
 
