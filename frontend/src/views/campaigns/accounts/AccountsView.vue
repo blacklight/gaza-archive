@@ -45,7 +45,7 @@ export default {
       loading: false,
       hideInactive: true,
       query: {
-        sort: ['amount:asc'],
+        sort: ['amount:asc', 'last_donation_time:asc'],
         // Last week
         start_time:
           new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)

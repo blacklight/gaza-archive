@@ -69,6 +69,18 @@
               })
             }}
           </div>
+          <div class="last-donation-time" v-if="data.last_donation_time">
+            Last Donation:
+            {{
+              new Date(data.last_donation_time).toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            }}
+          </div>
         </div>
         <div class="amount">
           {{ data.amount.string }}
@@ -267,7 +279,7 @@ $sort-btn-size: 5rem;
           font-size: 0.85rem;
         }
 
-        .last-activity-time {
+        .last-activity-time, .last-donation-time {
           margin-top: 0.25rem;
           font-size: 0.75rem;
           font-variant: italic;
