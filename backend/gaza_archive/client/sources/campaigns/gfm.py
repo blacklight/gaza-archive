@@ -177,6 +177,12 @@ fragment FundraiserDonationFields on Donation {
             try:
                 response.raise_for_status()
             except requests.HTTPError as e:
+                if response.status_code in HttpError.THROTTLED_STATUS_CODES:
+                    raise HttpError(
+                        f"Campaign {campaign.url} access denied: {response.status_code}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
                 if (
                     response.status_code in (404, 410)
                     or 400 <= response.status_code < 500

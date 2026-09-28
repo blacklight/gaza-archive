@@ -102,6 +102,12 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
+            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
+                raise HttpError(
+                    f"WhyDonate fundraiser {slug} access denied: {response.status_code}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
             if response.status_code in (404, 410) or 400 <= response.status_code < 500:
                 raise CampaignDeletedError(
                     f"WhyDonate fundraiser {slug} not found: {response.status_code}",
@@ -297,6 +303,12 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
                     sleep(sleep_seconds)
                     continue
 
+                if response.status_code in HttpError.THROTTLED_STATUS_CODES:
+                    raise HttpError(
+                        f"Campaign {campaign.url} access denied: {response.status_code}",
+                        status_code=response.status_code,
+                        exception=e,
+                    ) from e
                 if (
                     response.status_code in (404, 410)
                     or 400 <= response.status_code < 500

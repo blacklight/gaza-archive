@@ -146,6 +146,11 @@ class CampaignParser(ABC):
                     campaign.down_since = None
                 except HttpError as exc:
                     log.warning("Temporary error refreshing %s: %s", url, exc)
+                    # Throttling/access-denied responses mean that the campaign
+                    # state couldn't be determined - don't count them as
+                    # downtime towards deletion.
+                    if exc.is_throttled:
+                        continue
                     if campaign.down_since is None:
                         campaign.down_since = naive_utc(datetime.now(timezone.utc))
                     down_hours = (

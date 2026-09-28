@@ -124,14 +124,9 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                     sleep(sleep_seconds)
                     continue
 
-                if response.status_code in (403, 429):
-                    msg = (
-                        "access denied"
-                        if response.status_code == 403
-                        else "rate limited"
-                    )
+                if response.status_code in HttpError.THROTTLED_STATUS_CODES:
                     raise HttpError(
-                        f"Campaign {campaign.url} {msg} during reconciliation: {response.status_code}",
+                        f"Campaign {campaign.url} access denied during reconciliation: {response.status_code}",
                         status_code=response.status_code,
                         exception=e,
                     ) from e
@@ -242,7 +237,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            if response.status_code in (403, 429):
+            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
                 raise HttpError(
                     f"Cannot fetch ID for campaign {campaign_url}: {response.status_code}",
                     status_code=response.status_code,
@@ -315,10 +310,9 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                 # No data, should_continue=True
                 return None, True
 
-            if response.status_code in (403, 429):
-                msg = "access denied" if response.status_code == 403 else "rate limited"
+            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
                 raise HttpError(
-                    f"Campaign {campaign.url} {msg}: {response.status_code}",
+                    f"Campaign {campaign.url} access denied: {response.status_code}",
                     status_code=response.status_code,
                     exception=e,
                 ) from e

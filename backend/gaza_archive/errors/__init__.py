@@ -17,9 +17,18 @@ class HttpError(Error, RuntimeError):
     Represents an HTTP error with a status code, message, and optional exception.
     """
 
+    #: Status codes that indicate throttling or access denial. These mean
+    #: that the resource state couldn't be determined - they are not
+    #: evidence that the resource is gone.
+    THROTTLED_STATUS_CODES = frozenset({401, 403, 429})
+
     def __init__(self, *args, status_code: int = 500, **kwargs):
         self.status_code = status_code
         super().__init__(*args, **kwargs)
+
+    @property
+    def is_throttled(self) -> bool:
+        return self.status_code in self.THROTTLED_STATUS_CODES
 
 
 class AccountError(Error):
