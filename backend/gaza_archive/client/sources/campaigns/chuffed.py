@@ -1,5 +1,6 @@
 import logging
 import re
+import urllib3
 from datetime import datetime, timedelta, timezone
 from textwrap import dedent
 from time import sleep
@@ -9,6 +10,7 @@ import requests
 
 from ....errors import CampaignDeletedError, HttpError
 from ....model.campaign import Campaign, CampaignDonation
+from ._proxy_pool import ProxyPool
 from ._source import CampaignSource
 
 log = logging.getLogger(__name__)
@@ -23,7 +25,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
     _max_unconfirmed_age = timedelta(hours=1)
 
     _graphql_url = "https://www.chuffed.org/api/graphql"
-    _graphql_donation_query = dedent("""
+    _graphql_donation_query = dedent(
+        """
         query GetCampaignDonors($campaignId: ID!, $first: Int, $after: ID) {
             campaign(id: $campaignId) {
                 id title donations(first: $first, after: $after) {
@@ -46,7 +49,102 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                 }
             }
         }
-        """)
+        """
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._proxy_pool = ProxyPool(
+            proxies=self.config.campaign_url_http_proxies,
+            cooldown=self.config.campaign_url_proxy_cooldown,
+        )
+        # Max time to wait for a cooled-down proxy before giving up on the
+        # request and treating it as throttled.
+        self._proxy_max_wait = max(2 * self.config.campaign_url_proxy_cooldown, 120.0)
+        self._proxy_insecure = self.config.campaign_url_proxy_insecure
+        if self._proxy_insecure and self._proxy_pool:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    @staticmethod
+    def _retry_after(response: requests.Response) -> float | None:
+        try:
+            return float(response.headers["Retry-After"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+        """
+        Perform an HTTP request, routing it through the configured pool of
+        HTTP(S) or SOCKS proxies if one is configured.
+
+        Proxies are selected in round-robin order. When a request through a
+        proxy is throttled (401/403/429) or the proxy fails, the proxy is put
+        in cool-down and the next available proxy is tried. If every proxy is
+        cooling down, wait for the soonest one up to a bounded maximum;
+        afterwards the last response is returned so that the caller can apply
+        its usual throttling handling.
+        """
+        pool = self._proxy_pool
+        if not pool:
+            return requests.request(method, url, **kwargs)
+
+        if self._proxy_insecure:
+            kwargs.setdefault("verify", False)
+
+        attempts = 0
+        max_attempts = 2 * len(pool)
+        waited = 0.0
+        response: requests.Response | None = None
+        last_error: requests.RequestException | None = None
+
+        while attempts < max_attempts:
+            proxy = pool.acquire()
+            if proxy is None:
+                wait = pool.cooldown_remaining()
+                if waited + wait > self._proxy_max_wait:
+                    break
+                log.info(
+                    "All %d proxies are cooling down, waiting %.0f seconds...",
+                    len(pool),
+                    wait,
+                )
+                sleep(wait)
+                waited += wait
+                continue
+
+            attempts += 1
+            try:
+                response = requests.request(
+                    method,
+                    url,
+                    proxies={"http": proxy, "https": proxy},
+                    **kwargs,
+                )
+                last_error = None
+            except requests.RequestException as e:
+                log.warning("Request via proxy failed: %s", e)
+                pool.report_failure(proxy)
+                last_error = e
+                continue
+
+            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
+                log.warning(
+                    "Request via proxy was throttled (%d), trying next proxy",
+                    response.status_code,
+                )
+                pool.report_rate_limited(proxy, self._retry_after(response))
+                continue
+
+            return response
+
+        if response is not None and last_error is None:
+            return response
+
+        raise HttpError(
+            "All proxies are rate-limited or unavailable",
+            status_code=429,
+            exception=last_error,
+        )
 
     def _reconcile_from_local_window(
         self,
@@ -54,7 +152,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         campaign_id: str,
         window_size: int,
     ):
-        """Reconcile transient deletions using a local-db anchored overlap window.
+        """
+        Reconcile transient deletions using a local-db anchored overlap window.
 
         Strategy:
         - Take the last `window_size` local donations for this campaign
@@ -97,7 +196,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         limit = 50
 
         while True:
-            response = requests.post(
+            response = self._request(
+                "POST",
                 self._graphql_url,
                 json={
                     "query": self._graphql_donation_query,
@@ -226,7 +326,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         return None
 
     def _get_campaign_id(self, campaign_url: str):
-        response = requests.get(
+        response = self._request(
+            "GET",
             campaign_url,
             timeout=self.config.http_timeout,
             headers={
@@ -282,7 +383,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
             limit,
         )
 
-        response = requests.post(
+        response = self._request(
+            "POST",
             self._graphql_url,
             json={
                 "query": self._graphql_donation_query,
