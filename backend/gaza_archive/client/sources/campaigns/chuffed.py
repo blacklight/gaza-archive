@@ -25,11 +25,15 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
     _max_unconfirmed_age = timedelta(hours=1)
 
     _graphql_url = "https://www.chuffed.org/api/graphql"
+
+    # Chuffed's GraphQL gateway now rejects queries that use variable
+    # declarations ("Invalid query"), so arguments must be inlined into the
+    # query string. The campaign slug can be used directly as `id`.
     _graphql_donation_query = dedent(
         """
-        query GetCampaignDonors($campaignId: ID!, $first: Int, $after: ID) {
-            campaign(id: $campaignId) {
-                id title donations(first: $first, after: $after) {
+        {
+            campaign(id: "%(campaign_id)s") {
+                id title donations(first: %(first)d%(after)s) {
                     edges {
                         node {
                             id
@@ -51,6 +55,22 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         }
         """
     )
+
+    def _donation_query(
+        self, campaign_id: str, limit: int, page_cursor: str | None
+    ) -> str:
+        # Only inline cursors that match the expected opaque-id shape, to keep
+        # the interpolated query string injection-free.
+        cursor = (
+            page_cursor
+            if page_cursor and re.fullmatch(r"[\w-]+", page_cursor)
+            else None
+        )
+        return self._graphql_donation_query % {
+            "campaign_id": campaign_id,
+            "first": limit,
+            "after": f', after: "{cursor}"' if cursor else "",
+        }
 
     def _reconcile_from_local_window(
         self,
@@ -105,14 +125,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
             response = self._request(
                 "POST",
                 self._graphql_url,
-                json={
-                    "query": self._graphql_donation_query,
-                    "variables": {
-                        "campaignId": campaign_id,
-                        "first": limit,
-                        "after": page_cursor,
-                    },
-                },
+                json={"query": self._donation_query(campaign_id, limit, page_cursor)},
                 timeout=self.config.http_timeout,
                 headers={"User-Agent": self._user_agent},
             )
@@ -232,52 +245,16 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         return None
 
     def _get_campaign_id(self, campaign_url: str):
-        response = self._request(
-            "GET",
-            campaign_url,
-            timeout=self.config.http_timeout,
-            headers={
-                "User-Agent": self._user_agent,
-            },
-        )
-
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as e:
-            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
-                raise HttpError(
-                    f"Cannot fetch ID for campaign {campaign_url}: {response.status_code}",
-                    status_code=response.status_code,
-                    exception=e,
-                ) from e
-            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
-                raise CampaignDeletedError(
-                    f"Cannot fetch ID for campaign {campaign_url}: {response.status_code}",
-                    campaign_url=campaign_url,
-                    status_code=response.status_code,
-                ) from e
-            if response.status_code >= 500:
-                raise HttpError(
-                    f"Server error fetching campaign ID for {campaign_url}",
-                    status_code=response.status_code,
-                    exception=e,
-                ) from e
-            raise
-        except requests.RequestException as e:
-            raise HttpError(
-                f"Connection error fetching campaign ID for {campaign_url}",
-                status_code=503,
-                exception=e,
-            ) from e
-
-        match = re.search(r"campaignId: '([\w-]+)'", response.text, re.DOTALL)
+        # The GraphQL `campaign(id:)` field accepts the URL slug directly, so
+        # there is no need to fetch the (Cloudflare-challenged) campaign page.
+        match = self.url_pattern.match(campaign_url)
         if not match:
-            log.warning("Could not parse ID for campaign %s", campaign_url)
+            log.warning("Could not parse slug for campaign %s", campaign_url)
             return None
 
-        campaign_id = match.group(1)
-        log.debug("Scraped campaign ID for %s: %s", campaign_url, campaign_id)
-        return campaign_id
+        slug = match.group(3)
+        log.debug("Resolved campaign slug for %s: %s", campaign_url, slug)
+        return slug
 
     def _fetch_api_donations(
         self, campaign: Campaign, campaign_id: str, limit: int, page_cursor: str | None
@@ -292,14 +269,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
         response = self._request(
             "POST",
             self._graphql_url,
-            json={
-                "query": self._graphql_donation_query,
-                "variables": {
-                    "campaignId": campaign_id,
-                    "first": limit,
-                    "after": page_cursor,
-                },
-            },
+            json={"query": self._donation_query(campaign_id, limit, page_cursor)},
             timeout=self.config.http_timeout,
             headers={"User-Agent": self._user_agent},
         )
