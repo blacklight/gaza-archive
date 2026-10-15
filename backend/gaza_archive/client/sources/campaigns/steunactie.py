@@ -37,7 +37,8 @@ class SteunactieCampaignSource(
         return None
 
     def _get_campaign_id(self, campaign_url: str):
-        response = requests.head(
+        response = self._request(
+            "HEAD",
             campaign_url,
             timeout=self.config.http_timeout,
             headers={
@@ -120,7 +121,8 @@ class SteunactieCampaignSource(
         while True:
             log.debug("Fetching donations from %s (page=%d)", campaign.url, page)
 
-            response = requests.get(
+            response = self._request(
+                "GET",
                 self._api_url_pattern.format(campaign_id=campaign_id, page=page),
                 timeout=self.config.http_timeout,
                 headers={"User-Agent": self.config.user_agent},

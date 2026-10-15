@@ -92,7 +92,8 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
 
     def _get_fundraiser_info(self, slug: str) -> dict[str, Any]:
         """Fetch public fundraiser metadata, including the campaign currency."""
-        response = requests.get(
+        response = self._request(
+            "GET",
             self._fundraiser_api_url,
             params={"slug": slug, "language": "en"},
             timeout=self.config.http_timeout,
@@ -251,7 +252,8 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
 
     def _fetch_page(self, slug: str, page: int) -> requests.Response:
         """Fetch one page of donations from the public whydonate API."""
-        return requests.get(
+        return self._request(
+            "GET",
             self._donations_api_url,
             params={
                 "slug": slug,

@@ -86,18 +86,6 @@ fragment FundraiserDonationFields on Donation {
 }
     """.strip()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        proxy = self.config.campaign_url_http_proxy
-        self.proxies = (
-            {
-                "http": proxy,
-                "https": proxy,
-            }
-            if proxy
-            else {}
-        )
-
     @property
     def url_pattern(self) -> re.Pattern:
         return re.compile(r"^https://(www\.)?((gofund\.me)|(gofundme\.com))/.*")
@@ -111,15 +99,15 @@ fragment FundraiserDonationFields on Donation {
         # Parse any redirects
         if match:
             try:
-                response = requests.head(
+                response = self._request(
+                    "HEAD",
                     url,
-                    proxies=self.proxies,
                     timeout=self.config.http_timeout,
                     headers={"User-Agent": self.config.user_agent},
                 )
                 response.raise_for_status()
                 url = response.headers.get("Location", url)
-            except requests.RequestException as e:
+            except (requests.RequestException, HttpError) as e:
                 log.warning("Error fetching campaign URL %s: %s", url, e)
 
         match = re.match(
@@ -167,7 +155,8 @@ fragment FundraiserDonationFields on Donation {
                 payload["variables"]["before"] = end_cursor
                 payload["variables"]["last"] = limit
 
-            response = requests.post(
+            response = self._request(
+                "POST",
                 self._graphql_url,
                 json=payload,
                 timeout=self.config.http_timeout,

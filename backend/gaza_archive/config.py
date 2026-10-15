@@ -24,7 +24,6 @@ class Config:  # pylint: disable=too-few-public-methods
     download_media: bool
     enable_crawlers: bool
     enable_campaign_crawlers: bool
-    campaign_url_http_proxy: str | None
     campaign_url_http_proxies: list[str]
     campaign_url_proxy_cooldown: float
     campaign_url_proxy_insecure: bool
@@ -92,15 +91,20 @@ class Config:  # pylint: disable=too-few-public-methods
                 os.getenv("ENABLE_CAMPAIGN_CRAWLERS", "true").lower()
                 in ("true", "1", "yes")
             ),
-            campaign_url_http_proxy=os.getenv("CAMPAIGN_URL_HTTP_PROXY"),
-            campaign_url_http_proxies=[
-                proxy
-                for proxy in re.split(
-                    r"\s*,\s*",
-                    os.getenv("CAMPAIGN_URL_HTTP_PROXIES", "").strip(),
+            # Both CAMPAIGN_URL_HTTP_PROXIES and the legacy
+            # CAMPAIGN_URL_HTTP_PROXY accept a comma-separated list of
+            # proxies; they are merged into a single pool.
+            campaign_url_http_proxies=list(
+                dict.fromkeys(
+                    proxy
+                    for env in (
+                        "CAMPAIGN_URL_HTTP_PROXIES",
+                        "CAMPAIGN_URL_HTTP_PROXY",
+                    )
+                    for proxy in re.split(r"\s*,\s*", os.getenv(env, "").strip())
+                    if proxy
                 )
-                if proxy
-            ],
+            ),
             campaign_url_proxy_cooldown=float(
                 os.getenv("CAMPAIGN_URL_PROXY_COOLDOWN", "60")
             ),
