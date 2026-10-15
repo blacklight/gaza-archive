@@ -36,6 +36,17 @@ class CampaignParser(ABC):
             WhydonateCampaignSource(config=self.config, db=self.db),
         }
 
+        unknown_sources = {
+            source.lower() for source in self.config.campaign_url_proxy_sources
+        } - {source.name for source in self.campaign_sources}
+        if unknown_sources:
+            log.warning(
+                "Unknown campaign sources in CAMPAIGN_URL_PROXY_SOURCES: %s "
+                "(known: %s)",
+                ", ".join(sorted(unknown_sources)),
+                ", ".join(sorted(s.name for s in self.campaign_sources)),
+            )
+
     def get_campaign_url(self, account: Account) -> str | None:
         return next(
             iter(

@@ -1,10 +1,10 @@
 import logging
 import re
+import urllib3
 from abc import ABC, abstractmethod
 from time import sleep
 
 import requests
-import urllib3
 
 from ....config import Config
 from ....db import Db
@@ -20,11 +20,22 @@ class CampaignSource(ABC):
     Base class for campaign sources.
     """
 
+    #: Unique identifier of the source; used by CAMPAIGN_URL_PROXY_SOURCES to
+    #: select which sources route their requests through the proxy pool.
+    name: str
+
     def __init__(self, config: Config, db: Db, *_, **__):
         self.config = config
         self.db = db
+        enabled_sources = {
+            source.lower() for source in config.campaign_url_proxy_sources
+        }
         self._proxy_pool = ProxyPool(
-            proxies=config.campaign_url_http_proxies,
+            proxies=(
+                config.campaign_url_http_proxies
+                if not enabled_sources or self.name.lower() in enabled_sources
+                else []
+            ),
             cooldown=config.campaign_url_proxy_cooldown,
         )
         # Max time to wait for a cooled-down proxy before giving up on the

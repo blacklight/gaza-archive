@@ -27,6 +27,7 @@ class Config:  # pylint: disable=too-few-public-methods
     campaign_url_http_proxies: list[str]
     campaign_url_proxy_cooldown: float
     campaign_url_proxy_insecure: bool
+    campaign_url_proxy_sources: list[str]
     exchange_rates_api_key: str | None
     fixer_io_api_key: str | None
     exclude_profiles: list[str]
@@ -112,6 +113,14 @@ class Config:  # pylint: disable=too-few-public-methods
                 os.getenv("CAMPAIGN_URL_PROXY_INSECURE", "false").lower()
                 in ("true", "1", "yes")
             ),
+            campaign_url_proxy_sources=[
+                source
+                for source in re.split(
+                    r"\s*,\s*",
+                    os.getenv("CAMPAIGN_URL_PROXY_SOURCES", "").strip(),
+                )
+                if source
+            ],
             exchange_rates_api_key=os.getenv("EXCHANGE_RATES_API_KEY"),
             fixer_io_api_key=os.getenv("FIXER_IO_API_KEY"),
             debug=os.getenv("DEBUG", "false").lower() in ("true", "1", "yes"),

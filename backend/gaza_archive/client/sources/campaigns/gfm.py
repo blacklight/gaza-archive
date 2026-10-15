@@ -17,6 +17,8 @@ class GFMCampaignSource(CampaignSource):
     Configuration for GoFundMe campaigns.
     """
 
+    name = "gofundme"
+
     _graphql_url = "https://graphql.gofundme.com/graphql"
     _graphql_donation_query = """
 query GetFundraiserDonations(

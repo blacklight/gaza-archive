@@ -70,6 +70,8 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
     Configuration for whydonate.com / whydonate.in campaigns.
     """
 
+    name = "whydonate"
+
     _fundraiser_api_url = "https://fundraiser.whydonate.dev/fundraiser/get"
     _donations_api_url = (
         "https://donation.whydonate.dev/donation/orders/fundraising/local/"

@@ -14,12 +14,12 @@ from ._source import CampaignSource
 log = logging.getLogger(__name__)
 
 
-class SteunactieCampaignSource(
-    CampaignSource
-):  # pylint: disable=too-few-public-methods
+class SteunactieCampaignSource(CampaignSource):  # pylint: disable=too-few-public-methods
     """
     Configuration for steunactie.nl campaigns.
     """
+
+    name = "steunactie"
 
     _api_url_pattern = (
         "https://steunactie.nl/donations/all/{campaign_id}/0/latest/1/?page={page}"

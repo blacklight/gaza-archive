@@ -19,6 +19,8 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
     Configuration for Chuffed campaigns.
     """
 
+    name = "chuffed"
+
     # Remove a donation if it's been unconfirmed for more than an hour
     _max_unconfirmed_age = timedelta(hours=1)
 
