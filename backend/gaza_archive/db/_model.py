@@ -335,6 +335,17 @@ class CampaignDonation(Base):
         )
 
 
+class CampaignUrlCache(Base):
+    """SQLAlchemy model caching shortened campaign URL resolutions."""
+
+    __tablename__ = "campaign_url_cache"
+
+    source_url = Column(String, primary_key=True)
+    resolved_url = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class BotState(Base):
     """
     SQLAlchemy model for storing the state of a bot.

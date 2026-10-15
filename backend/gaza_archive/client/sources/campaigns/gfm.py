@@ -86,39 +86,79 @@ fragment FundraiserDonationFields on Donation {
 }
     """.strip()
 
+    _short_url_pattern = re.compile(r"^https://(www\.)?gofund\.me/([a-zA-Z0-9\-]+)")
+    _canonical_url_pattern = re.compile(
+        r"^https://(www\.)?gofundme\.com/f/([a-zA-Z0-9\-]+)"
+    )
+
     @property
     def url_pattern(self) -> re.Pattern:
         return re.compile(r"^https://(www\.)?((gofund\.me)|(gofundme\.com))/.*")
 
-    def parse_url(self, url: str) -> str | None:
-        match = re.match(
-            r"^https://(www\.)?gofund\.me/([a-zA-Z0-9\-]+)",
-            url,
-        )
+    def _resolve_short_url(self, short_url: str) -> str | None:
+        """
+        Resolve a gofund.me short URL to its canonical gofundme.com campaign
+        URL by following the redirect.
+        """
+        try:
+            response = self._request(
+                "HEAD",
+                short_url,
+                timeout=self.config.http_timeout,
+                headers={"User-Agent": self.config.user_agent},
+            )
+            response.raise_for_status()
+        except requests.RequestException as e:
+            log.warning("Error fetching campaign URL %s: %s", short_url, e)
+            return None
 
-        # Parse any redirects
-        if match:
-            try:
-                response = self._request(
-                    "HEAD",
-                    url,
-                    timeout=self.config.http_timeout,
-                    headers={"User-Agent": self.config.user_agent},
-                )
-                response.raise_for_status()
-                url = response.headers.get("Location", url)
-            except (requests.RequestException, HttpError) as e:
-                log.warning("Error fetching campaign URL %s: %s", url, e)
-
-        match = re.match(
-            r"^https://(www\.)?gofundme\.com/f/([a-zA-Z0-9\-]+)",
-            url,
-        )
-
+        url = response.headers.get("Location", short_url)
+        match = self._canonical_url_pattern.match(url)
         if match:
             return f"https://www.gofundme.com/f/{match.group(2)}"
 
         return None
+
+    def parse_url(self, url: str) -> str | None:
+        match = self._short_url_pattern.match(url)
+
+        # gofund.me short URLs resolve to the canonical campaign URL with a
+        # redirect. The resolver is slow, so resolutions are cached; a stale
+        # cache entry (e.g. after a campaign slug rename) is refreshed by
+        # refresh_campaign_url() when the canonical URL stops working.
+        if match:
+            short_url = f"https://gofund.me/{match.group(2)}"
+            cached = self.db.get_campaign_url_cache(short_url)
+            if cached:
+                return cached
+            try:
+                resolved = self._resolve_short_url(short_url)
+            except HttpError as e:
+                log.warning("Error fetching campaign URL %s: %s", short_url, e)
+                return None
+            if resolved:
+                self.db.set_campaign_url_cache(short_url, resolved)
+            return resolved
+
+        match = self._canonical_url_pattern.match(url)
+        if match:
+            return f"https://www.gofundme.com/f/{match.group(2)}"
+
+        return None
+
+    def refresh_campaign_url(self, campaign: Campaign) -> str | None:
+        """
+        Re-resolve the gofund.me short URL this campaign was discovered
+        through, in case its canonical URL changed (slug rename).
+        """
+        short_url = self.db.get_campaign_url_source(campaign.url)
+        if not short_url:
+            return None
+        resolved = self._resolve_short_url(short_url)
+        if not resolved or resolved == campaign.url:
+            return None
+        self.db.set_campaign_url_cache(short_url, resolved)
+        return resolved
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         """

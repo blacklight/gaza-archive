@@ -59,6 +59,14 @@ class CampaignSource(ABC):
         Fetch donations from the campaign URL.
         """
 
+    def refresh_campaign_url(self, campaign: Campaign) -> str | None:
+        """
+        Try to resolve a fresh canonical URL for a campaign that appears to be
+        deleted, e.g. when the upstream campaign URL changed while a shortened
+        URL stayed valid. Returns the new URL, or None if none could be found.
+        """
+        return None
+
     @staticmethod
     def _retry_after(response: requests.Response) -> float | None:
         try:

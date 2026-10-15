@@ -33,6 +33,9 @@ from ._model import (
     CampaignDonation as DbCampaignDonation,
 )
 from ._model import (
+    CampaignUrlCache as DbCampaignUrlCache,
+)
+from ._model import (
     Post as DbPost,
 )
 
@@ -161,9 +164,7 @@ class Campaigns(ABC):
                     DbCampaignDonation.created_at >= start_time
                 )
             if end_time:
-                time_filter_conditions.append(
-                    DbCampaignDonation.created_at <= end_time
-                )
+                time_filter_conditions.append(DbCampaignDonation.created_at <= end_time)
             has_time_filter = bool(time_filter_conditions)
             donation_time_filter = (
                 and_(*time_filter_conditions) if has_time_filter else None
@@ -190,9 +191,9 @@ class Campaigns(ABC):
                     DbCampaignDonation.created_at
                 ).label("first_donation_time")
 
-            last_donation_time_column = func.max(
-                DbCampaignDonation.created_at
-            ).label("last_donation_time")
+            last_donation_time_column = func.max(DbCampaignDonation.created_at).label(
+                "last_donation_time"
+            )
 
             output = [
                 *[
@@ -539,7 +540,9 @@ class Campaigns(ABC):
                 }
                 for donation in campaign.donations:
                     prev = donations_by_id.get(donation.id)
-                    if prev is None or naive_utc(donation.created_at) > naive_utc(prev.created_at):
+                    if prev is None or naive_utc(donation.created_at) > naive_utc(
+                        prev.created_at
+                    ):
                         donations_by_id[donation.id] = donation
 
                 existing.donations = list(donations_by_id.values())
@@ -554,7 +557,9 @@ class Campaigns(ABC):
                 }
                 for donation in campaign.donations:
                     prev = donations_by_id.get(donation.id)
-                    if prev is None or naive_utc(donation.created_at) > naive_utc(prev.created_at):
+                    if prev is None or naive_utc(donation.created_at) > naive_utc(
+                        prev.created_at
+                    ):
                         donations_by_id[donation.id] = donation
                 campaign.donations = list(donations_by_id.values())
 
@@ -664,6 +669,40 @@ class Campaigns(ABC):
 
                 session.add(db_campaign)
 
+            session.commit()
+
+    def get_campaign_url_cache(self, source_url: str) -> str | None:
+        """Return the cached canonical URL for a shortened campaign URL."""
+        with self.get_session() as session:
+            row = (
+                session.query(DbCampaignUrlCache)
+                .filter(DbCampaignUrlCache.source_url == source_url)  # type: ignore
+                .first()
+            )
+            return str(row.resolved_url) if row else None
+
+    def get_campaign_url_source(self, resolved_url: str) -> str | None:
+        """
+        Return the shortened campaign URL that a canonical campaign URL was
+        resolved from, if any.
+        """
+        with self.get_session() as session:
+            row = (
+                session.query(DbCampaignUrlCache)
+                .filter(DbCampaignUrlCache.resolved_url == resolved_url)  # type: ignore
+                .first()
+            )
+            return str(row.source_url) if row else None
+
+    def set_campaign_url_cache(self, source_url: str, resolved_url: str):
+        """Cache the canonical URL a shortened campaign URL resolves to."""
+        with self._write_lock, self.get_session() as session:
+            session.merge(
+                DbCampaignUrlCache(
+                    source_url=source_url,
+                    resolved_url=resolved_url,
+                )
+            )
             session.commit()
 
     def get_recent_campaign_donations(

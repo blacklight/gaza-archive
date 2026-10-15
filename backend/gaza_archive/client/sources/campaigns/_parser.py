@@ -216,8 +216,27 @@ class CampaignParser(ABC):
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         campaign_source = self.get_campaign_source(campaign.url)
-        donations = {donation.url: donation for donation in campaign.donations}
-        campaign = campaign_source.fetch_donations(campaign)
+        existing_donations = list(campaign.donations)
+
+        try:
+            campaign = campaign_source.fetch_donations(campaign)
+        except CampaignDeletedError:
+            # The campaign's canonical URL may have changed upstream while a
+            # shortened URL stayed valid (e.g. a GoFundMe slug rename): let
+            # the source resolve a fresh URL and retry once.
+            new_url = campaign_source.refresh_campaign_url(campaign)
+            if not new_url:
+                raise
+            log.info("Campaign %s moved to %s", campaign.url, new_url)
+            campaign.url = new_url
+            campaign = campaign_source.fetch_donations(campaign)
+            # Re-key known donations to the new URL so the merge below
+            # deduplicates them against the freshly-fetched ones.
+            for donation in existing_donations:
+                donation.url = f"{new_url}#donation-{donation.id}"
+                donation.campaign_url = new_url
+
+        donations = {donation.url: donation for donation in existing_donations}
 
         if campaign.donations:
             log.info(
