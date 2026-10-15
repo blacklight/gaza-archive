@@ -42,7 +42,7 @@ class SteunactieCampaignSource(CampaignSource):  # pylint: disable=too-few-publi
             campaign_url,
             timeout=self.config.http_timeout,
             headers={
-                "User-Agent": self.config.user_agent,
+                "User-Agent": self._user_agent,
             },
         )
 
@@ -125,7 +125,7 @@ class SteunactieCampaignSource(CampaignSource):  # pylint: disable=too-few-publi
                 "GET",
                 self._api_url_pattern.format(campaign_id=campaign_id, page=page),
                 timeout=self.config.http_timeout,
-                headers={"User-Agent": self.config.user_agent},
+                headers={"User-Agent": self._user_agent},
             )
 
             try:

@@ -107,7 +107,7 @@ fragment FundraiserDonationFields on Donation {
                 "HEAD",
                 short_url,
                 timeout=self.config.http_timeout,
-                headers={"User-Agent": self.config.user_agent},
+                headers={"User-Agent": self._user_agent},
             )
             response.raise_for_status()
         except requests.RequestException as e:
@@ -202,7 +202,7 @@ fragment FundraiserDonationFields on Donation {
                 self._graphql_url,
                 json=payload,
                 timeout=self.config.http_timeout,
-                headers={"User-Agent": self.config.user_agent},
+                headers={"User-Agent": self._user_agent},
             )
 
             try:

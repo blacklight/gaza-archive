@@ -27,6 +27,7 @@ class CampaignSource(ABC):
     def __init__(self, config: Config, db: Db, *_, **__):
         self.config = config
         self.db = db
+        self._user_agent = config.campaign_user_agent or config.user_agent
         enabled_sources = {
             source.lower() for source in config.campaign_url_proxy_sources
         }

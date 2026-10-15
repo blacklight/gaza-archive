@@ -114,7 +114,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                     },
                 },
                 timeout=self.config.http_timeout,
-                headers={"User-Agent": self.config.user_agent},
+                headers={"User-Agent": self._user_agent},
             )
 
             try:
@@ -237,7 +237,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
             campaign_url,
             timeout=self.config.http_timeout,
             headers={
-                "User-Agent": self.config.user_agent,
+                "User-Agent": self._user_agent,
             },
         )
 
@@ -301,7 +301,7 @@ class ChuffedCampaignSource(CampaignSource):  # pylint: disable=too-few-public-m
                 },
             },
             timeout=self.config.http_timeout,
-            headers={"User-Agent": self.config.user_agent},
+            headers={"User-Agent": self._user_agent},
         )
 
         try:

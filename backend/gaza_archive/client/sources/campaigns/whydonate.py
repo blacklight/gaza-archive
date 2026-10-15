@@ -99,7 +99,7 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
             self._fundraiser_api_url,
             params={"slug": slug, "language": "en"},
             timeout=self.config.http_timeout,
-            headers={"User-Agent": self.config.user_agent},
+            headers={"User-Agent": self._user_agent},
         )
 
         try:
@@ -264,7 +264,7 @@ class WhydonateCampaignSource(CampaignSource):  # pylint: disable=too-few-public
                 "language_code": "en",
             },
             timeout=self.config.http_timeout,
-            headers={"User-Agent": self.config.user_agent},
+            headers={"User-Agent": self._user_agent},
         )
 
     def fetch_donations(self, campaign: Campaign) -> Campaign:
