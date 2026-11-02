@@ -34,8 +34,8 @@
     archive, to ensure its availability and redundancy.</p>
 
     <p>The Gaza Verified Archive is maintained by
-    <a href="https://manganiello.eu/users/fabio" rel="me" target="_blank">Fabio Manganiello</a>,
-    who also runs the <a href="https://archive.gaza.onl" target="_blank">official copy</a> of the
+    <a href="https://manganiello.tech/@fabio" rel="me" target="_blank">Fabio Manganiello</a>,
+    who also runs the <a href="https://gaza.onl" target="_blank">official copy</a> of the
     archive.</p>
 
     <h3>Purpose of the donations</h3>
