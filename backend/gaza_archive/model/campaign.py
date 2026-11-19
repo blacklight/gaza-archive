@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, computed_field, field_serializer
 
@@ -39,6 +40,7 @@ class Campaign(Item):
     donations_cursor: str | None = None
     donations: list[CampaignDonation] = Field(default_factory=list)
     state: SuspensionState | None = None
+    state_source: Literal["account", "fetch"] | None = None
     down_since: datetime | None = None
 
     @computed_field

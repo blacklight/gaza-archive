@@ -110,6 +110,7 @@ class CampaignParser(ABC):
                 )
                 if campaign:
                     campaign.state = SuspensionState.DELETED
+                    campaign.state_source = "account"
                     campaign.down_since = None
 
         return existing_campaigns, new_campaigns, deleted_urls
@@ -144,6 +145,7 @@ class CampaignParser(ABC):
                 try:
                     refreshed = future.result()
                     refreshed.state = SuspensionState.ACTIVE
+                    refreshed.state_source = "fetch"
                     refreshed.down_since = None
                     target = (
                         existing_campaigns
@@ -154,6 +156,7 @@ class CampaignParser(ABC):
                 except CampaignDeletedError as exc:
                     log.warning(str(exc))
                     campaign.state = SuspensionState.DELETED
+                    campaign.state_source = "fetch"
                     campaign.down_since = None
                 except HttpError as exc:
                     log.warning("Temporary error refreshing %s: %s", url, exc)
@@ -175,6 +178,7 @@ class CampaignParser(ABC):
                             down_hours,
                         )
                         campaign.state = SuspensionState.DELETED
+                        campaign.state_source = "fetch"
                 except Exception as exc:
                     log.error("Error refreshing campaign %s: %s", url, exc)
                     log.exception(exc)

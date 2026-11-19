@@ -54,6 +54,10 @@ class Campaigns(ABC):
         "campaign": DbCampaign,
         "donation": DbCampaignDonation,
     }
+    _campaign_state_source_priority: ClassVar[dict[str, int]] = {
+        "fetch": 2,
+        "account": 0,
+    }
 
     @abstractmethod
     @contextmanager
@@ -520,6 +524,32 @@ class Campaigns(ABC):
 
         return query
 
+    @classmethod
+    def _campaign_state_priority(cls, campaign: Campaign) -> tuple[int, int, str]:
+        source_priority = (
+            1
+            if campaign.state_source is None
+            else cls._campaign_state_source_priority.get(campaign.state_source, 1)
+        )
+        if campaign.state_source == "fetch":
+            state_priority = {
+                SuspensionState.ACTIVE: 2,
+                SuspensionState.DELETED: 1,
+            }.get(campaign.state, 0)
+        else:
+            state_priority = {
+                SuspensionState.DELETED: 2,
+                SuspensionState.ACTIVE: 1,
+            }.get(campaign.state, 0)
+        return source_priority, state_priority, campaign.account_url
+
+    @classmethod
+    def _merge_campaign_state(cls, existing: Campaign, campaign: Campaign) -> None:
+        preferred = max((existing, campaign), key=cls._campaign_state_priority)
+        existing.state = preferred.state
+        existing.state_source = preferred.state_source
+        existing.down_since = preferred.down_since
+
     def save_campaigns(self, campaigns: list[Campaign]):
         with self._write_lock, self.get_session() as session:
             campaigns_by_url: dict[str, Campaign] = {}
@@ -534,6 +564,8 @@ class Campaigns(ABC):
                     and campaign.donations_cursor is not None
                 ):
                     existing.donations_cursor = campaign.donations_cursor
+
+                self._merge_campaign_state(existing, campaign)
 
                 donations_by_id = {
                     donation.id: donation for donation in existing.donations
