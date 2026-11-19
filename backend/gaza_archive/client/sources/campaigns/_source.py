@@ -2,7 +2,9 @@ import logging
 import re
 import urllib3
 from abc import ABC, abstractmethod
-from time import sleep
+from time import monotonic, sleep
+from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -11,6 +13,15 @@ from ....db import Db
 from ....errors import HttpError
 from ....model import Campaign
 from ._proxy_pool import ProxyPool
+
+
+def _cffi_requests() -> Any:
+    try:
+        from curl_cffi import requests as cffi_requests
+    except ImportError:
+        return None
+    return cffi_requests
+
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +54,17 @@ class CampaignSource(ABC):
         # request and treating it as throttled.
         self._proxy_max_wait = max(2 * config.campaign_url_proxy_cooldown, 120.0)
         self._proxy_insecure = config.campaign_url_proxy_insecure
+        self._http_impersonate = config.campaign_http_impersonate
+        flaresolverr_sources = {
+            source.lower() for source in config.campaign_flaresolverr_sources
+        }
+        self._flaresolverr_url = (
+            config.flaresolverr_url
+            if config.flaresolverr_url
+            and (not flaresolverr_sources or self.name.lower() in flaresolverr_sources)
+            else None
+        )
+        self._flaresolverr_cache: tuple[str, str, float] | None = None
         if self._proxy_insecure and self._proxy_pool:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -86,6 +108,116 @@ class CampaignSource(ABC):
         except (KeyError, TypeError, ValueError):
             return None
 
+    @staticmethod
+    def _is_cloudflare_challenge(response: Any) -> bool:
+        if (
+            getattr(response, "status_code", None)
+            not in HttpError.THROTTLED_STATUS_CODES
+        ):
+            return False
+
+        headers = {
+            str(k).lower(): v
+            for k, v in (getattr(response, "headers", {}) or {}).items()
+        }
+        text = (getattr(response, "text", "") or "")[:5000].lower()
+        return headers.get("cf-mitigated") == "challenge" or (
+            "cloudflare" in headers.get("server", "").lower()
+            and (
+                "just a moment" in text
+                or "challenges.cloudflare.com" in text
+                or "cf-chl" in text
+            )
+        )
+
+    def _flaresolverr_clearance(self, url: str) -> tuple[str, str] | None:
+        if not self._flaresolverr_url:
+            return None
+        if self._flaresolverr_cache and self._flaresolverr_cache[2] > monotonic():
+            return self._flaresolverr_cache[0], self._flaresolverr_cache[1]
+
+        parts = urlsplit(url)
+        origin = f"{parts.scheme}://{parts.netloc}/"
+        endpoint = self._flaresolverr_url.rstrip("/")
+        if not endpoint.endswith("/v1"):
+            endpoint += "/v1"
+        try:
+            res = requests.post(
+                endpoint,
+                json={
+                    "cmd": "request.get",
+                    "url": origin,
+                    "maxTimeout": 60000,
+                    "returnOnlyCookies": True,
+                },
+                timeout=90,
+            )
+            res.raise_for_status()
+            solution = res.json().get("solution") or {}
+        except Exception as exc:
+            log.warning("FlareSolverr clearance failed for %s: %s", url, exc)
+            return None
+
+        cf = next(
+            (
+                cookie.get("value")
+                for cookie in (solution.get("cookies") or [])
+                if cookie.get("name") == "cf_clearance"
+            ),
+            None,
+        )
+        user_agent = solution.get("userAgent")
+        if not cf or not user_agent:
+            return None
+
+        self._flaresolverr_cache = (cf, user_agent, monotonic() + 600)
+        return cf, user_agent
+
+    def _request_with_clearance(
+        self, method: str, url: str, kwargs: dict[str, Any]
+    ) -> Any | None:
+        clearance = self._flaresolverr_clearance(url)
+        if not clearance:
+            return None
+        cf_clearance, user_agent = clearance
+        retry_kwargs = dict(kwargs)
+        headers = dict(retry_kwargs.get("headers") or {})
+        headers["User-Agent"] = user_agent
+        retry_kwargs["headers"] = headers
+        retry_kwargs["cookies"] = {"cf_clearance": cf_clearance}
+        return self._perform_request(method, url, **retry_kwargs)
+
+    def _maybe_flaresolverr(
+        self, method: str, url: str, kwargs: dict[str, Any], response: Any
+    ) -> Any:
+        if not self._flaresolverr_url or not self._is_cloudflare_challenge(response):
+            return response
+        solved = self._request_with_clearance(method, url, kwargs)
+        if solved is not None and not self._is_cloudflare_challenge(solved):
+            return solved
+        return response
+
+    def _perform_request(
+        self, method: str, url: str, proxies: dict[str, str] | None = None, **kwargs
+    ) -> Any:
+        request_kwargs = dict(kwargs)
+        if proxies is not None:
+            request_kwargs["proxies"] = proxies
+
+        cffi = _cffi_requests()
+        if self._http_impersonate and cffi is not None:
+            try:
+                return cffi.request(
+                    method,
+                    url,
+                    impersonate=self._http_impersonate,
+                    **request_kwargs,
+                )
+            except Exception as exc:
+                raise requests.RequestException(str(exc)) from exc
+
+        return requests.request(method, url, **request_kwargs)
+
     def _request(self, method: str, url: str, **kwargs) -> requests.Response:
         """
         Perform an HTTP request, routing it through the configured pool of
@@ -100,7 +232,8 @@ class CampaignSource(ABC):
         """
         pool = self._proxy_pool
         if not pool:
-            return requests.request(method, url, **kwargs)
+            response = self._perform_request(method, url, **kwargs)
+            return self._maybe_flaresolverr(method, url, kwargs, response)
 
         if self._proxy_insecure:
             kwargs.setdefault("verify", False)
@@ -110,6 +243,7 @@ class CampaignSource(ABC):
         waited = 0.0
         response: requests.Response | None = None
         last_error: requests.RequestException | None = None
+        solver_tried = False
 
         while attempts < max_attempts:
             proxy = pool.acquire()
@@ -128,7 +262,7 @@ class CampaignSource(ABC):
 
             attempts += 1
             try:
-                response = requests.request(
+                response = self._perform_request(
                     method,
                     url,
                     proxies={"http": proxy, "https": proxy},
@@ -140,6 +274,14 @@ class CampaignSource(ABC):
                 pool.report_failure(proxy)
                 last_error = e
                 continue
+
+            if (
+                not solver_tried
+                and self._flaresolverr_url
+                and self._is_cloudflare_challenge(response)
+            ):
+                solver_tried = True
+                response = self._maybe_flaresolverr(method, url, kwargs, response)
 
             if response.status_code in HttpError.THROTTLED_STATUS_CODES:
                 log.warning(

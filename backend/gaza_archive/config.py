@@ -28,6 +28,9 @@ class Config:  # pylint: disable=too-few-public-methods
     campaign_url_proxy_cooldown: float
     campaign_url_proxy_insecure: bool
     campaign_url_proxy_sources: list[str]
+    campaign_http_impersonate: str | None
+    flaresolverr_url: str | None
+    campaign_flaresolverr_sources: list[str]
     campaign_user_agent: str | None
     exchange_rates_api_key: str | None
     fixer_io_api_key: str | None
@@ -120,6 +123,18 @@ class Config:  # pylint: disable=too-few-public-methods
                 for source in re.split(
                     r"\s*,\s*",
                     os.getenv("CAMPAIGN_URL_PROXY_SOURCES", "").strip(),
+                )
+                if source
+            ],
+            campaign_http_impersonate=(
+                os.getenv("CAMPAIGN_HTTP_IMPERSONATE", "chrome").strip() or None
+            ),
+            flaresolverr_url=os.getenv("FLARESOLVERR_URL") or None,
+            campaign_flaresolverr_sources=[
+                source
+                for source in re.split(
+                    r"\s*,\s*",
+                    os.getenv("CAMPAIGN_FLARESOLVERR_SOURCES", "").strip(),
                 )
                 if source
             ],

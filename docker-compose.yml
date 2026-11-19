@@ -19,6 +19,15 @@ services:
     # ports:
     #   - "8001:8000"
 
+  flaresolverr:
+    image: flaresolverr/flaresolverr:latest
+    environment:
+      - LOG_LEVEL=info
+      - TZ=UTC
+    # Optional, for debugging purposes
+    # ports:
+    #   - "8191:8191"
+
   swagger:
     image: swaggerapi/swagger-ui
     environment:
