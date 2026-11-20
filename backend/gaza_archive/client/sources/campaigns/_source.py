@@ -24,6 +24,22 @@ def _cffi_requests() -> Any:
     return cffi_requests
 
 
+class _CompatResponse:
+    def __init__(self, response: Any) -> None:
+        self._response = response
+
+    def raise_for_status(self) -> None:
+        status_code = getattr(self._response, "status_code", 200)
+        if status_code >= 400:
+            reason = getattr(self._response, "reason", "") or ""
+            error = requests.HTTPError(f"HTTP Error {status_code}: {reason}")
+            error.response = self
+            raise error
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._response, name)
+
+
 log = logging.getLogger(__name__)
 
 
@@ -236,11 +252,13 @@ class CampaignSource(ABC):
         cffi = _cffi_requests()
         if self._http_impersonate and cffi is not None:
             try:
-                return cffi.request(
-                    method,
-                    url,
-                    impersonate=self._http_impersonate,
-                    **request_kwargs,
+                return _CompatResponse(
+                    cffi.request(
+                        method,
+                        url,
+                        impersonate=self._http_impersonate,
+                        **request_kwargs,
+                    )
                 )
             except Exception as exc:
                 raise requests.RequestException(str(exc)) from exc
