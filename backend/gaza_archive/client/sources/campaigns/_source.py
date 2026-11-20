@@ -170,7 +170,7 @@ class CampaignSource(ABC):
         if not cf or not user_agent:
             return None
 
-        self._flaresolverr_cache = (cf, user_agent, monotonic() + 600)
+        self._flaresolverr_cache = (cf, user_agent, monotonic() + 300)
         return cf, user_agent
 
     def _request_with_clearance(
@@ -185,16 +185,33 @@ class CampaignSource(ABC):
         headers["User-Agent"] = user_agent
         retry_kwargs["headers"] = headers
         retry_kwargs["cookies"] = {"cf_clearance": cf_clearance}
-        return self._perform_request(method, url, **retry_kwargs)
+        try:
+            return self._perform_request(method, url, **retry_kwargs)
+        except requests.RequestException as exc:
+            log.warning("FlareSolverr clearance retry failed for %s: %s", url, exc)
+            return None
 
     def _maybe_flaresolverr(
         self, method: str, url: str, kwargs: dict[str, Any], response: Any
     ) -> Any:
         if not self._flaresolverr_url or not self._is_cloudflare_challenge(response):
             return response
-        solved = self._request_with_clearance(method, url, kwargs)
-        if solved is not None and not self._is_cloudflare_challenge(solved):
-            return solved
+
+        log.info("Cloudflare challenge for %s; attempting FlareSolverr", url)
+        for attempt in range(2):
+            solved = self._request_with_clearance(method, url, kwargs)
+            if solved is None:
+                break
+            if not self._is_cloudflare_challenge(solved):
+                log.info("FlareSolverr solved challenge for %s", url)
+                return solved
+            self._flaresolverr_cache = None
+            if attempt == 0:
+                log.info(
+                    "FlareSolverr clearance still challenged for %s; re-solving", url
+                )
+
+        log.warning("FlareSolverr could not solve challenge for %s", url)
         return response
 
     def _perform_request(
