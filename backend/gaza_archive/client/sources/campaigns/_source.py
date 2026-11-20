@@ -1,5 +1,6 @@
 import logging
 import re
+import threading
 import urllib3
 from abc import ABC, abstractmethod
 from time import monotonic, sleep
@@ -64,7 +65,9 @@ class CampaignSource(ABC):
             and (not flaresolverr_sources or self.name.lower() in flaresolverr_sources)
             else None
         )
-        self._flaresolverr_cache: tuple[str, str, float] | None = None
+        self._flaresolverr_cache: tuple[dict[str, str], str, float] | None = None
+        self._flaresolverr_lock = threading.Lock()
+        self._flaresolverr_failures = 0
         if self._proxy_insecure and self._proxy_pool:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -130,48 +133,50 @@ class CampaignSource(ABC):
             )
         )
 
-    def _flaresolverr_clearance(self, url: str) -> tuple[str, str] | None:
+    def _flaresolverr_clearance(self, url: str) -> tuple[dict[str, str], str] | None:
         if not self._flaresolverr_url:
             return None
         if self._flaresolverr_cache and self._flaresolverr_cache[2] > monotonic():
             return self._flaresolverr_cache[0], self._flaresolverr_cache[1]
 
-        parts = urlsplit(url)
-        origin = f"{parts.scheme}://{parts.netloc}/"
-        endpoint = self._flaresolverr_url.rstrip("/")
-        if not endpoint.endswith("/v1"):
-            endpoint += "/v1"
-        try:
-            res = requests.post(
-                endpoint,
-                json={
-                    "cmd": "request.get",
-                    "url": origin,
-                    "maxTimeout": 60000,
-                    "returnOnlyCookies": True,
-                },
-                timeout=90,
-            )
-            res.raise_for_status()
-            solution = res.json().get("solution") or {}
-        except Exception as exc:
-            log.warning("FlareSolverr clearance failed for %s: %s", url, exc)
-            return None
+        with self._flaresolverr_lock:
+            if self._flaresolverr_cache and self._flaresolverr_cache[2] > monotonic():
+                return self._flaresolverr_cache[0], self._flaresolverr_cache[1]
 
-        cf = next(
-            (
-                cookie.get("value")
+            parts = urlsplit(url)
+            origin = f"{parts.scheme}://{parts.netloc}/"
+            endpoint = self._flaresolverr_url.rstrip("/")
+            if not endpoint.endswith("/v1"):
+                endpoint += "/v1"
+            try:
+                res = requests.post(
+                    endpoint,
+                    json={
+                        "cmd": "request.get",
+                        "url": origin,
+                        "maxTimeout": 60000,
+                        "returnOnlyCookies": True,
+                    },
+                    timeout=90,
+                )
+                res.raise_for_status()
+                solution = res.json().get("solution") or {}
+            except Exception as exc:
+                log.warning("FlareSolverr clearance failed for %s: %s", url, exc)
+                return None
+
+            cookies = {
+                cookie["name"]: cookie["value"]
                 for cookie in (solution.get("cookies") or [])
-                if cookie.get("name") == "cf_clearance"
-            ),
-            None,
-        )
-        user_agent = solution.get("userAgent")
-        if not cf or not user_agent:
-            return None
+                if cookie.get("name") and cookie.get("value")
+            }
+            user_agent = solution.get("userAgent")
+            if "cf_clearance" not in cookies or not user_agent:
+                return None
 
-        self._flaresolverr_cache = (cf, user_agent, monotonic() + 300)
-        return cf, user_agent
+            self._flaresolverr_cache = (cookies, user_agent, monotonic() + 300)
+            self._flaresolverr_failures = 0
+            return cookies, user_agent
 
     def _request_with_clearance(
         self, method: str, url: str, kwargs: dict[str, Any]
@@ -179,12 +184,15 @@ class CampaignSource(ABC):
         clearance = self._flaresolverr_clearance(url)
         if not clearance:
             return None
-        cf_clearance, user_agent = clearance
+        cookies, user_agent = clearance
         retry_kwargs = dict(kwargs)
         headers = dict(retry_kwargs.get("headers") or {})
         headers["User-Agent"] = user_agent
         retry_kwargs["headers"] = headers
-        retry_kwargs["cookies"] = {"cf_clearance": cf_clearance}
+        retry_kwargs["cookies"] = {
+            **(retry_kwargs.get("cookies") or {}),
+            **cookies,
+        }
         try:
             return self._perform_request(method, url, **retry_kwargs)
         except requests.RequestException as exc:
@@ -203,9 +211,13 @@ class CampaignSource(ABC):
             if solved is None:
                 break
             if not self._is_cloudflare_challenge(solved):
+                self._flaresolverr_failures = 0
                 log.info("FlareSolverr solved challenge for %s", url)
                 return solved
-            self._flaresolverr_cache = None
+            self._flaresolverr_failures += 1
+            if self._flaresolverr_failures >= 3:
+                self._flaresolverr_cache = None
+                self._flaresolverr_failures = 0
             if attempt == 0:
                 log.info(
                     "FlareSolverr clearance still challenged for %s; re-solving", url
