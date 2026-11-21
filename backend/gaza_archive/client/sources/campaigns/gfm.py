@@ -1,4 +1,5 @@
 import re
+import threading
 from datetime import datetime, timezone
 from logging import getLogger
 from time import monotonic
@@ -24,8 +25,8 @@ class GFMCampaignSource(CampaignSource):
     _donations_url = "https://gateway.gofundme.com/web-gateway/v1/feed/{slug}/donations"
     _page_limit = 100
     _max_pages = 10
-    _short_url_timeout = 10
-    _short_url_negative_cache_ttl = 300
+    _short_url_timeout = 5
+    _short_url_negative_cache_ttl = 1800
 
     _short_url_pattern = re.compile(r"^https://(www\.)?gofund\.me/([a-zA-Z0-9\-]+)")
     _canonical_url_pattern = re.compile(
@@ -38,6 +39,7 @@ class GFMCampaignSource(CampaignSource):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self._short_url_lock = threading.Lock()
         self._short_url_negative_cache: dict[str, float] = {}
 
     def _resolve_short_url(self, short_url: str) -> str | None:
@@ -45,39 +47,45 @@ class GFMCampaignSource(CampaignSource):
         Resolve a gofund.me short URL to its canonical gofundme.com campaign
         URL by following the redirect.
         """
-        now = monotonic()
-        if self._short_url_negative_cache.get(short_url, 0) > now:
+        if self._short_url_negative_cache.get(short_url, 0) > monotonic():
             return None
 
-        try:
-            response = self._request(
-                "GET",
-                short_url,
-                timeout=self._short_url_timeout,
-                headers={
-                    "User-Agent": self._user_agent,
-                    "Accept": "text/html,application/xhtml+xml",
-                },
-                allow_redirects=False,
-            )
-            response.raise_for_status()
-        except requests.RequestException as e:
-            log.warning("Error fetching campaign URL %s: %s", short_url, e)
+        with self._short_url_lock:
+            if self._short_url_negative_cache.get(short_url, 0) > monotonic():
+                return None
+
+            try:
+                response = self._request(
+                    "GET",
+                    short_url,
+                    timeout=self._short_url_timeout,
+                    headers={
+                        "User-Agent": self._user_agent,
+                        "Accept": "text/html,application/xhtml+xml",
+                    },
+                    allow_redirects=False,
+                )
+                response.raise_for_status()
+            except requests.RequestException as e:
+                self._short_url_negative_cache[short_url] = (
+                    monotonic() + self._short_url_negative_cache_ttl
+                )
+                raise HttpError(
+                    f"Error fetching campaign URL {short_url}",
+                    status_code=503,
+                    exception=e,
+                ) from e
+
+            self._short_url_negative_cache.pop(short_url, None)
+            url = response.headers.get("Location", short_url)
+            match = self._canonical_url_pattern.match(url)
+            if match:
+                return f"https://www.gofundme.com/f/{match.group(2)}"
+
             self._short_url_negative_cache[short_url] = (
                 monotonic() + self._short_url_negative_cache_ttl
             )
             return None
-
-        self._short_url_negative_cache.pop(short_url, None)
-        url = response.headers.get("Location", short_url)
-        match = self._canonical_url_pattern.match(url)
-        if match:
-            return f"https://www.gofundme.com/f/{match.group(2)}"
-
-        self._short_url_negative_cache[short_url] = (
-            monotonic() + self._short_url_negative_cache_ttl
-        )
-        return None
 
     def parse_url(self, url: str) -> str | None:
         match = self._short_url_pattern.match(url)
