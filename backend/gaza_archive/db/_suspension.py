@@ -110,7 +110,7 @@ class SuspensionStates(ABC):
             # Delete existing states for this account
             session.query(DbAccountSuspensionState).filter(
                 DbAccountSuspensionState.account_url == account_url
-            ).delete(synchronize_session=False)
+            ).delete(synchronize_session="evaluate")
 
             # Insert new states
             for server_url, state in states.items():
