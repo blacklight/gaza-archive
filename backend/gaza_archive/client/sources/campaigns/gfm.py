@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timezone
 from logging import getLogger
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -19,74 +20,9 @@ class GFMCampaignSource(CampaignSource):
 
     name = "gofundme"
 
-    _graphql_url = "https://graphql.gofundme.com/graphql"
-    _graphql_donation_query = """
-query GetFundraiserDonations(
-    $slug: ID!,
-    $first: Int,
-    $last: Int,
-    $before: String,
-    $after: String,
-    $order: DonationOrder
-) {
-  fundraiser(slug: $slug) {
-    id
-    donations(
-      first: $first
-      last: $last
-      before: $before
-      after: $after
-      order: $order
-    ) {
-      edges {
-        node {
-          ...FundraiserDonationFields
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        startCursor
-        endCursor
-        hasNextPage
-        hasPreviousPage
-        __typename
-      }
-      __typename
-    }
-    __typename
-  }
-}
-
-fragment FundraiserDonationFields on Donation {
-  amount {
-    amount
-    currencyCode
-    __typename
-  }
-  checkoutId
-  createdAt
-  fundraiser {
-    id
-    __typename
-  }
-  id
-  isAnonymous
-  isOffline
-  isRecurring
-  isVerified
-  name
-  profileUrl
-  donorProfile {
-    id
-    mode
-    slug
-    status
-    __typename
-  }
-  __typename
-}
-    """.strip()
+    _donations_url = "https://gateway.gofundme.com/web-gateway/v1/feed/{slug}/donations"
+    _page_limit = 100
+    _max_pages = 10
 
     _short_url_pattern = re.compile(r"^https://(www\.)?gofund\.me/([a-zA-Z0-9\-]+)")
     _canonical_url_pattern = re.compile(
@@ -162,131 +98,164 @@ fragment FundraiserDonationFields on Donation {
         self.db.set_campaign_url_cache(short_url, resolved)
         return resolved
 
+    def _campaign_slug(self, campaign: Campaign) -> str:
+        return urlsplit(campaign.url).path.rstrip("/").rsplit("/", 1)[-1]
+
+    def _fetch_donations_page(
+        self, campaign: Campaign, offset: int
+    ) -> tuple[list[dict[str, Any]], bool]:
+        response = self._request(
+            "GET",
+            self._donations_url.format(slug=self._campaign_slug(campaign)),
+            params={
+                "limit": self._page_limit,
+                "offset": offset,
+                "sort": "recent",
+            },
+            timeout=self.config.http_timeout,
+            headers={
+                "User-Agent": self._user_agent,
+                "Accept": "application/json",
+            },
+        )
+
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            if response.status_code in HttpError.THROTTLED_STATUS_CODES:
+                raise HttpError(
+                    f"Campaign {campaign.url} access denied: {response.status_code}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            if response.status_code in (404, 410) or 400 <= response.status_code < 500:
+                raise CampaignDeletedError(
+                    f"Campaign {campaign.url} not found: {response.status_code}",
+                    campaign_url=campaign.url,
+                    status_code=response.status_code,
+                ) from e
+            if response.status_code >= 500:
+                raise HttpError(
+                    f"Server error fetching donations from {campaign.url}",
+                    status_code=response.status_code,
+                    exception=e,
+                ) from e
+            raise
+        except requests.RequestException as e:
+            raise HttpError(
+                f"Connection error fetching donations from {campaign.url}",
+                status_code=503,
+                exception=e,
+            ) from e
+
+        try:
+            payload = response.json()
+        except ValueError as e:
+            raise HttpError(
+                f"Invalid response fetching donations from {campaign.url}",
+                status_code=502,
+                exception=e,
+            ) from e
+        if not isinstance(payload, dict):
+            raise HttpError(
+                f"Invalid response fetching donations from {campaign.url}",
+                status_code=502,
+            )
+
+        references = payload.get("references")
+        meta = payload.get("meta")
+        donations = (
+            references.get("donations", []) if isinstance(references, dict) else []
+        )
+        if not isinstance(donations, list):
+            raise HttpError(
+                f"Invalid response fetching donations from {campaign.url}",
+                status_code=502,
+            )
+        has_next = bool(meta.get("has_next")) if isinstance(meta, dict) else False
+        return donations, has_next
+
+    def _build_donation(
+        self, campaign: Campaign, donation: dict[str, Any]
+    ) -> CampaignDonation | None:
+        donation_id = donation.get("donation_id")
+        created_at = donation.get("created_at")
+        amount = donation.get("amount")
+        if donation_id is None or created_at is None or amount is None:
+            return None
+
+        donation_id = str(donation_id)
+        try:
+            donation_time = datetime.fromisoformat(
+                str(created_at).replace("Z", "+00:00")
+            ).astimezone(timezone.utc)
+            value = float(amount)
+        except (TypeError, ValueError):
+            log.warning("Skipping malformed GoFundMe donation %s", donation_id)
+            return None
+
+        currency = str(donation.get("currencycode") or "USD").upper()
+        if currency != "USD":
+            value = self.db.convert(
+                amount=value,
+                from_currency=currency,
+                to_currency="USD",
+                date=donation_time.date().strftime("%Y-%m-%d"),
+            )["converted_amount"]
+
+        return CampaignDonation(
+            id=donation_id,
+            url=f"{campaign.url}#donation-{donation_id}",
+            campaign_url=campaign.url,
+            amount=value,
+            created_at=donation_time,
+            donor=(
+                None if donation.get("is_anonymous") else (donation.get("name") or None)
+            ),
+        )
+
     def fetch_donations(self, campaign: Campaign) -> Campaign:
         """
         Fetch donations from the campaign URL.
         """
-        page_cursor = None
-        start_cursor = campaign.donations_cursor
-        end_cursor = campaign.donations_cursor
-        limit = 20
-        donations = []
+        known_ids = {str(donation.id) for donation in campaign.donations}
+        donations: list[CampaignDonation] = []
+        offset = 0
 
-        while True:
+        for _ in range(self._max_pages):
             log.debug(
-                "Fetching donations from %s (cursor=%s, limit=%s)",
+                "Fetching donations from %s (offset=%d, limit=%d)",
                 campaign.url,
-                end_cursor,
-                limit,
+                offset,
+                self._page_limit,
             )
 
-            payload: dict[str, Any] = {
-                "operationName": "GetFundraiserDonations",
-                "variables": {
-                    "slug": campaign.url.rstrip("/").split("/")[-1],
-                },
-                "query": self._graphql_donation_query,
-            }
-
-            if campaign.donations_cursor:
-                # Start from the latest fetched donation and go towards the present if the cursor is set
-                payload["variables"]["after"] = start_cursor
-                payload["variables"]["first"] = limit
-            else:
-                # Otherwise, go backwards from the most recent donation
-                payload["variables"]["before"] = end_cursor
-                payload["variables"]["last"] = limit
-
-            response = self._request(
-                "POST",
-                self._graphql_url,
-                json=payload,
-                timeout=self.config.http_timeout,
-                headers={"User-Agent": self._user_agent},
-            )
-
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                if response.status_code in HttpError.THROTTLED_STATUS_CODES:
-                    raise HttpError(
-                        f"Campaign {campaign.url} access denied: {response.status_code}",
-                        status_code=response.status_code,
-                        exception=e,
-                    ) from e
-                if (
-                    response.status_code in (404, 410)
-                    or 400 <= response.status_code < 500
-                ):
-                    raise CampaignDeletedError(
-                        f"Campaign {campaign.url} not found: {response.status_code}",
-                        campaign_url=campaign.url,
-                        status_code=response.status_code,
-                    ) from e
-                if response.status_code >= 500:
-                    raise HttpError(
-                        f"Server error fetching donations from {campaign.url}",
-                        status_code=response.status_code,
-                        exception=e,
-                    ) from e
-                raise
-            except requests.RequestException as e:
-                raise HttpError(
-                    f"Connection error fetching donations from {campaign.url}",
-                    status_code=503,
-                    exception=e,
-                ) from e
-
-            fundraiser = response.json().get("data", {}).get("fundraiser")
-            if not fundraiser:
-                raise CampaignDeletedError(
-                    f"Campaign {campaign.url} has no fundraiser data",
-                    campaign_url=campaign.url,
-                    status_code=404,
-                )
-
-            data = fundraiser.get("donations", {}) or {}
-            donations_data = data.get("edges", [])
-            start_cursor = data.get("pageInfo", {}).get("startCursor")
-            end_cursor = data.get("pageInfo", {}).get("endCursor")
-            if start_cursor and (campaign.donations_cursor or not page_cursor):
-                page_cursor = start_cursor
-
-            if not end_cursor:
+            rows, has_next = self._fetch_donations_page(campaign, offset)
+            if not rows:
                 break
 
-            for donation_edge in donations_data:
-                donation_node = donation_edge["node"]
-                amount_info = donation_node["amount"]
-                amount = float(amount_info["amount"])
-                currency = amount_info["currencyCode"]
-                donation_time = datetime.fromisoformat(
-                    donation_node["createdAt"].replace("Z", "+00:00")
-                ).astimezone(timezone.utc)
+            page_has_known = False
+            page_has_new = False
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                raw_id = row.get("donation_id")
+                row_id = str(raw_id) if raw_id is not None else None
+                if row_id is not None and row_id in known_ids:
+                    page_has_known = True
+                else:
+                    page_has_new = True
 
-                if currency != "USD":
-                    amount = self.db.convert(
-                        amount=amount,
-                        from_currency=currency,
-                        to_currency="USD",
-                        date=donation_time.date().strftime("%Y-%m-%d"),
-                    )["converted_amount"]
+                donation = self._build_donation(campaign, row)
+                if donation:
+                    donations.append(donation)
 
-                donations.append(
-                    CampaignDonation(
-                        id=donation_node["id"],
-                        url=f"{campaign.url}#donation-{donation_node['id']}",
-                        campaign_url=campaign.url,
-                        amount=amount,
-                        created_at=donation_time,
-                        donor=(
-                            donation_node["name"]
-                            if not donation_node["isAnonymous"]
-                            else None
-                        ),
-                    )
-                )
+            offset += self._page_limit
+            if not has_next or len(rows) < self._page_limit:
+                break
+            if page_has_known and not page_has_new:
+                break
 
         campaign.donations = donations
-        campaign.donations_cursor = page_cursor
+        campaign.donations_cursor = None
         return campaign
